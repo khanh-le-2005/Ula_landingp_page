@@ -5,11 +5,7 @@ export default function Experience() {
   return (
     <section className="py-20 bg-on-background text-white rounded-t-xl overflow-hidden" id="teachers">
       <div className="max-w-7xl mx-auto px-6">
-        <div className="flex flex-wrap justify-center gap-4 mb-12">
-          <button className="px-6 py-3 rounded-full bg-primary font-bold text-sm">Video bài giảng</button>
-          <button className="px-6 py-3 rounded-full bg-slate-800 hover:bg-slate-700 font-bold text-sm transition-all">Bài tập tương tác</button>
-          <button className="px-6 py-3 rounded-full bg-slate-800 hover:bg-slate-700 font-bold text-sm transition-all">AI chấm chữa</button>
-        </div>
+
         <div className="grid md:grid-cols-2 gap-12 items-center">
           <div className="space-y-6">
             <h3 className="text-3xl font-bold">Trải nghiệm học tập tương tác thực tế</h3>
@@ -30,6 +26,10 @@ export default function Experience() {
             <div className="absolute inset-0 bg-black/40 flex items-center justify-center group-hover:bg-black/20 transition-all cursor-pointer">
               <PlayCircle className="w-20 h-20 text-white opacity-80" strokeWidth={1} />
             </div>
+          </div>
+          <div className="flex flex-wrap gap-4 mb-12">
+            <button onClick={() => window.open('https://www.ulaedu.com/#/courses')} className="px-6 py-3 rounded-full bg-primary font-bold text-sm">Video bài giảng</button>
+            <button onClick={() => window.open('https://www.ulaedu.com/#/placement-test')} className="px-6 py-3 rounded-full bg-slate-800 hover:bg-slate-700 font-bold text-sm transition-all">Bài tập tương tác</button>
           </div>
         </div>
       </div>
