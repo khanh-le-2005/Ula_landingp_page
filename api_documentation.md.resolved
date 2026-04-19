@@ -1,0 +1,219 @@
+# Ula Landing Page API Documentation
+
+Version: 1.0.0
+Base URL: `http://localhost:3000`
+
+---
+
+## 1. Authentication
+
+### Login
+Xác thực người dùng và nhận JWT Token.
+
+- **URL**: `/api/auth/login`
+- **Method**: `POST`
+- **Body**:
+```json
+{
+  "username": "admin",
+  "password": "123"
+}
+```
+- **Success Response (200 OK)**:
+```json
+{
+  "message": "Thành công",
+  "data": {
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "user_info": {
+      "id": "661d...",
+      "role": "ADMIN"
+    }
+  }
+}
+```
+- **Error Response (401 Unauthorized)**:
+```json
+{
+  "message": "Sai tài khoản hoặc mật khẩu"
+}
+```
+
+---
+
+## 2. Landing Page Management
+
+### Get All Content
+Lấy toàn bộ nội dung của trang landing page.
+
+- **URL**: `/api/landing-page`
+- **Method**: `GET`
+- **Success Response (200 OK)**:
+```json
+{
+  "section_1_hero": {
+    "title": "Welcome to Ula",
+    "subtitle": "Discover our amazing services",
+    "cta": "Get Started"
+  },
+  "section_2_about": {
+    "text": "..."
+  }
+}
+```
+
+### Update Section Content
+Cập nhật nội dung cho một section cụ thể. Yêu cầu quyền **ADMIN** hoặc **EDITOR**.
+
+- **URL**: `/api/landing-page/:section`
+- **Method**: `PUT`
+- **URL Parameter**: `section` (Ví dụ: `section_1_hero`)
+- **Headers**:
+  - `Authorization: Bearer <JWT_TOKEN>`
+- **Body**:
+```json
+{
+  "title": "New Title",
+  "subtitle": "New Subtitle",
+  "cta": "Join Now"
+}
+```
+- **Success Response (200 OK)**:
+```json
+{
+  "message": "Cập nhật thành công",
+  "data": {
+    "title": "New Title",
+    "subtitle": "New Subtitle",
+    "cta": "Join Now"
+  }
+}
+```
+- **Error Responses**:
+  - `401 Unauthorized`: Không có Token.
+  - `403 Forbidden`: Token không hợp lệ hoặc không đủ quyền.
+  - `404 Not Found`: User không tồn tại trong DB.
+
+---
+
+## 3. Course Registration (Leads)
+
+### Submit Registration
+Gửi thông tin đăng ký từ Landing Page. Form linh hoạt, có thể thêm bất kỳ trường nào vào trong `formData`.
+
+- **URL**: `/api/leads/submit`
+- **Method**: `POST`
+- **Body**:
+```json
+{
+  "formData": {
+    "fullname": "Nguyễn Văn A",
+    "phone": "0987654321",
+    "course_name": "Khóa học IELTS 7.0",
+    "note": "Tư vấn ca tối"
+  },
+  "utm_source": "facebook",
+  "utm_medium": "cpc",
+  "utm_campaign": "sale_he_2024",
+  "utm_content": "ad_variant_1",
+  "referralId": "KOC_Yoncy"
+}
+```
+- **Success Response (201 Created)**:
+```json
+{
+  "message": "Đăng ký thành công!",
+  "data": {
+    "_id": "661d...",
+    "formData": { ... },
+    "utm_source": "facebook",
+    "referralId": "KOC_Yoncy",
+    "status": "NEW",
+    "createdAt": "..."
+  }
+}
+```
+
+### Get All Leads
+Lấy danh sách khách hàng đăng ký. Yêu cầu quyền **ADMIN** hoặc **EDITOR**.
+
+- **URL**: `/api/leads`
+- **Method**: `GET`
+- **Headers**:
+  - `Authorization: Bearer <JWT_TOKEN>`
+- **Success Response (200 OK)**: Danh sách các Lead.
+
+---
+
+## 4. Frontend Integration Guide (Tracking & Cookies)
+
+Để đảm bảo yêu cầu lưu trữ nguồn khách (UTM) và ID giới thiệu (KOC) trong 30-60 ngày, Frontend cần thực hiện các bước sau:
+
+### Bước 1: Bắt tham số từ URL
+Khi người dùng truy cập trang (ví dụ: `ulaedu.com/?ref=KOC_001&utm_source=tiktok`), bạn cần lấy các giá trị này.
+
+```javascript
+// Hàm helper để lấy query param
+const getQueryParam = (name) => {
+  return new URLSearchParams(window.location.search).get(name);
+};
+
+const trackingData = {
+  referralId: getQueryParam('ref'),
+  utm_source: getQueryParam('utm_source'),
+  utm_medium: getQueryParam('utm_medium'),
+  utm_campaign: getQueryParam('utm_campaign'),
+  utm_content: getQueryParam('utm_content'),
+};
+```
+
+### Bước 2: Lưu vào Cookie (Hạn 30-60 ngày)
+Lưu các giá trị này vào Cookie để nếu tuần sau khách mới đăng ký thì vẫn còn dữ liệu.
+
+```javascript
+// Ví dụ dùng thư viện js-cookie hoặc Vanilla JS
+const saveTrackingToCookie = (data) => {
+  const expires = 30; // 30 ngày
+  Object.keys(data).forEach(key => {
+    if (data[key]) {
+      // Lưu vào cookie: ula_ref, ula_utm_source, ...
+      document.cookie = `ula_${key}=${data[key]}; path=/; max-age=${expires * 24 * 60 * 60}`;
+    }
+  });
+};
+
+saveTrackingToCookie(trackingData);
+```
+
+### Bước 3: Gửi dữ liệu khi Submit Form
+Khi khách nhấn nút Đăng ký, hãy lấy dữ liệu từ Cookie và gửi kèm vào API.
+
+```javascript
+// Hàm lấy giá trị từ Cookie
+const getCookie = (name) => {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ula_${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+};
+
+const handleSubmit = async (userFormData) => {
+  const payload = {
+    formData: userFormData, // { name: "...", phone: "...", course: "..." }
+    referralId: getCookie('referralId'),
+    utm_source: getCookie('utm_source'),
+    utm_medium: getCookie('utm_medium'),
+    utm_campaign: getCookie('utm_campaign'),
+    utm_content: getCookie('utm_content'),
+  };
+
+  await axios.post('/api/leads/submit', payload);
+};
+```
+
+---
+
+## Postman Tips
+1. Copy `token` từ API Login.
+2. Trong Postman, chọn tab **Auth** -> Type **Bearer Token** -> Paste token vào.
+3. Sử dụng cổng `3000` như được cấu hình trong file [.env](file:///e:/projectlearn/Ula_landingp_page/.env).

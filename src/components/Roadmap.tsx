@@ -10,10 +10,10 @@ import {
   Sparkles,
 } from "lucide-react";
 
-const startMarkerIcon = "https://work.deepcode.vn/api/images/69e04f461e24b12446a369b5";
-const targetMarkerIcon = "https://work.deepcode.vn/api/images/69e04f4a1e24b12446a369c7";
-const lockedLevelIcon = "https://work.deepcode.vn/api/images/69e04f4e1e24b12446a369d6";
-const stepFlagIcon = "https://work.deepcode.vn/api/images/69e04f521e24b12446a369e5";
+const startMarkerIcon = "https://www.ulaedu.com/assets/icon_b%E1%BA%AFt%20%C4%91%E1%BA%A7u-C1Kqht5K.png";
+const targetMarkerIcon = "https://www.ulaedu.com/assets/icon%20c%E1%BB%9D%20%C4%91%C3%ADch-DAYHzXAE.png";
+const lockedLevelIcon = "https://www.ulaedu.com/assets/icon%20cho%20t%E1%BB%ABng%20level-XmPueJ99.png";
+const stepFlagIcon = "https://www.ulaedu.com/assets/icon_c%E1%BB%9D_cho%20t%E1%BB%ABng%20m%E1%BB%91c%20l%E1%BB%99%20tr%C3%ACnh-BcR1hdid.png";
 
 export interface CourseRoadmapLevel {
   id: string;
@@ -190,7 +190,7 @@ const LevelTrackPanel: React.FC<{
   const progressWidthPercent = trackWidthPercent * progressRatio;
 
   return (
-    <div className="relative overflow-hidden rounded-[1.8rem] border border-white/60 bg-white/[0.34] px-3 py-2.5 shadow-[0_18px_55px_rgba(40,66,120,0.08),inset_0_1px_0_rgba(255,255,255,0.85)] backdrop-blur-2xl md:px-4 md:py-3">
+    <div className="relative overflow-hidden rounded-[1.8rem] border border-white/60 px-3 py-2.5 shadow-[0_18px_55px_rgba(40,66,120,0.08),inset_0_1px_0_rgba(255,255,255,0.85)] backdrop-blur-2xl md:px-4 md:py-3">
       <div className="mb-2 flex items-center gap-1.5 text-[#22314d]">
         <img
           src={stepFlagIcon}
@@ -465,20 +465,17 @@ const CourseRoadmapShowcase: React.FC<CourseRoadmapShowcaseProps> = ({
                   </div>
                 </div>
 
-                <div className="mt-7 grid gap-3 rounded-[2rem] border border-white/80 bg-white/40 px-4 py-4 shadow-[0_18px_50px_rgba(46,72,129,0.08),inset_0_1px_0_rgba(255,255,255,0.82)] backdrop-blur-2xl md:grid-cols-3 md:px-6">
-                  <div className="flex items-center gap-3">
+                {/* <div className="mt-7 flex justify-between gap-3 rounded-[2rem] border border-white/80 bg-white/40 py-4 shadow-[0_18px_50px_rgba(46,72,129,0.08),inset_0_1px_0_rgba(255,255,255,0.82)] backdrop-blur-2xl md:grid-cols-3 md:px-6">
+                  <div className="flex items-center gap-3 px-24">
                     <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eef3ff] text-[#4866a8]"><Clock3 className="h-6 w-6" /></div>
                     <div><div className="text-sm font-semibold text-slate-400">Thời gian dự kiến</div><div className="text-xl font-black text-[#22314d]">12 tháng</div></div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 px-24">
                     <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eef8ff] text-[#3a84d8]"><Sparkles className="h-6 w-6" /></div>
                     <div><div className="text-sm font-semibold text-slate-400">Hình thức</div><div className="text-xl font-black text-[#22314d]">Hybrid AI</div></div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#fff3f1] text-[#d7232d]"><CreditCard className="h-6 w-6" /></div>
-                    <div><div className="text-sm font-semibold text-slate-400">Học phí dự kiến</div><div className="text-xl font-black text-[#22314d]">{formatCurrency(displayedTotalPrice)}</div></div>
-                  </div>
-                </div>
+
+                </div> */}
               </>
             )}
           </div>
@@ -555,7 +552,7 @@ const Roadmap: React.FC = () => {
   const totalPrice = roadmapSteps.reduce((sum, s) => sum + (s.price || 0), 0);
 
   return (
-    <div id="roadmap" className="py-24 bg-surface-container-low px-6">
+    <div id="roadmap" className="py-24 px-6">
       <div className="max-w-7xl mx-auto">
         <CourseRoadmapShowcase
           variant="german"

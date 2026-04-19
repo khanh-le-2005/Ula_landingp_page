@@ -1,38 +1,97 @@
 import React from 'react';
+import { solutionDefault } from '../pages/admin/adminData';
+import { ADMIN_SECTION_KEYS } from '../pages/admin/adminSections';
+import { useLandingSection } from '../pages/admin/hooks/useLandingSection';
+import { resolveAssetUrl } from '../utils/assetUtil';
 
-export default function Solution() {
+const GlassFeatureCard = ({ category, title, bulletPoints, mediaUrl, isVideo = false, gradient }: any) => (
+  // h-full kết hợp với max-w nhỏ giúp thẻ trông cao và gầy
+  <div className="relative group overflow-hidden rounded-[35px] p-[1px] bg-gradient-to-b from-white/30 to-transparent shadow-xl h-[500px] flex flex-col max-w-[340px] mx-auto">
+    <div className="bg-white/10 backdrop-blur-2xl rounded-[34px] p-6 h-full flex flex-col border border-white/20 transition-all duration-500 hover:bg-white/25 w-">
+
+      <span className="text-[14px] text-center font-bold text-white uppercase tracking-[0.2em] mb-3 block">
+        {category}
+      </span>
+
+      <h3 className="text-lg font-bold text-center text-white mb-4 leading-tight min-h-[2.5rem]">
+        {title}
+      </h3>
+
+      {/* CHỈNH SỬA TẠI ĐÂY: Dùng aspect-square để kéo dài diện tích theo chiều dọc */}
+      <figure className={`w-full aspect-square rounded-2xl mb-5 flex items-center justify-center relative overflow-hidden bg-gradient-to-br ${gradient} shadow-inner border border-white/10`}>
+        {mediaUrl ? (
+          isVideo ? (
+            <video src={resolveAssetUrl(mediaUrl)} autoPlay muted loop className="w-full h-full object-cover" />
+          ) : (
+            <img src={resolveAssetUrl(mediaUrl)} alt={title} className="w-full h-full object-cover opacity-90 group-hover:scale-110 transition-transform duration-700" />
+          )
+        ) : (
+          <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
+        )}
+      </figure>
+
+      {/* Bullet Points - Thu nhỏ font chữ để tiết kiệm diện tích chiều dọc */}
+      <ul className="space-y-2 mb-6 flex-grow">
+        {bulletPoints.map((point: string, index: number) => (
+          <li key={index} className="flex items-center gap-2 text-[13px] text-white/80 leading-snug">
+            <span className="text-blue-400 mt-1 text-[10px]">✦</span>
+            {point}
+          </li>
+        ))}
+      </ul>
+
+      <div className="w-10 h-[1.5px] bg-blue-400/40 rounded-full" />
+    </div>
+  </div>
+);
+
+const UlaLandingSection = () => {
+  const { content: features } = useLandingSection(ADMIN_SECTION_KEYS.solution, solutionDefault);
+  const visibleFeatures = features.slice(0, 3);
+
   return (
-    <section className="py-24 px-6 max-w-7xl mx-auto bg-[#f0f3ff]" id="about">
-      <div className="text-center mb-16 space-y-4">
-        <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight">3 Trụ cột giải pháp từ ULA</h2>
-        <p className="text-on-surface-variant max-w-2xl mx-auto text-lg">Kết hợp giữa trí tuệ nhân tạo và phương pháp sư phạm hiện đại.</p>
+    // Sử dụng h-screen và overflow-hidden để ép toàn bộ vừa khít 1 màn hình
+    <section className="h-screen bg-[#004e89] flex flex-col items-center justify-center mt-20 p-4 lg:p-10 font-sans relative overflow-hidden">
+
+      {/* Background Decor */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/20 rounded-full blur-[120px] pointer-events-none" />
+
+      {/* Headline - Thu gọn margin để không chiếm diện tích dọc */}
+      <div className="text-center mb-6 md:mb-8 xl:mb-12 shrink-0">
+        <h1 className="text-3xl md:text-4xl xl:text-5xl font-black text-white uppercase tracking-tighter flex flex-row items-center justify-center">
+          Chỉ <span className="text-[#1a2b48] italic">30p/ngày</span>, dễ dàng bắt đầu
+        </h1>
+        <p className="text-white/50 text-base font-light">
+          Giải pháp học tập tối ưu cho học sinh hiện đại
+        </p>
       </div>
-      <div className="grid md:grid-cols-3 gap-10">
-        <div className="bg-[#eff2ff] p-10 rounded-[2.5rem] flex flex-col items-center text-center transition-all duration-300 shadow-[0_35px_60px_-15px_rgba(0,74,198,0.3)] hover:shadow-[0_45px_70px_-10px_rgba(0,74,198,0.4)] border border-blue-50/50 hover:-translate-y-2">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-primary mb-4">HIỆU QUẢ</span>
-          <div className="w-24 h-24 rounded-2xl overflow-hidden mb-8 shadow-md">
-            <img alt="Efficiency" className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAeOsTnyH_ii6BwjWXY96wtplXLwx5TexU4UE15MCL5YxDXh8njUipA_BO42VY4uM2dVgjIsH5nTfRvHsktxRsjgMl0onMsymmgrsBW-bvBNUW_fwfSOIiLb6CGHODrD99h2ndGCG-eALjVvY_ra0XIO4JlXXdfrf1_2Fo9yhvVFFUr4n5gpFSDlae75J3KdEQm_YnS9YyYzGgQsgKs7M9r4CMWFKPvtG3f2LRwpUrOTqJDSlIsaSxLrbpcJKQLQYx21Pi9obMKZS0l" />
-          </div>
-          <h3 className="text-2xl font-bold mb-4">Hiệu quả</h3>
-          <p className="text-on-surface-variant leading-relaxed">Video bài giảng từ chuyên gia, hỗ trợ giải đáp 24/7. Lộ trình bắt đầu sớm từ lớp 10-11 để tối ưu thời gian.</p>
-        </div>
-        <div className="bg-[#eff2ff] p-10 rounded-[2.5rem] flex flex-col items-center text-center transition-all duration-300 shadow-[0_35px_60px_-15px_rgba(0,74,198,0.3)] hover:shadow-[0_45px_70px_-10px_rgba(0,74,198,0.4)] border border-blue-50/50 hover:-translate-y-2">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-primary mb-4">LUYỆN TẬP</span>
-          <div className="w-24 h-24 rounded-2xl overflow-hidden mb-8 shadow-md">
-            <img alt="Practice" className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCdzkENU7LQrp4SnNyoCLAucIHLIn0rmO6AEK21hDJP1irR2OKxl51wRLtKthaWP1fjm5nPLmsdAqsGj5W9DAaIGT-1OYWUuTR2M4BVTIUhIbRCohxDbc3JTEFBJM_NkT7q0GUw_64Hkc46AJqrgRk71bYQo2QWafAKUyYKlsCW7q4s8CGRAfGv_eOjLsjzxz7ZDOEwIqvyoEk6dc5O6xZlWv7qT8V4hZVM7K-pCspuASOL-Oyl28TWWbjA1rMV0aTccmvjJDtFJKkI" />
-          </div>
-          <h3 className="text-2xl font-bold mb-4">Luyện tập</h3>
-          <p className="text-on-surface-variant leading-relaxed">Tương tác trực tiếp ngay trong video. AI thông minh hỗ trợ chỉnh sửa phát âm và rèn luyện phản xạ giao tiếp.</p>
-        </div>
-        <div className="bg-[#eff2ff] p-10 rounded-[2.5rem] flex flex-col items-center text-center transition-all duration-300 shadow-[0_35px_60px_-15px_rgba(0,74,198,0.3)] hover:shadow-[0_45px_70px_-10px_rgba(0,74,198,0.4)] border border-blue-50/50 hover:-translate-y-2">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-primary mb-4">LINH HOẠT &amp; TIẾT KIỆM</span>
-          <div className="w-24 h-24 rounded-2xl overflow-hidden mb-8 shadow-md">
-            <img alt="Savings" className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDE5_Dw34jnsax7DErMWwWhxR_G6EuagU3_CvvRsMTzeDnFavAYgKxTHbza8ddCU21aeQLFkwJ_WoG1hPcsdFfz2skCLRx1CslgvCEs4qOZW3NEkLpAZG9fd4tyAwPROS9BDtYA3MVH4BRZ48daVVT77z--pkR1Sq7PimF4QuHFgHywU36vX7uucEXjjxesNK-ETCcARN9g3zPWWauJFVshS4fT7QMnNW1o6nOxG9sFc16YDuQUgcnMSNVkNPQu4gOtZNBu9lpc9Z7f" />
-          </div>
-          <h3 className="text-2xl font-bold mb-4">Linh hoạt &amp; Tiết kiệm</h3>
-          <p className="text-on-surface-variant leading-relaxed">Chỉ từ 10k/ngày (tiết kiệm 80% chi phí). Học mọi lúc, mọi nơi trên mọi thiết bị.</p>
-        </div>
+
+      {/* Grid Container - items-stretch giúp các thẻ cao bằng nhau */}
+      <div className="max-w-6xl w-full grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10 items-stretch h-[65vh] ">
+
+
+        {visibleFeatures.map((feature, index) => (
+          <GlassFeatureCard
+            key={`${feature.category}-${index}`}
+            category={feature.category}
+            title={feature.title}
+            gradient={feature.gradient}
+            mediaUrl={feature.mediaUrl}
+            isVideo={feature.isVideo}
+            bulletPoints={feature.bullets}
+          />
+        ))}
+
+      </div>
+
+      {/* CTA Button - Thu nhỏ một chút để dành diện tích cho thẻ */}
+      <div className="mt-10 relative z-10">
+        <button onClick={() => window.location.href = "#lead-form"} className="bg-[#89cff0] text-[#1a2b48] px-8 py-3 rounded-full font-bold text-sm shadow-[0_0_20px_rgba(37,99,235,0.3)] transition-all hover:scale-105 active:scale-95 uppercase tracking-wider">
+          Bắt đầu trải nghiệm ngay
+        </button>
       </div>
     </section>
   );
-}
+};
+
+export default UlaLandingSection;

@@ -7,7 +7,7 @@ import SuccessStatsPanel from '../SuccessStatsPanel';
 
 export default function Trust() {
   return (
-    <section className="py-24 px-6 mx-auto" id="trust">
+    <section className="py-24  mx-auto" id="trust">
       <div className="w-full md:w-[116%] md:-ml-[8%] lg:w-[118%] lg:-ml-[9%] xl:w-[114%] xl:-ml-[7%] md:scale-[0.8] md:origin-top">
 
         <div className="w-full px-2 md:px-8 lg:px-10 text-center mb-10 md:mb-16 relative z-10">

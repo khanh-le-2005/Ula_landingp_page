@@ -3,16 +3,33 @@ import { Wheel } from 'react-custom-roulette';
 import { useState } from 'react';
 import confetti from 'canvas-confetti';
 import Swal from 'sweetalert2';
+import { luckyWheelDefault } from '../pages/admin/adminData';
+import { ADMIN_SECTION_KEYS } from '../pages/admin/adminSections';
+import { useLandingSection } from '../pages/admin/hooks/useLandingSection';
+
+type LuckyWheelSection = {
+  timerLabel: string;
+  headline: string;
+  description: string;
+  prizes: typeof luckyWheelDefault;
+};
 
 export default function LuckyWheel({ onWin }: { onWin: (prize: { option: string }) => void }) {
-  const data = [
-    { option: 'Voucher 10%', style: { backgroundColor: '#2563eb', textColor: 'white' } },
-    { option: 'Khóa học FREE', style: { backgroundColor: '#004ac6', textColor: 'white' } },
-    { option: 'Bút ký ULA', style: { backgroundColor: '#ba0a0d', textColor: 'white' } },
-    { option: 'Sổ tay Đức', style: { backgroundColor: '#e63329', textColor: 'white' } },
-    { option: 'Chúc bạn may mắn', style: { backgroundColor: '#f5a623', textColor: 'black' } },
-    { option: 'Tài liệu A1', style: { backgroundColor: '#ffddb4', textColor: 'black' } },
-  ];
+  const { content } = useLandingSection<LuckyWheelSection>(
+    ADMIN_SECTION_KEYS.luckyWheel,
+    {
+      timerLabel: 'Ưu đãi kết thúc sau: 00:59:59',
+      headline: 'Vòng quay may mắn - Nhận quà cực khủng!',
+      description: 'Chỉ cần đăng ký thông tin để nhận 01 lượt quay miễn phí với cơ hội trúng học bổng lên đến 50%.',
+      prizes: luckyWheelDefault,
+    },
+  );
+
+  const data = content.prizes.map((prize) => ({
+    option: prize.option,
+    code: prize.code,
+    style: { backgroundColor: prize.backgroundColor, textColor: prize.textColor },
+  }));
 
   const [mustStartSpinning, setMustStartSpinning] = useState(false);
   const [prizeNumber, setPrizeNumber] = useState(0);
@@ -62,18 +79,20 @@ export default function LuckyWheel({ onWin }: { onWin: (prize: { option: string 
   };
 
   return (
-    <section className="py-24 bg-on-background text-white rounded-[3rem] mx-6 mb-24 overflow-hidden relative" id="luckywheel">
+    <section className="py-10 text-white rounded-[3rem] bg-white/50 mx-6 mb-24 overflow-hidden relative" id="luckywheel">
       <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_center,_var(--color-primary)_0%,_transparent_50%)] opacity-20"></div>
       <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center relative z-10">
         <div className="space-y-8">
           <div className="inline-block bg-secondary px-4 py-1 rounded-full text-sm font-bold animate-pulse">
-            Ưu đãi kết thúc sau: 00:59:59
+            {content.timerLabel}
           </div>
-          <h2 className="text-3xl md:text-5xl font-bold leading-tight">Vòng quay may mắn - <span className="text-tertiary-fixed">Nhận quà cực khủng!</span></h2>
-          <p className="text-slate-400 text-lg">Chỉ cần đăng ký thông tin để nhận 01 lượt quay miễn phí với cơ hội trúng học bổng lên đến 50%.</p>
+          <h2 className="text-3xl md:text-5xl font-bold leading-tight text-blue-950 ">
+            {content.headline.split(' - ')[0]}  <span className="inline-block text-[1.08em] sm:text-[1.1em] lg:text-[1.08em] text-[#d4b36d] drop-shadow-[0_6px_16px_rgba(197,160,89,0.14)] [-webkit-text-stroke:0.5px_#ffffcc]">{content.headline.split(' - ')[1] || ''}</span>
+          </h2>
+          <p className=" text-xl text-slate-600">{content.description}</p>
           <div className="flex flex-col sm:flex-row gap-4">
-            <a className="bg-secondary text-white px-8 py-4 rounded-full font-bold text-center hover:opacity-90 transition-all" href="#lead-form">Giữ ưu đãi ngay</a>
-            <button className="bg-white/10 border border-white/20 text-white px-8 py-4 rounded-full font-bold hover:bg-white/20 transition-all">Mua ngay với ưu đãi</button>
+            <a className="bg-secondary text-white px-8 py-4 rounded-full font-bold text-center hover:opacity-90 transition-all hover:cursor-pointer" href="#lead-form">Giữ ưu đãi ngay</a>
+            <button className="bg-white/60 border border-white/20 text-black px-8 py-4 rounded-full font-bold hover:bg-white/20 transition-all hover:cursor-pointer">Mua ngay với ưu đãi</button>
           </div>
         </div>
         <div className="flex flex-col items-center justify-center py-10">

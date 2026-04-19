@@ -1,61 +1,138 @@
 import React from 'react';
-import { Bot } from 'lucide-react';
+import robotMascotFallback from '../assets/nhanvat1.png';
+import { painpointsDefault, type PainpointsContent } from '../pages/admin/adminData';
+import { ADMIN_SECTION_KEYS } from '../pages/admin/adminSections';
+import { useLandingSection } from '../pages/admin/hooks/useLandingSection';
+import { resolveAssetUrl } from '../utils/assetUtil';
+
+const PAINPOINT_LAYOUT = [
+  // 1. TRUNG TÂM (To nhất, nằm chính giữa trên cao)
+  { positionClass: 'top-[0%] left-[60%] -translate-x-1/2 md:top-[5%] animate-float-slow', sizeClass: 'w-36 h-36 md:w-52 md:h-52' },
+
+  // 2. BÊN TRÁI - TRÊN (Lệch trái, gần vòng cung trung tâm)
+  { positionClass: 'top-[18%] left-[16%] md:top-[16%] md:left-[35%] animate-float', sizeClass: 'w-24 h-24 md:w-32 md:h-32' },
+
+  // 3. BÊN TRÁI - GIỮA (Phình ra ngoài viền trái)
+  { positionClass: 'top-[42%] left-[2%] md:top-[38%] md:left-[20%] animate-float-delayed', sizeClass: 'w-30 h-30 md:w-44 md:h-44' },
+
+  // 4. BÊN TRÁI - DƯỚI (Gom sát vào ánh sáng / vai trái robot)
+  { positionClass: 'top-[68%] left-[12%] md:top-[75%] md:left-[18%] animate-float-slow', sizeClass: 'w-26 h-26 md:w-34 md:h-34' },
+
+  // 5. BÊN PHẢI - TRÊN (Lệch phải, hơi cao hơn hoặc ngang bên trái)
+  { positionClass: 'top-[15%] right-[14%] md:top-[10%] md:right-[18%] animate-float-delayed', sizeClass: 'w-26 h-26 md:w-36 md:h-36' },
+
+  // 6. BÊN PHẢI - GIỮA (Phình ra ngoài viền phải)
+  { positionClass: 'top-[40%] right-[4%] md:top-[45%] md:right-[20%] animate-float', sizeClass: 'w-32 h-32 md:w-44 md:h-44' },
+
+  // 7. BÊN PHẢI - DƯỚI (Gom sát vào ánh sáng / vai phải robot)
+  { positionClass: 'top-[65%] right-[10%] md:top-[82%] md:right-[20%] animate-float-slow', sizeClass: 'w-22 h-22 md:w-30 md:h-30' },
+] as const;
+
+// const PAINPOINT_LAYOUT = [
+// // 1. CÁC BÀI VIẾT (Góc trên cùng bên trái - Ép vào trong)
+// { positionClass: 'top-[-20px] left-[8%] md:top-[-40px] md:left-[20%] animate-float', sizeClass: 'w-20 h-20 md:w-24 md:h-24' },
+// // 2. LÊN "TRÌNH" CÙNG AI (Dưới số 1 - Sát ngay cạnh bóng số 5)
+// { positionClass: 'top-[50px] left-[25%] md:top-[60px] md:left-[32%] animate-float-delayed', sizeClass: 'w-24 h-24 md:w-[110px] md:h-[110px]' },
+// // 3. NHỮNG "CÂU LỆNH VÀNG" (Vành đai ngoài bên trái - Kéo khỏi lề, ôm sát vào AI)
+// { positionClass: 'top-[160px] left-[4%] md:top-[200px] md:left-[14%] animate-float-slow', sizeClass: 'w-28 h-28 md:w-36 md:h-36' },
+// // 4. NHỮNG CASE STUDY THỰC TẾ (Góc dưới cùng bên trái - Rút sát vào ánh sáng xanh)
+// { positionClass: 'top-[320px] left-[10%] md:top-[380px] md:left-[22%] animate-float', sizeClass: 'w-24 h-24 md:w-28 md:h-28' },
+// // 5. CÁC CÔNG CỤ AI HIỆU QUẢ... (Trung tâm - Vẫn giữ nguyên ở tâm)
+// { positionClass: 'top-[-60px] left-1/2 -translate-x-1/2 md:top-[-100px] animate-float-slow', sizeClass: 'w-36 h-36 md:w-44 md:h-44' },
+// // 6. XÂY DỰNG TƯ DUY... (Góc trên cùng bên phải - Sát ngay cạnh bóng số 5)
+// { positionClass: 'top-[10px] right-[20%] md:top-[20px] md:right-[28%] animate-float-delayed', sizeClass: 'w-24 h-24 md:w-[110px] md:h-[110px]' },
+// // 7. NHỮNG MẸO NHỎ DÙNG AI (Vành đai ngoài bên phải - Kéo khỏi lề, ôm sát vào AI)
+// { positionClass: 'top-[140px] right-[4%] md:top-[180px] md:right-[14%] animate-float', sizeClass: 'w-28 h-28 md:w-32 md:h-32' },
+// // 8. CÁC VIDEO NGẮN (Góc dưới cùng bên phải - Rút sát vào ánh sáng xanh)
+// { positionClass: 'top-[300px] right-[12%] md:top-[360px] md:right-[24%] animate-float-slow', sizeClass: 'w-20 h-20 md:w-28 md:h-28' },
+// ] as const;
+
+const PainpointBubble: React.FC<{ text: string; className: string; size?: string }> = ({
+  text,
+  className,
+  size = 'w-40 h-40',
+}) => (
+  <div className={`absolute group transition-all duration-700 ${className} z-50`}>
+    <div className={`relative ${size} rounded-full transition-all duration-500 group-hover:scale-110 flex items-center justify-center`}>
+      {/* Subtle background glow */}
+      <div className="absolute inset-0 rounded-full bg-cyan-500/10 blur-xl group-hover:bg-cyan-500/20 transition-colors" />
+
+      {/* Main bubble body: Dark glass with cyan border and glow */}
+      <div className="absolute inset-0 rounded-full border border-cyan-400/60 bg-[#0a192f]/40 backdrop-blur-md shadow-[0_0_20px_rgba(34,211,238,0.3),inset_0_0_20px_rgba(34,211,238,0.3)] transition-all duration-500 group-hover:shadow-[0_0_30px_rgba(34,211,238,0.5),inset_0_0_25px_rgba(34,211,238,0.4)]" />
+
+      {/* Top reflection highlight (Sphere effect) */}
+      <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
+        <div className="absolute -top-[5%] -left-[5%] w-[60%] h-[50%] bg-gradient-to-br from-white/20 via-white/5 to-transparent blur-[10px] rounded-[100%] rotate-[-15deg]" />
+      </div>
+
+      {/* Content */}
+      <div className="relative z-10 px-4 text-center">
+        <p className="font-be-vietnam font-extrabold text-white text-[10px] md:text-[14px] leading-tight uppercase tracking-wider">
+          {text}
+        </p>
+      </div>
+    </div>
+  </div>
+);
 
 export default function Painpoints() {
+  const { content } = useLandingSection<PainpointsContent>(ADMIN_SECTION_KEYS.painpoints, painpointsDefault);
+  const visiblePainpoints = [...content.bubbles].slice(0, PAINPOINT_LAYOUT.length);
+
+  while (visiblePainpoints.length < PAINPOINT_LAYOUT.length) {
+    visiblePainpoints.push(painpointsDefault.bubbles[visiblePainpoints.length] || 'Nỗi lo mới');
+  }
+
+  const rawMascotUrl = content.mascotImageUrl || '';
+  const isDefaultLocalPath = rawMascotUrl === '/src/assets/nhanvat1.png' || rawMascotUrl === '';
+  const mascotImageUrl = isDefaultLocalPath ? robotMascotFallback : rawMascotUrl;
+
   return (
-    <section className="bg-[radial-gradient(circle_at_center,_#00174b_0%,_#00081a_100%)] py-24 px-6 relative overflow-hidden min-h-[800px] flex items-center justify-center" id="painpoints">
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1200px] h-[1200px] bg-blue-600/10 rounded-full blur-[150px]"></div>
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full h-[600px] bg-[linear-gradient(0deg,_rgba(0,210,255,0.4)_0%,_transparent_100%)] [clip-path:polygon(45%_0%,_55%_0%,_100%_100%,_0%_100%)] opacity-30"></div>
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/2 h-[800px] bg-[linear-gradient(0deg,_rgba(0,210,255,0.4)_0%,_transparent_100%)] [clip-path:polygon(45%_0%,_55%_0%,_100%_100%,_0%_100%)] opacity-20 rotate-12"></div>
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/2 h-[800px] bg-[linear-gradient(0deg,_rgba(0,210,255,0.4)_0%,_transparent_100%)] [clip-path:polygon(45%_0%,_55%_0%,_100%_100%,_0%_100%)] opacity-20 -rotate-12"></div>
-      </div>
-      <div className="max-w-7xl mx-auto w-full relative z-10 flex flex-col items-center">
-        <h2 className="text-3xl md:text-5xl font-extrabold text-white mb-32 text-center tracking-tight drop-shadow-lg">
-          ULA hiểu nỗi lo của phụ huynh và học sinh
-        </h2>
-        <div className="relative w-full max-w-4xl h-[500px] flex items-center justify-center">
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 flex flex-col items-center">
-            <div className="relative">
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[400px] h-[400px] bg-[radial-gradient(circle,_rgba(255,255,255,0.9)_0%,_rgba(0,210,255,0.5)_40%,_transparent_70%)] opacity-90 rounded-full blur-3xl"></div>
-              <div className="relative z-20 w-48 md:w-64 transform translate-y-10">
-                <div className="flex flex-col items-center">
-                  <div className="bg-white rounded-full p-2 shadow-[0_0_50px_rgba(255,255,255,0.8)] relative">
-                    <Bot className="w-[100px] h-[100px] md:w-[140px] md:h-[140px] text-slate-800" strokeWidth={1.5} />
-                    <div className="absolute top-[40%] left-[30%] w-3 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-                    <div className="absolute top-[40%] right-[30%] w-3 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-                  </div>
-                  <div className="mt-[-20px] bg-slate-700 w-32 h-16 rounded-t-lg border-t-4 border-slate-500 flex items-center justify-center shadow-xl">
-                    <div className="w-12 h-1 bg-blue-400/50 rounded-full"></div>
-                  </div>
-                </div>
+    <section className="relative mb-8 flex items-center justify-center overflow-hidden px-4">
+      {/* KHUNG NỀN MÀU ĐẬM */}
+      <div className="relative min-h-[820px] w-full max-w-[1300px] overflow-hidden rounded-[60px] border border-white/10 bg-gradient-to-br from-[#0d1b35] via-[#1a2b48] to-[#2d4373] shadow-[0_40px_100px_rgba(0,0,0,0.5)]">
+
+        {/* Glow effect */}
+        <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(30,58,138,0.3)_0%,_transparent_70%)]" />
+
+        <div className="relative z-20 flex flex-col items-center pt-12">
+          {/* PHẦN TIÊU ĐỀ ĐÃ KHÔI PHỤC */}
+          <div className="mb-5 text-center animate-fade-in">
+            <h3 className=" font-be-vietnam font-extrabold text-lg  uppercase tracking-widest text-cyan-400 md:text-3xl">
+              {content.sectionTitle}
+            </h3>
+            {content.sectionSubtitle && (
+              <div className="text-[10px] font-black uppercase tracking-[0.35em] text-white/40 mb-4">
+                {content.sectionSubtitle}
               </div>
-              <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-64 h-16 border-2 border-blue-400/30 rounded-[100%] shadow-[0_0_30px_rgba(0,210,255,0.4)]"></div>
-              <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 w-48 h-12 border border-blue-400/20 rounded-[100%]"></div>
+            )}
+            <h2 className="text-3xl font-black text-white md:text-4xl leading-tight">
+              {content.mainTitleTop} <br className="md:hidden" />
+              <span className="text-cyan-400">{content.mainTitleHighlight}</span>
+            </h2>
+          </div>
+
+          <div className="relative h-[550px] w-full">
+            {/* ĐẨY ROBOT XUỐNG DƯỚI ĐỂ BONG BÓNG Ở TRÊN ĐẦU */}
+            <div className="absolute bottom-[-80px] md:bottom-[-200px] left-1/2 z-10 -translate-x-1/2">
+              <div className="relative transform scale-[1.1]">
+                <img
+                  src={resolveAssetUrl(mascotImageUrl)}
+                  alt="ULA Robot"
+                  className="w-[200px] md:w-[300px] object-cover drop-shadow-[0_20px_50px_rgba(59,130,246,0.4)] animate-float-slow"
+                />
+              </div>
             </div>
-          </div>
-          
-          {/* Bubbles */}
-          <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-44 h-44 rounded-full bg-[#0095ff1a] border-4 border-[#00d2ff] shadow-[0_0_25px_rgba(0,210,255,0.6),inset_0_0_15px_rgba(0,210,255,0.3)] backdrop-blur-md flex items-center justify-center p-6 text-center animate-float z-30">
-            <p className="text-white font-bold text-sm leading-tight">CÁC CÔNG CỤ AI HIỆU QUẢ, MIỄN PHÍ</p>
-          </div>
-          <div className="absolute top-0 left-[5%] md:left-[10%] w-36 h-36 rounded-full bg-[#0095ff1a] border-4 border-[#00d2ff] shadow-[0_0_25px_rgba(0,210,255,0.6),inset_0_0_15px_rgba(0,210,255,0.3)] backdrop-blur-md flex items-center justify-center p-4 text-center animate-float-delayed z-30">
-            <p className="text-white font-bold text-xs leading-tight">TIẾNG ĐỨC QUÁ KHÓ - NGỮ PHÁP PHỨC TẠP</p>
-          </div>
-          <div className="absolute top-[40%] -left-4 md:left-0 w-40 h-40 rounded-full bg-[#0095ff1a] border-4 border-[#00d2ff] shadow-[0_0_25px_rgba(0,210,255,0.6),inset_0_0_15px_rgba(0,210,255,0.3)] backdrop-blur-md flex items-center justify-center p-5 text-center animate-float-slow z-30">
-            <p className="text-white font-bold text-sm leading-tight">CHI PHÍ RỦI RO LỚN - ĐẦU TƯ TRĂM TRIỆU</p>
-          </div>
-          <div className="absolute bottom-10 left-[5%] md:left-[10%] w-32 h-32 rounded-full bg-[#0095ff1a] border-4 border-[#00d2ff] shadow-[0_0_25px_rgba(0,210,255,0.6),inset_0_0_15px_rgba(0,210,255,0.3)] backdrop-blur-md flex items-center justify-center p-4 text-center animate-float z-30">
-            <p className="text-white font-bold text-xs leading-tight">NHỮNG CASE STUDY THỰC TẾ</p>
-          </div>
-          <div className="absolute top-0 right-[5%] md:right-[10%] w-36 h-36 rounded-full bg-[#0095ff1a] border-4 border-[#00d2ff] shadow-[0_0_25px_rgba(0,210,255,0.6),inset_0_0_15px_rgba(0,210,255,0.3)] backdrop-blur-md flex items-center justify-center p-4 text-center animate-float-delayed z-30">
-            <p className="text-white font-bold text-xs leading-tight">LỚP OFFLINE ĐÔNG - THIẾU TƯƠNG TÁC</p>
-          </div>
-          <div className="absolute top-[40%] -right-4 md:right-0 w-40 h-40 rounded-full bg-[#0095ff1a] border-4 border-[#00d2ff] shadow-[0_0_25px_rgba(0,210,255,0.6),inset_0_0_15px_rgba(0,210,255,0.3)] backdrop-blur-md flex items-center justify-center p-5 text-center animate-float-slow z-30">
-            <p className="text-white font-bold text-sm leading-tight">HỌC XONG LẠI QUÊN - THIẾU MÔI TRƯỜNG</p>
-          </div>
-          <div className="absolute bottom-10 right-[5%] md:right-[10%] w-32 h-32 rounded-full bg-[#0095ff1a] border-4 border-[#00d2ff] shadow-[0_0_25px_rgba(0,210,255,0.6),inset_0_0_15px_rgba(0,210,255,0.3)] backdrop-blur-md flex items-center justify-center p-4 text-center animate-float z-30">
-            <p className="text-white font-bold text-xs leading-tight">CÁC VIDEO BÀI GIẢNG NGẮN</p>
+
+            {/* HIỂN THỊ CÁC BONG BÓNG */}
+            {visiblePainpoints.map((text, index) => (
+              <PainpointBubble
+                key={`${text}-${index}`}
+                text={text}
+                className={PAINPOINT_LAYOUT[index].positionClass}
+                size={PAINPOINT_LAYOUT[index].sizeClass}
+              />
+            ))}
           </div>
         </div>
       </div>
