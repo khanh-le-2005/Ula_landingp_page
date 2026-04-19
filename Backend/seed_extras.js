@@ -19,12 +19,12 @@ const seed = async () => {
     await Prize.deleteMany({});
     
     const prizes = [
-      { option: "Voucher 10%", backgroundColor: "#2563eb", textColor: "white", code: "ULA-VOUCHER10", order: 0 },
-      { option: "Khóa học FREE", backgroundColor: "#004ac6", textColor: "white", code: "ULA-FREECOURSE", order: 1 },
-      { option: "Bút ký ULA", backgroundColor: "#ba0a0d", textColor: "white", code: "ULA-PEN", order: 2 },
-      { option: "Sổ tay Đức", backgroundColor: "#e63329", textColor: "white", code: "ULA-NOTEBOOK", order: 3 },
-      { option: "Chúc bạn may mắn", backgroundColor: "#f5a623", textColor: "black", code: "ULA-LUCK", order: 4 },
-      { option: "Tài liệu A1", backgroundColor: "#ffddb4", textColor: "black", code: "ULA-DOCS", order: 5 },
+      { option: "Voucher 10%", backgroundColor: "#2563eb", textColor: "white", code: "ULA-VOUCHER10", order: 0, probability: 50 },
+      { option: "Khóa học FREE", backgroundColor: "#004ac6", textColor: "white", code: "ULA-FREECOURSE", order: 1, probability: 1 },
+      { option: "Bút ký ULA", backgroundColor: "#ba0a0d", textColor: "white", code: "ULA-PEN", order: 2, probability: 10 },
+      { option: "Sổ tay Đức", backgroundColor: "#e63329", textColor: "white", code: "ULA-NOTEBOOK", order: 3, probability: 10 },
+      { option: "Chúc bạn may mắn", backgroundColor: "#f5a623", textColor: "black", code: "ULA-LUCK", order: 4, probability: 25 },
+      { option: "Tài liệu A1", backgroundColor: "#ffddb4", textColor: "black", code: "ULA-DOCS", order: 5, probability: 4 },
     ];
     await Prize.insertMany(prizes);
     console.log(`✅ Seeded: ${prizes.length} prizes`);

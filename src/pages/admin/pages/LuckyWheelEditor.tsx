@@ -33,7 +33,7 @@ export default function LuckyWheelEditor() {
   const addPrize = () =>
     setContent((prev) => ({
       ...prev,
-      prizes: [...prev.prizes, { option: 'Quà mới', backgroundColor: '#6366f1', textColor: '#ffffff' }],
+      prizes: [...prev.prizes, { option: 'Quà mới', backgroundColor: '#6366f1', textColor: '#ffffff', code: '' }],
     }));
 
   const removePrize = (index: number) =>
@@ -138,6 +138,10 @@ export default function LuckyWheelEditor() {
                                     <div className="h-10 w-10 shrink-0 rounded-xl border border-white/10" style={{ backgroundColor: prize.textColor }} />
                                     <input className={`${adminInput} !py-2.5 !text-xs !font-mono`} value={prize.textColor} onChange={(e) => updatePrize(index, { textColor: e.target.value })} />
                                 </div>
+                            </div>
+                            <div className="space-y-2">
+                                <div className="text-[9px] uppercase tracking-widest font-black text-slate-600">Code</div>
+                                <input className={`${adminInput} !py-2.5 !text-xs !font-mono`} value={prize.code} onChange={(e) => updatePrize(index, { code: e.target.value })} />
                             </div>
                         </div>
                     </div>

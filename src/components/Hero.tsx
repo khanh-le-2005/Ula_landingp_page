@@ -97,7 +97,7 @@ export default function Hero() {
               <Link
                 to={heroStartPath}
                 state={heroStartState}
-                className="w-full sm:w-auto justify-center bg-gradient-to-r from-[#c5a059] to-[#dfc38a] text-white px-8 md:px-10 py-4 md:py-5 rounded-full font-black text-base md:text-lg hover:shadow-[0_20px_40px_rgba(197,160,89,0.4)] transition-all flex items-center group shadow-md active:scale-95"
+                className="w-full text-center sm:w-auto justify-center bg-gradient-to-r from-[#c5a059] to-[#dfc38a] text-white px-8 md:px-10 py-4 md:py-5 rounded-full font-black text-base md:text-lg hover:shadow-[0_20px_40px_rgba(197,160,89,0.4)] transition-all flex items-center group shadow-md active:scale-95"
               >
                 {hero.primaryCta}{" "}
                 <ChevronRight className="ml-2 w-5 h-5 md:w-6 md:h-6 group-hover:translate-x-1 transition-transform" />

@@ -31,6 +31,48 @@ const createPrize = async (req, res) => {
   }
 };
 
+// Vòng quay: Thuật toán chọn giải thưởng dựa trên tỷ lệ (probability)
+const spinPrize = async (req, res) => {
+  try {
+    // Chỉ lấy các giải quay đang bật
+    const prizes = await Prize.find({ isActive: true });
+    
+    if (!prizes || prizes.length === 0) {
+      return res.status(400).json({ message: "Vòng quay chưa có giảỉ thưởng" });
+    }
+
+    // Tổng tỷ lệ (Ví dụ: 10 + 50 + 40 = 100)
+    const totalProbability = prizes.reduce((sum, prize) => sum + (prize.probability || 0), 0);
+    
+    // Nếu tất cả xác suất = 0, thì chia đều
+    if (totalProbability <= 0) {
+      const randomIndex = Math.floor(Math.random() * prizes.length);
+      return res.status(200).json({ prizeId: prizes[randomIndex]._id });
+    }
+
+    // Thuật toán Random có trọng số
+    let randomNum = Math.random() * totalProbability;
+    let winningPrize = prizes[0];
+
+    for (const prize of prizes) {
+      if (randomNum < (prize.probability || 0)) {
+        winningPrize = prize;
+        break;
+      }
+      randomNum -= (prize.probability || 0);
+    }
+
+    // Backend chỉ trả về ID để Frontend thực hiện hiệu ứng quay
+    res.status(200).json({ 
+      prizeId: winningPrize._id, 
+      option: winningPrize.option, 
+      code: winningPrize.code 
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 // Sửa giải thưởng
 const updatePrize = async (req, res) => {
   try {
@@ -56,4 +98,4 @@ const deletePrize = async (req, res) => {
   }
 };
 
-module.exports = { getPrizes, getAllPrizes, createPrize, updatePrize, deletePrize };
+module.exports = { getPrizes, getAllPrizes, createPrize, updatePrize, deletePrize, spinPrize };

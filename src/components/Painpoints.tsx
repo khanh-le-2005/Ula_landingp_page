@@ -6,26 +6,26 @@ import { useLandingSection } from '../pages/admin/hooks/useLandingSection';
 import { resolveAssetUrl } from '../utils/assetUtil';
 
 const PAINPOINT_LAYOUT = [
-  // 1. TRUNG TÂM (To nhất, nằm chính giữa trên cao)
-  { positionClass: 'top-[0%] left-[60%] -translate-x-1/2 md:top-[5%] animate-float-slow', sizeClass: 'w-36 h-36 md:w-52 md:h-52' },
+  // 1. TRUNG TÂM
+  { positionClass: 'top-[2%] left-[56%] -translate-x-1/2 md:top-[20%] animate-float-slow', sizeClass: 'w-28 h-28 sm:w-36 sm:h-36 md:w-52 md:h-52' },
 
-  // 2. BÊN TRÁI - TRÊN (Lệch trái, gần vòng cung trung tâm)
-  { positionClass: 'top-[18%] left-[16%] md:top-[16%] md:left-[35%] animate-float', sizeClass: 'w-24 h-24 md:w-32 md:h-32' },
+  // 2. BÊN TRÁI - TRÊN
+  { positionClass: 'top-[18%] left-[10%] sm:top-[26%] sm:left-[25%] md:left-[35%] animate-float', sizeClass: 'w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32' },
 
-  // 3. BÊN TRÁI - GIỮA (Phình ra ngoài viền trái)
-  { positionClass: 'top-[42%] left-[2%] md:top-[38%] md:left-[20%] animate-float-delayed', sizeClass: 'w-30 h-30 md:w-44 md:h-44' },
+  // 3. BÊN TRÁI - GIỮA
+  { positionClass: 'top-[38%] -left-[2%] sm:left-[5%] md:top-[38%] md:left-[20%] animate-float-delayed', sizeClass: 'w-24 h-24 sm:w-30 sm:h-30 md:w-44 md:h-44' },
 
-  // 4. BÊN TRÁI - DƯỚI (Gom sát vào ánh sáng / vai trái robot)
-  { positionClass: 'top-[68%] left-[12%] md:top-[75%] md:left-[18%] animate-float-slow', sizeClass: 'w-26 h-26 md:w-34 md:h-34' },
+  // 4. BÊN TRÁI - DƯỚI
+  { positionClass: 'top-[62%] left-[5%] sm:top-[68%] sm:left-[12%] md:top-[75%] md:left-[18%] animate-float-slow', sizeClass: 'w-22 h-22 sm:w-26 sm:h-26 md:w-34 md:h-34' },
 
-  // 5. BÊN PHẢI - TRÊN (Lệch phải, hơi cao hơn hoặc ngang bên trái)
-  { positionClass: 'top-[15%] right-[14%] md:top-[10%] md:right-[18%] animate-float-delayed', sizeClass: 'w-26 h-26 md:w-36 md:h-36' },
+  // 5. BÊN PHẢI - TRÊN
+  { positionClass: 'top-[16%] right-[8%] sm:top-[15%] sm:right-[14%] md:top-[10%] md:right-[18%] animate-float-delayed', sizeClass: 'w-20 h-20 sm:w-26 sm:h-26 md:w-36 md:h-36' },
 
-  // 6. BÊN PHẢI - GIỮA (Phình ra ngoài viền phải)
-  { positionClass: 'top-[40%] right-[4%] md:top-[45%] md:right-[20%] animate-float', sizeClass: 'w-32 h-32 md:w-44 md:h-44' },
+  // 6. BÊN PHẢI - GIỮA
+  { positionClass: 'top-[42%] -right-[2%] sm:right-[4%] md:top-[45%] md:right-[20%] animate-float', sizeClass: 'w-24 h-24 sm:w-32 sm:h-32 md:w-44 md:h-44' },
 
-  // 7. BÊN PHẢI - DƯỚI (Gom sát vào ánh sáng / vai phải robot)
-  { positionClass: 'top-[65%] right-[10%] md:top-[82%] md:right-[20%] animate-float-slow', sizeClass: 'w-22 h-22 md:w-30 md:h-30' },
+  // 7. BÊN PHẢI - DƯỚI
+  { positionClass: 'top-[68%] right-[8%] sm:top-[65%] sm:right-[10%] md:top-[82%] md:right-[20%] animate-float-slow', sizeClass: 'w-18 h-18 sm:w-22 sm:h-22 md:w-30 md:h-30' },
 ] as const;
 
 // const PAINPOINT_LAYOUT = [
@@ -88,9 +88,9 @@ export default function Painpoints() {
   const mascotImageUrl = isDefaultLocalPath ? robotMascotFallback : rawMascotUrl;
 
   return (
-    <section className="relative mb-8 flex items-center justify-center overflow-hidden px-4">
+    <section className="relative mb-8 flex items-center justify-center overflow-hidden px-4 md:px-6">
       {/* KHUNG NỀN MÀU ĐẬM */}
-      <div className="relative min-h-[820px] w-full max-w-[1300px] overflow-hidden rounded-[60px] border border-white/10 bg-gradient-to-br from-[#0d1b35] via-[#1a2b48] to-[#2d4373] shadow-[0_40px_100px_rgba(0,0,0,0.5)]">
+      <div className="relative min-h-[650px] sm:min-h-[750px] md:min-h-[820px] w-full max-w-[1300px] overflow-hidden rounded-[40px] md:rounded-[60px] border border-white/10 bg-gradient-to-br from-[#0d1b35] via-[#1a2b48] to-[#2d4373] shadow-[0_40px_100px_rgba(0,0,0,0.5)]">
 
         {/* Glow effect */}
         <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(30,58,138,0.3)_0%,_transparent_70%)]" />

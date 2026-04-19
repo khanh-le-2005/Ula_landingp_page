@@ -39,6 +39,7 @@ const getLP = async (req, res) => {
         code: p.code,
         backgroundColor: p.backgroundColor,
         textColor: p.textColor,
+        probability: p.probability,
         id: p._id // Gửi kèm ID để frontend tiện map key
       }));
     }

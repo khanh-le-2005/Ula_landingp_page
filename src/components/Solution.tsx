@@ -50,16 +50,18 @@ const UlaLandingSection = () => {
   const visibleFeatures = features.slice(0, 3);
 
   return (
-    // Sử dụng h-screen và overflow-hidden để ép toàn bộ vừa khít 1 màn hình
-    <section className="h-screen bg-[#004e89] flex flex-col items-center justify-center mt-20 p-4 lg:p-10 font-sans relative overflow-hidden">
+    // Sử dụng min-h-screen để linh hoạt hơn trên mobile
+    <section className="min-h-screen bg-[#004e89] flex flex-col items-center justify-center py-16 md:py-20 mt-20 p-4 lg:p-10 font-sans relative">
 
       {/* Background Decor */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/20 rounded-full blur-[120px] pointer-events-none" />
 
       {/* Headline - Thu gọn margin để không chiếm diện tích dọc */}
-      <div className="text-center mb-6 md:mb-8 xl:mb-12 shrink-0">
-        <h1 className="text-3xl md:text-4xl xl:text-5xl font-black text-white uppercase tracking-tighter flex flex-row items-center justify-center">
-          Chỉ <span className="text-[#1a2b48] italic">30p/ngày</span>, dễ dàng bắt đầu
+      <div className="text-center mb-10 md:mb-12 shrink-0 px-4">
+        <h1 className="text-3xl md:text-5xl font-black text-white uppercase tracking-tighter flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4 leading-none">
+          Chỉ <span className="text-red-500 italic bg-white/10 px-4 py-1 rounded-2xl md:bg-transparent md:p-0">30p/ngày</span>
+          <span className="md:inline-block hidden">,</span>
+          <span className="text-white mt-2 md:mt-0">dễ dàng bắt đầu</span>
         </h1>
         <p className="text-white/50 text-base font-light">
           Giải pháp học tập tối ưu cho học sinh hiện đại
@@ -67,7 +69,7 @@ const UlaLandingSection = () => {
       </div>
 
       {/* Grid Container - items-stretch giúp các thẻ cao bằng nhau */}
-      <div className="max-w-6xl w-full grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10 items-stretch h-[65vh] ">
+      <div className="max-w-6xl w-full grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-6 relative z-10 items-stretch">
 
 
         {visibleFeatures.map((feature, index) => (

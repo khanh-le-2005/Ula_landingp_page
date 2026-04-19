@@ -77,7 +77,7 @@ const Experience = () => {
       </div>
 
       {/* 3. Main Card Container */}
-      <div className="w-full max-w-5xl bg-white/30 backdrop-blur-2xl rounded-[40px]  overflow-hidden min-h-[600px] flex flex-col relative z-10">
+      <div className="w-full max-w-5xl bg-white/30 backdrop-blur-2xl rounded-[32px] md:rounded-[40px] overflow-hidden min-h-[500px] md:min-h-[600px] flex flex-col relative z-10">
 
         {/* Progress & Content Wrapper */}
         <div className="flex-grow flex flex-col">
@@ -95,7 +95,7 @@ const Experience = () => {
                 </div>
               </div>
 
-              <div className="p-8 md:p-14 flex-grow flex items-center text-center">
+              <div className="p-6 md:p-14 flex-grow flex items-center text-center">
                 <div className="w-full">
                   {currentQuiz.type === 'matching' ? (
                     <MatchingExercise
@@ -112,16 +112,16 @@ const Experience = () => {
                       }}
                     />
                   ) : (
-                    <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-                      <div className="bg-white rounded-[35px] p-6 shadow-xl border border-slate-100 relative group aspect-[4/3] flex items-center justify-center overflow-hidden">
+                    <div className="w-full flex flex-col lg:grid lg:grid-cols-2 gap-8 md:gap-12 items-center">
+                      <div className="w-full bg-white rounded-[24px] md:rounded-[35px] p-4 md:p-6 shadow-xl border border-slate-100 relative group aspect-[4/3] flex items-center justify-center overflow-hidden">
                         <img src={resolveAssetUrl(currentQuiz.imageUrl)} className="w-full h-full object-cover rounded-2xl opacity-90" alt="Quiz" />
                         <button className="absolute w-16 h-16 bg-[#005bb7] rounded-full flex items-center justify-center text-white shadow-2xl hover:scale-110 transition-transform">
                           <Volume2 size={28} />
                         </button>
                       </div>
 
-                      <div className="flex flex-col gap-4 text-left">
-                        <h4 className="text-4xl font-black text-[#1a2b48] mb-6">{currentQuiz.word}</h4>
+                      <div className="w-full flex flex-col gap-3 md:gap-4 text-left">
+                        <h4 className="text-2xl md:text-4xl font-black text-[#1a2b48] mb-4 md:mb-6">{currentQuiz.word}</h4>
                         {currentQuiz.options?.map((opt: any) => {
                           const isCorrectOption = opt.id === currentQuiz.correctAnswer;
                           let borderStyle = "border-slate-100 bg-white";
@@ -130,18 +130,18 @@ const Experience = () => {
                           if (status === 'wrong' && opt.id === selectedOption) borderStyle = "border-red-500 bg-red-50/50";
 
                           return (
-                            <button
-                              key={opt.id}
-                              disabled={status === 'correct'}
-                              onClick={() => { setSelectedOption(opt.id); setStatus('idle'); }}
-                              className={`flex items-center p-5 rounded-2xl border-2 transition-all text-left group ${borderStyle}`}
-                            >
-                              <span className={`w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold mr-4 transition-colors ${(status === 'correct' && isCorrectOption) ? 'bg-green-500 text-white' :
-                                (status === 'wrong' && opt.id === selectedOption) ? 'bg-red-500 text-white' :
-                                  selectedOption === opt.id ? 'bg-[#005bb7] text-white' : 'bg-slate-100 text-slate-400'
-                                }`}>{opt.id}</span>
-                              <span className="font-bold text-slate-700 text-lg">{opt.text}</span>
-                            </button>
+                              <button
+                                key={opt.id}
+                                disabled={status === 'correct'}
+                                onClick={() => { setSelectedOption(opt.id); setStatus('idle'); }}
+                                className={`flex items-center p-3 md:p-5 rounded-xl md:rounded-2xl border-2 transition-all text-left group ${borderStyle}`}
+                              >
+                                <span className={`w-8 h-8 md:w-9 md:h-9 rounded-lg flex items-center justify-center text-[10px] md:text-xs font-bold mr-3 md:mr-4 transition-colors ${(status === 'correct' && isCorrectOption) ? 'bg-green-500 text-white' :
+                                  (status === 'wrong' && opt.id === selectedOption) ? 'bg-red-500 text-white' :
+                                    selectedOption === opt.id ? 'bg-[#005bb7] text-white' : 'bg-slate-100 text-slate-400'
+                                  }`}>{opt.id}</span>
+                                <span className="font-bold text-slate-700 text-base md:text-lg">{opt.text}</span>
+                              </button>
                           );
                         })}
                       </div>

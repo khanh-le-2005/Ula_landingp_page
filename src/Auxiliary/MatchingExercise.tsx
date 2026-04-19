@@ -178,13 +178,13 @@ const MatchingExercise = ({ data, isChecked = false, onResult = () => { } }: Mat
       </h3>
 
       {/* ĐÃ CHUYỂN REF XUỐNG ĐÂY */}
-      <div ref={containerRef} className="relative grid grid-cols-[1fr_1fr] gap-x-24 gap-y-6 md:gap-x-32">
+      <div ref={containerRef} className="relative grid grid-cols-[1fr_1fr] gap-x-12 sm:gap-x-24 md:gap-x-32 gap-y-4 md:gap-y-6">
         <div className="relative z-20 flex flex-col gap-6">
           {data.pairs.map((pair) => (
             <div key={pair.de} className="relative flex items-center">
               <button
                 onClick={() => handleSelect('de', pair.de)}
-                className={`flex-1 rounded-2xl border-2 px-8 py-5 text-lg font-bold transition-all ${selectedDe === pair.de
+                className={`flex-1 rounded-2xl border-2 px-4 py-3 sm:px-8 sm:py-5 text-sm sm:text-lg font-bold transition-all ${selectedDe === pair.de
                   ? 'border-blue-500 bg-blue-50 text-[#1a2b48]'
                   : 'border-slate-200 bg-white text-[#1a2b48]'
                   }`}

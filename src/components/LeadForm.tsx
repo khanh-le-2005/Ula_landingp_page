@@ -243,6 +243,7 @@ const LeadForm: React.FC<ConsultationModalProps> = ({
         prize_option: wonPrize?.option || undefined,
         program_variant: options?.variant || undefined,
       },
+      referralCode: trackingData.referralId,
       ...trackingData,
     })
       .then((response) => {

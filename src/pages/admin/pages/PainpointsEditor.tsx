@@ -30,7 +30,7 @@ export default function PainpointsEditor() {
   };
 
   return (
-    <div className="grid gap-8 xl:grid-rows-[1fr_0.9fr]">
+    <div className="flex flex-col-reverse gap-8 ">
       <section className={adminCard}>
         <div className="mb-10 flex flex-wrap items-start justify-between gap-6">
           <div>

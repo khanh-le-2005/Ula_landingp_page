@@ -25,14 +25,12 @@ export interface CourseRoadmapStep {
   id: string;
   title: string;
   desc: string;
-  price?: number;
   popup?: unknown;
 }
 
 export interface CourseRoadmapAddOnSelection {
   id: string;
   title: string;
-  price: number;
 }
 
 type CourseRoadmapVariant = "german" | "chinese";
@@ -46,8 +44,6 @@ interface CourseRoadmapShowcaseProps {
   targetLevelIdx: number | null;
   roadmapSteps: CourseRoadmapStep[];
   roadmapError: string | null;
-  totalPrice: number;
-  formatCurrency: (value: number) => string;
   canSelectTargetLevel: (idx: number) => boolean;
   onCurrentLevelChange: (idx: number) => void;
   onTargetLevelChange: (idx: number) => void;
@@ -118,11 +114,36 @@ const ALL_LEVELS: CourseRoadmapLevel[] = [
 ];
 
 const MASTER_STEPS_CONTENT: Record<string, CourseRoadmapStep> = {
-  a1: { id: "a1", title: "Khởi động A1", desc: "Phát âm chuẩn • Từ vựng cơ bản • Chào hỏi", price: 5500000 },
-  a2: { id: "a2", title: "Tăng tốc A2", desc: "Giao tiếp hàng ngày • Ngữ pháp mở rộng • Viết thư", price: 6200000 },
-  b1: { id: "b1", title: "Bứt phá B1", desc: "Thảo luận sâu • Thuyết trình • Luyện thi 4 kỹ năng", price: 7800000 },
-  b2: { id: "b2", title: "Chuyên sâu B2", desc: "Luyện thi B2 • Văn hóa quốc tế • CV & Phỏng vấn", price: 8800000 },
-  c1: { id: "c1", title: "Thành thạo C1", desc: "Ngữ pháp chuyên sâu • Thảo luận học thuật • Làm việc chuyên nghiệp", price: 10500000 },
+  a1: {
+    id: "a1",
+    title: "A1 - Nền tảng",
+    desc: "AI chuẩn hoá phát âm • Giao tiếp cơ bản • Từ vựng nền"
+  },
+  a2: {
+    id: "a2",
+    title: "A2 - Củng cố",
+    desc: "Mở rộng ngữ pháp • Giao tiếp sinh hoạt • Bật phản xạ nói"
+  },
+  b1_breakthrough: {
+    id: "b1_breakthrough",
+    title: "B1 - Bứt phá",
+    desc: "Giao tiếp tự nhiên • Thuyết trình chủ đề • Nền tảng thi B1"
+  },
+  b1_exam: {
+    id: "b1_exam",
+    title: "B1 - Luyện thi",
+    desc: "Nắm chắc form thi • Luyện thi thực chiến • Cọ xát 100 đề thi cùng AI"
+  },
+  b2: {
+    id: "b2",
+    title: "B2 - Ứng dụng",
+    desc: "Đàm phán, thuyết trình • Tiếng Đức du học, làm việc • Luyện thi B2"
+  },
+  c1: {
+    id: "c1",
+    title: "C1 - Thành thạo",
+    desc: "Tiếng Đức học thuật • Ngôn ngữ tự nhiên • Sống tại Đức"
+  },
 };
 
 const skillCompanionCards = [
@@ -150,14 +171,12 @@ const selectableSkillAddOns = [
     title: "Giao tiếp & Phát âm",
     points: ["Phản xạ hội thoại", "Sửa phát âm"],
     roadmapDesc: "Phản xạ hội thoại, sửa phát âm, học song song với lộ trình chính",
-    price: 1200000,
   },
   {
     id: "skill-foundation",
     title: "Từ vựng & Luyện đề",
     points: ["Từ vựng theo chủ đề", "Bài luyện bám đầu ra"],
     roadmapDesc: "Từ vựng theo chủ đề, bài luyện bám đầu ra, củng cố ngoài giờ",
-    price: 1500000,
   },
 ];
 
@@ -181,116 +200,113 @@ const LevelTrackPanel: React.FC<{
   canSelect,
   onSelect,
 }) => {
-  const hasActiveLevel = activeIdx !== null && activeIdx >= 0;
-  const cellPercent = 100 / Math.max(levels.length, 1);
-  const trackInsetPercent = cellPercent / 2;
-  const trackWidthPercent = 100 - trackInsetPercent * 2;
-  const progressRatio =
-    hasActiveLevel && levels.length > 1 ? activeIdx / (levels.length - 1) : 0;
-  const progressWidthPercent = trackWidthPercent * progressRatio;
+    const hasActiveLevel = activeIdx !== null && activeIdx >= 0;
+    const cellPercent = 100 / Math.max(levels.length, 1);
+    const trackInsetPercent = cellPercent / 2;
+    const trackWidthPercent = 100 - trackInsetPercent * 2;
+    const progressRatio =
+      hasActiveLevel && levels.length > 1 ? activeIdx / (levels.length - 1) : 0;
+    const progressWidthPercent = trackWidthPercent * progressRatio;
 
-  return (
-    <div className="relative overflow-hidden rounded-[1.8rem] border border-white/60 px-3 py-2.5 shadow-[0_18px_55px_rgba(40,66,120,0.08),inset_0_1px_0_rgba(255,255,255,0.85)] backdrop-blur-2xl md:px-4 md:py-3">
-      <div className="mb-2 flex items-center gap-1.5 text-[#22314d]">
-        <img
-          src={stepFlagIcon}
-          alt=""
-          className="h-4 w-4 shrink-0 object-contain"
-        />
-        <h3 className="text-[11px] font-black uppercase tracking-wide md:text-[13px]">
-          {title}
-        </h3>
-      </div>
+    return (
+      <div className="relative overflow-hidden rounded-[1.8rem] border border-white/60 px-3 py-2.5 shadow-[0_18px_55px_rgba(40,66,120,0.08),inset_0_1px_0_rgba(255,255,255,0.85)] backdrop-blur-2xl md:px-4 md:py-3">
+        <div className="mb-2 flex items-center gap-1.5 text-[#22314d]">
+          <img
+            src={stepFlagIcon}
+            alt=""
+            className="h-4 w-4 shrink-0 object-contain"
+          />
+          <h3 className="text-[11px] font-black uppercase tracking-wide md:text-[13px]">
+            {title}
+          </h3>
+        </div>
 
-      <div className="relative px-1 md:px-2">
-        <div
-          className="pointer-events-none absolute top-[2.36rem] h-[3px] rounded-full bg-[#d6dde8] md:top-[2.52rem]"
-          style={{
-            left: `${trackInsetPercent}%`,
-            width: `${trackWidthPercent}%`,
-          }}
-        />
-        <div
-          className={`pointer-events-none absolute top-[2.36rem] h-[3px] rounded-full transition-[width] duration-300 ease-out md:top-[2.52rem] ${theme.levelProgressLine}`}
-          style={{
-            left: `${trackInsetPercent}%`,
-            width: `${progressWidthPercent}%`,
-          }}
-        />
+        <div className="relative px-1 md:px-2">
+          <div
+            className="pointer-events-none absolute top-[2.36rem] h-[3px] rounded-full bg-[#d6dde8] md:top-[2.52rem]"
+            style={{
+              left: `${trackInsetPercent}%`,
+              width: `${trackWidthPercent}%`,
+            }}
+          />
+          <div
+            className={`pointer-events-none absolute top-[2.36rem] h-[3px] rounded-full transition-[width] duration-300 ease-out md:top-[2.52rem] ${theme.levelProgressLine}`}
+            style={{
+              left: `${trackInsetPercent}%`,
+              width: `${progressWidthPercent}%`,
+            }}
+          />
 
-        <div
-          className="relative grid gap-1.5 md:gap-2.5"
-          style={{ gridTemplateColumns: `repeat(${levels.length}, minmax(0, 1fr))` }}
-        >
-          {levels.map((level, idx) => {
-            const active = activeIdx !== null && idx === activeIdx;
-            const disabled = isTarget ? !(canSelect?.(idx) ?? true) : false;
-            const markerSrc = active
-              ? isTarget
-                ? targetMarkerIcon
-                : startMarkerIcon
-              : lockedLevelIcon;
+          <div
+            className="relative grid gap-1.5 md:gap-2.5"
+            style={{ gridTemplateColumns: `repeat(${levels.length}, minmax(0, 1fr))` }}
+          >
+            {levels.map((level, idx) => {
+              const active = activeIdx !== null && idx === activeIdx;
+              const disabled = isTarget ? !(canSelect?.(idx) ?? true) : false;
+              const markerSrc = active
+                ? isTarget
+                  ? targetMarkerIcon
+                  : startMarkerIcon
+                : lockedLevelIcon;
 
-            return (
-              <button
-                key={level.id}
-                type="button"
-                onClick={() => {
-                  if (disabled) return;
-                  onSelect(idx);
-                }}
-                disabled={disabled}
-                title={disabled ? (isTarget ? "Mục tiêu phải cao hơn trình độ hiện tại." : "Không thể chọn") : level.label}
-                className={`relative flex flex-col items-center rounded-2xl px-1 py-0.5 transition-all duration-300 ${
-                  disabled
-                    ? "cursor-not-allowed opacity-40 grayscale-[0.4]"
-                    : "cursor-pointer hover:-translate-y-0.5"
-                } ${active ? "scale-[1.035]" : ""}`}
-              >
-                {active && (
-                  <>
-                    <div className={`absolute left-1/2 top-[-0.2rem] h-[4.55rem] w-[4.55rem] -translate-x-1/2 rounded-full blur-xl md:h-[5rem] md:w-[5rem] ${theme.activeAuraOuter}`} />
-                    <div className={`absolute left-1/2 top-[0.22rem] h-[3.35rem] w-[3.35rem] -translate-x-1/2 rounded-full blur-md md:h-[3.6rem] md:w-[3.6rem] ${theme.activeAuraMid}`} />
-                    <div className={`absolute left-1/2 top-[0.82rem] h-6 w-6 -translate-x-1/2 rounded-full blur-sm md:top-[0.9rem] md:h-7 md:w-7 ${theme.activeAuraInner}`} />
-                  </>
-                )}
+              return (
+                <button
+                  key={level.id}
+                  type="button"
+                  onClick={() => {
+                    if (disabled) return;
+                    onSelect(idx);
+                  }}
+                  disabled={disabled}
+                  title={disabled ? (isTarget ? "Mục tiêu phải cao hơn trình độ hiện tại." : "Không thể chọn") : level.label}
+                  className={`relative flex flex-col items-center rounded-2xl px-1 py-0.5 transition-all duration-300 ${disabled
+                      ? "cursor-not-allowed opacity-40 grayscale-[0.4]"
+                      : "cursor-pointer hover:-translate-y-0.5"
+                    } ${active ? "scale-[1.035]" : ""}`}
+                >
+                  {active && (
+                    <>
+                      <div className={`absolute left-1/2 top-[-0.2rem] h-[4.55rem] w-[4.55rem] -translate-x-1/2 rounded-full blur-xl md:h-[5rem] md:w-[5rem] ${theme.activeAuraOuter}`} />
+                      <div className={`absolute left-1/2 top-[0.22rem] h-[3.35rem] w-[3.35rem] -translate-x-1/2 rounded-full blur-md md:h-[3.6rem] md:w-[3.6rem] ${theme.activeAuraMid}`} />
+                      <div className={`absolute left-1/2 top-[0.82rem] h-6 w-6 -translate-x-1/2 rounded-full blur-sm md:top-[0.9rem] md:h-7 md:w-7 ${theme.activeAuraInner}`} />
+                    </>
+                  )}
 
-                <div className="relative z-10 flex h-[3rem] items-end justify-center md:h-[3.45rem]">
-                  <img
-                    src={markerSrc}
-                    alt={level.label}
-                    className={`object-contain transition-all duration-300 ${
-                      active
-                        ? isTarget
-                          ? `h-[3rem] w-auto md:h-[3.35rem] ${theme.activeMarkerShadow}`
-                          : `h-[3.15rem] w-auto md:h-[3.5rem] ${theme.activeMarkerShadow}`
-                        : "h-7 w-7 md:h-8 md:w-8"
-                    } ${disabled && !active ? "grayscale-[0.2]" : ""}`}
-                  />
-                </div>
-
-                <div className="mt-1 text-center">
-                  <div
-                    className={`font-black uppercase leading-none ${
-                      active
-                        ? `text-[0.95rem] md:text-[1.12rem] ${theme.activeLabel}`
-                        : "text-[0.8rem] text-slate-500 md:text-[0.9rem]"
-                    }`}
-                  >
-                    {level.label}
+                  <div className="relative z-10 flex h-[3rem] items-end justify-center md:h-[3.45rem]">
+                    <img
+                      src={markerSrc}
+                      alt={level.label}
+                      className={`object-contain transition-all duration-300 ${active
+                          ? isTarget
+                            ? `h-[3rem] w-auto md:h-[3.35rem] ${theme.activeMarkerShadow}`
+                            : `h-[3.15rem] w-auto md:h-[3.5rem] ${theme.activeMarkerShadow}`
+                          : "h-7 w-7 md:h-8 md:w-8"
+                        } ${disabled && !active ? "grayscale-[0.2]" : ""}`}
+                    />
                   </div>
-                  <div className="mt-0.5 text-[8px] font-semibold leading-tight text-slate-400 md:text-[9px]">
-                    {level.sub}
+
+                  <div className="mt-1 text-center">
+                    <div
+                      className={`font-black uppercase leading-none ${active
+                          ? `text-[0.95rem] md:text-[1.12rem] ${theme.activeLabel}`
+                          : "text-[0.8rem] text-slate-500 md:text-[0.9rem]"
+                        }`}
+                    >
+                      {level.label}
+                    </div>
+                    <div className="mt-0.5 text-[8px] font-semibold leading-tight text-slate-400 md:text-[9px]">
+                      {level.sub}
+                    </div>
                   </div>
-                </div>
-              </button>
-            );
-          })}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
 const CourseRoadmapShowcase: React.FC<CourseRoadmapShowcaseProps> = ({
   variant,
@@ -301,8 +317,6 @@ const CourseRoadmapShowcase: React.FC<CourseRoadmapShowcaseProps> = ({
   targetLevelIdx,
   roadmapSteps,
   roadmapError,
-  totalPrice,
-  formatCurrency,
   canSelectTargetLevel,
   onCurrentLevelChange,
   onTargetLevelChange,
@@ -328,28 +342,22 @@ const CourseRoadmapShowcase: React.FC<CourseRoadmapShowcaseProps> = ({
     if (effectiveSelectedAddOnIds.length === 0) return EMPTY_SELECTED_ADD_ONS;
     return selectableSkillAddOns
       .filter((card) => effectiveSelectedAddOnIds.includes(card.id))
-      .map(({ id, title, price }) => ({ id, title, price }));
+      .map(({ id, title }) => ({ id, title }));
   }, [effectiveSelectedAddOnIds]);
 
   const displayedRoadmapSteps = React.useMemo(() => {
     if (effectiveSelectedAddOnIds.length === 0) return roadmapSteps;
     const addOnSteps = selectableSkillAddOns
       .filter((card) => effectiveSelectedAddOnIds.includes(card.id))
-      .map<CourseRoadmapStep>(({ id, title, roadmapDesc, price }) => ({
+      .map<CourseRoadmapStep>(({ id, title, roadmapDesc }) => ({
         id: `addon-${id}`,
         title: `${title} • Gói thêm`,
         desc: roadmapDesc,
-        price,
       }));
     const goalIndex = roadmapSteps.findIndex((step) => step.id === "goal");
     if (goalIndex === -1) return [...roadmapSteps, ...addOnSteps];
     return [...roadmapSteps.slice(0, goalIndex), ...addOnSteps, ...roadmapSteps.slice(goalIndex)];
   }, [effectiveSelectedAddOnIds, roadmapSteps]);
-
-  const displayedTotalPrice = React.useMemo(
-    () => totalPrice + selectedAddOns.reduce((sum, addOn) => sum + addOn.price, 0),
-    [selectedAddOns, totalPrice],
-  );
 
   const roadmapCanvasWidth = Math.max(displayedRoadmapSteps.length * 240, 760);
 
@@ -456,7 +464,7 @@ const CourseRoadmapShowcase: React.FC<CourseRoadmapShowcaseProps> = ({
                             <div className="group relative mt-2 flex w-[100px] md:w-[188px] min-h-[50px] md:min-h-[124px] flex-col rounded-[1rem] md:rounded-[1.5rem] border border-white/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.9),rgba(248,250,255,0.84))] px-2 md:px-4 py-4 items-center md:items-start text-center md:text-left shadow-[0_18px_34px_rgba(86,107,155,0.10),inset_0_1px_0_rgba(255,255,255,0.92)] backdrop-blur-xl transition hover:-translate-y-1 hover:border-[#f0d8bf]">
                               <div className="md:mb-1 flex md:min-h-[1.9rem] items-center justify-center text-center"><h4 className="text-center text-[0.9rem] font-black leading-[1.08] tracking-[-0.01em] text-[#cf2d2d] md:text-[0.98rem]">{step.title}</h4></div>
                               <ul className="hidden md:flex flex-col flex-1 space-y-1 text-[0.82rem] font-semibold leading-[1.28] text-[#6a7282] md:text-[0.88rem]">{bulletItems.map((item) => (<li key={item} className="flex gap-2 text-left"><span className="mt-[0.34rem] h-1.5 w-1.5 shrink-0 rounded-full bg-[#8f96a3]" /><span>{item}</span></li>))}</ul>
-                              {step.price ? <div className="hidden mt-4 md:inline-flex rounded-full border border-[#f2e6da] bg-white/88 px-3 py-1 text-[10px] font-black text-[#d86543] shadow-sm">{formatCurrency(step.price)}</div> : <div className="hidden mt-4 md:inline-flex rounded-full border border-[#e2e8f0] bg-white/88 px-3 py-1 text-[10px] font-black text-[#4866a8] shadow-sm">Chặng đích</div>}
+                              {/* <div className="hidden mt-4 md:inline-flex rounded-full border border-[#e2e8f0] bg-white/88 px-3 py-1 text-[10px] font-black text-[#4866a8] shadow-sm">{index === displayedRoadmapSteps.length - 1 ? "Chặng đích" : "Đang cập nhật"}</div> */}
                             </div>
                           </div>
                         );
@@ -464,18 +472,6 @@ const CourseRoadmapShowcase: React.FC<CourseRoadmapShowcaseProps> = ({
                     </div>
                   </div>
                 </div>
-
-                {/* <div className="mt-7 flex justify-between gap-3 rounded-[2rem] border border-white/80 bg-white/40 py-4 shadow-[0_18px_50px_rgba(46,72,129,0.08),inset_0_1px_0_rgba(255,255,255,0.82)] backdrop-blur-2xl md:grid-cols-3 md:px-6">
-                  <div className="flex items-center gap-3 px-24">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eef3ff] text-[#4866a8]"><Clock3 className="h-6 w-6" /></div>
-                    <div><div className="text-sm font-semibold text-slate-400">Thời gian dự kiến</div><div className="text-xl font-black text-[#22314d]">12 tháng</div></div>
-                  </div>
-                  <div className="flex items-center gap-3 px-24">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eef8ff] text-[#3a84d8]"><Sparkles className="h-6 w-6" /></div>
-                    <div><div className="text-sm font-semibold text-slate-400">Hình thức</div><div className="text-xl font-black text-[#22314d]">Hybrid AI</div></div>
-                  </div>
-
-                </div> */}
               </>
             )}
           </div>
@@ -496,11 +492,11 @@ const Roadmap: React.FC = () => {
 
   const handleCurrentChange = (newIdx: number) => {
     setCurrentIdx(newIdx);
-    
+
     // Get absolute level index
     const levelId = currentLevelsInput[newIdx].id;
     const absNewCurrentIdx = ALL_LEVELS.findIndex(l => l.id === levelId);
-    
+
     // Get absolute target index
     const targetLevelId = targetLevelsInput[targetIdx].id;
     const absTargetIdx = ALL_LEVELS.findIndex(l => l.id === targetLevelId);
@@ -527,29 +523,27 @@ const Roadmap: React.FC = () => {
   const roadmapSteps = React.useMemo(() => {
     const startAbs = ALL_LEVELS.findIndex(l => l.id === currentLevelId);
     const endAbs = ALL_LEVELS.findIndex(l => l.id === targetLevelId);
-    
+
     // Collect steps between current+1 and target
     const steps: CourseRoadmapStep[] = [];
     for (let i = startAbs + 1; i <= endAbs; i++) {
-        const levelId = ALL_LEVELS[i].id;
-        const baseStep = MASTER_STEPS_CONTENT[levelId];
-        if (baseStep) {
-            steps.push(baseStep);
-        }
+      const levelId = ALL_LEVELS[i].id;
+      const baseStep = MASTER_STEPS_CONTENT[levelId];
+      if (baseStep) {
+        steps.push(baseStep);
+      }
     }
 
     // Add final goal step
     steps.push({
-        id: "goal",
-        title: "Về đích",
-        desc: "Chứng chỉ quốc tế • Sẵn sàng du học/làm việc",
-        price: 0
+      id: "goal",
+      title: "Về đích",
+      desc: "Chứng chỉ quốc tế • Sẵn sàng du học/làm việc",
     });
 
     return steps;
   }, [currentLevelId, targetLevelId]);
 
-  const totalPrice = roadmapSteps.reduce((sum, s) => sum + (s.price || 0), 0);
 
   return (
     <div id="roadmap" className="py-24 px-6">
@@ -563,19 +557,17 @@ const Roadmap: React.FC = () => {
           targetLevelIdx={targetIdx}
           roadmapSteps={roadmapSteps}
           roadmapError={null}
-          totalPrice={totalPrice}
-          formatCurrency={(v) => v.toLocaleString("vi-VN") + " đ"}
           canSelectTargetLevel={(idx) => {
-              const tid = targetLevelsInput[idx].id;
-              const tabs = ALL_LEVELS.findIndex(l => l.id === tid);
-              const cabs = ALL_LEVELS.findIndex(l => l.id === currentLevelId);
-              return tabs > cabs;
+            const tid = targetLevelsInput[idx].id;
+            const tabs = ALL_LEVELS.findIndex(l => l.id === tid);
+            const cabs = ALL_LEVELS.findIndex(l => l.id === currentLevelId);
+            return tabs > cabs;
           }}
           onCurrentLevelChange={handleCurrentChange}
           onTargetLevelChange={handleTargetChange}
-          onStepClick={() => {}}
-          onSuggestTarget={() => {}}
-          onRequestQuote={() => {}}
+          onStepClick={() => { }}
+          onSuggestTarget={() => { }}
+          onRequestQuote={() => { }}
           expanded={expanded}
           onToggleExpanded={() => setExpanded(!expanded)}
         />
