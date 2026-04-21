@@ -9,6 +9,7 @@ const prizeSchema = new mongoose.Schema(
     probability: { type: Number, default: 1 },        // Xác suất trúng (tương đối)
     isActive: { type: Boolean, default: true },       // Hiển thị hay ẩn ô này
     order: { type: Number, default: 0 },              // Thứ tự hiển thị trên vòng quay
+    tags: [{ type: String }],                         // Gắn nhãn: ["VIP", "Học sinh giỏi", "Tháng 5"]
   },
   { timestamps: true }
 );

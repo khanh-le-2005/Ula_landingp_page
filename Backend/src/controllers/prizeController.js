@@ -34,8 +34,13 @@ const createPrize = async (req, res) => {
 // Vòng quay: Thuật toán chọn giải thưởng dựa trên tỷ lệ (probability)
 const spinPrize = async (req, res) => {
   try {
-    // Chỉ lấy các giải quay đang bật
-    const prizes = await Prize.find({ isActive: true });
+    // Chỉ lấy các giải quay đang bật. Hỗ trợ lọc theo tag nếu gửi lên.
+    const prizeFilter = { isActive: true };
+    const prizeTag = req.body.prize_tag || req.query.prize_tag;
+    if (prizeTag) {
+      prizeFilter.tags = prizeTag;
+    }
+    const prizes = await Prize.find(prizeFilter);
     
     if (!prizes || prizes.length === 0) {
       return res.status(400).json({ message: "Vòng quay chưa có giảỉ thưởng" });
@@ -63,6 +68,7 @@ const spinPrize = async (req, res) => {
     }
 
     // Backend chỉ trả về ID để Frontend thực hiện hiệu ứng quay
+    console.log(`[SPIN] Người dùng quay trúng: ${winningPrize.option} (${winningPrize.code})`);
     res.status(200).json({ 
       prizeId: winningPrize._id, 
       option: winningPrize.option, 

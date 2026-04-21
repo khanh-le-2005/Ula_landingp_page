@@ -1,4 +1,11 @@
 const axios = require("axios");
+const crypto = require("crypto");
+
+// Hàm băm SHA256 theo yêu cầu của Facebook CAPI
+const sha256 = (value) => {
+  if (!value) return undefined;
+  return crypto.createHash("sha256").update(value.trim().toLowerCase()).digest("hex");
+};
 
 /**
  * Gửi sự kiện đăng ký (Lead) sang Facebook Conversion API (CAPI)
@@ -10,8 +17,8 @@ const trackLeadEvent = async (userData, eventName = "Lead") => {
     const pixelId = process.env.FB_PIXEL_ID;
     const accessToken = process.env.FB_ACCESS_TOKEN;
 
-    if (!pixelId || !accessToken || pixelId === "YOUR_PIXEL_ID") {
-      console.warn("⚠️ FB CAPI chưa được cấu hình. Đang bỏ qua gửi event.");
+    if (!pixelId || !accessToken || pixelId.includes("YOUR_") || accessToken.includes("YOUR_")) {
+      console.warn("⚠️ FB CAPI chưa được cấu hình (đang dùng placeholder). Đang bỏ qua gửi event.");
       return;
     }
 
@@ -24,10 +31,8 @@ const trackLeadEvent = async (userData, eventName = "Lead") => {
           event_time: Math.floor(Date.now() / 1000),
           action_source: "website",
           user_data: {
-            // Facebook yêu cầu hash dữ liệu cá nhân (SHA256) hoặc gửi data thô nếu dùng https
-            // Lưu ý: Tốt nhất nên hash email/phone tại đây nếu cần bảo mật cao hơn
-            ph: [userData.phone], 
-            em: [userData.email],
+            ph: [sha256(userData.phone)],
+            em: [sha256(userData.email)],
             client_ip_address: userData.ip,
             client_user_agent: userData.user_agent,
             fbc: userData.fbc,

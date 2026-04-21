@@ -8,7 +8,7 @@ const axios = require("axios");
 const verifyRecaptcha = async (token) => {
   try {
     const secretKey = process.env.RECAPTCHA_SECRET_KEY;
-    if (!secretKey || secretKey.includes("PLACEHOLDER")) {
+    if (!secretKey || secretKey.includes("PLACEHOLDER") || secretKey.includes("YOUR_")) {
       console.warn("⚠️ RECAPTCHA_SECRET_KEY chưa được cấu hình. Đang bỏ qua kiểm tra.");
       return { success: true, score: 1.0 };
     }

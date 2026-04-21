@@ -15,6 +15,7 @@ const leadSchema = new mongoose.Schema(
     utm_medium: { type: String, index: true },
     utm_campaign: { type: String, index: true },
     utm_content: { type: String, index: true },
+    campaignTag: { type: String, index: true }, // Mã chiến dịch (vd: lop_10)
     // Timestamp tracking
     click_timestamp: { type: Date },              // Thời điểm click link KOC
     conversion_timestamp: { type: Date },         // Thời điểm submit form

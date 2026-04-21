@@ -17,26 +17,50 @@ async function startServer() {
   }
 
   const app = express();
-  const PORT = 5000;
+  const PORT = Number(process.env.PORT) || 3002;
 
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
+
+  const cookieParser = require('cookie-parser');
+  const cors = require('cors');
+
+  app.use(cors({ origin: true, credentials: true }));
+  app.use(cookieParser());
+
+  // Request logger
+  app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    next();
+  });
 
   const connectDB = require('./Backend/src/config/db');
   const authRoutes = require('./Backend/src/routes/authRoutes');
   const lpRoutes = require('./Backend/src/routes/lpRoutes');
   const leadRoutes = require('./Backend/src/routes/leadRoutes');
+  const affiliateRoutes = require('./Backend/src/routes/affiliateRoutes');
   const imageRoutes = require('./Backend/src/routes/imageRoutes');
+  const trackRoutes = require('./Backend/src/routes/trackRoutes');
+  const prizeRoutes = require('./Backend/src/routes/prizeRoutes');
 
   app.use('/api/auth', authRoutes);
   app.use('/api/landing-page', lpRoutes);
   app.use('/api/leads', leadRoutes);
   app.use('/api/images', imageRoutes);
+  app.use('/api/affiliates', affiliateRoutes);
+  app.use('/api/track', trackRoutes);
+  app.use('/api/prizes', prizeRoutes);
+
+  // Serve static files from Backend/uploads
+  app.use('/uploads', express.static(path.join(process.cwd(), 'Backend', 'uploads')));
+
   app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok', mode: 'mongodb' });
   });
 
+
   await connectDB();
+  console.log('✅ Kết nối MongoDB thành công!');
   console.log('✅ Running in MongoDB mode');
 
   if (process.env.NODE_ENV !== 'production') {

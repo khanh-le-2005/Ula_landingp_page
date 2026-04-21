@@ -18,4 +18,10 @@ router.put("/:id", verifyToken, checkRole(["ADMIN"]), affiliateController.update
 // Xóa KOC (Admin)
 router.delete("/:id", verifyToken, checkRole(["ADMIN"]), affiliateController.deleteAffiliate);
 
+// UTM Link Builder (Admin/Editor)
+router.get("/:id/links", verifyToken, checkRole(["ADMIN", "EDITOR"]), affiliateController.generateLinks);
+
+// Manual Link Builder (Admin/Editor)
+router.post("/build-link", verifyToken, checkRole(["ADMIN", "EDITOR"]), affiliateController.buildCustomLink);
+
 module.exports = router;

@@ -54,11 +54,12 @@ const GERMAN_THEME: ConsultationTheme = {
   shellGlow: "shadow-[0_36px_90px_rgba(124,111,197,0.28)]",
   shellGradient: "bg-[linear-gradient(135deg,#d9dcff_0%,#efedff_48%,#d4cbff_100%)]",
   courseOptions: [
-    "Lộ trình mất gốc đến HSK 1",
-    "Khóa tiếng Trung HSK 1",
-    "Khóa tiếng Trung HSK 2",
-    "Khóa tiếng Trung HSK 3",
-    "Luyện thi HSK / HSKK",
+    "Lộ trình mất gốc đến C1",
+    "Khóa tiếng Đức A1",
+    "Khóa tiếng Đức A2",
+    "Khóa tiếng Đức B1",
+    "Khóa tiếng Đức B2",
+    "Khóa tiếng Đức C1",
   ],
 };
 
@@ -243,7 +244,6 @@ const LeadForm: React.FC<ConsultationModalProps> = ({
         prize_option: wonPrize?.option || undefined,
         program_variant: options?.variant || undefined,
       },
-      referralCode: trackingData.referralId,
       ...trackingData,
     })
       .then((response) => {

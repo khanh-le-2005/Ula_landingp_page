@@ -1,5 +1,6 @@
 const { Lead } = require("../models/leadModel");
 const { findByCode } = require("../models/affiliateModel");
+const { sendRewardEmail } = require("../services/emailService");
 
 /**
  * Đọc Cookie tracking từ request
@@ -51,7 +52,6 @@ const checkFraud = async (ip, formData, affiliateCode) => {
 
 const submitForward = async (req, res) => {
   const leadService = require("../services/leadService");
-  const { verifyRecaptcha } = require("../services/captchaService");
   const { trackLeadEvent } = require("../services/marketingService");
 
   try {
@@ -64,6 +64,7 @@ const submitForward = async (req, res) => {
     const utmMedium = cookieTracking?.utm?.medium || utm_medium;
     const utmCampaign = cookieTracking?.utm?.campaign || utm_campaign;
     const utmContent = cookieTracking?.utm?.content || utm_content;
+    const campaignTag = cookieTracking?.campaign || req.body.campaignTag || null;
     const clickTimestamp = cookieTracking?.created_at ? new Date(cookieTracking.created_at) : null;
 
     // --- Site Key ---
@@ -74,12 +75,7 @@ const submitForward = async (req, res) => {
     }
 
     // --- reCAPTCHA ---
-    if (captchaToken) {
-      const captchaResult = await verifyRecaptcha(captchaToken);
-      if (!captchaResult.success || captchaResult.score < 0.5) {
-        return res.status(403).json({ message: "Phát hiện hành vi spam. Vui lòng thử lại." });
-      }
-    }
+    // (User yêu cầu gỡ bỏ hệ thống chống spam ReCAPTCHA)
 
     if (!formData || Object.keys(formData).length === 0) {
       return res.status(400).json({ message: "Dữ liệu form không được để trống" });
@@ -107,6 +103,7 @@ const submitForward = async (req, res) => {
       utm_medium: utmMedium,
       utm_campaign: utmCampaign,
       utm_content: utmContent,
+      campaignTag: campaignTag,
       click_timestamp: clickTimestamp,
       conversion_timestamp: new Date(),
       ip_address: ip,
@@ -116,6 +113,11 @@ const submitForward = async (req, res) => {
     });
 
     // --- Facebook CAPI (Bất đồng bộ, không block response) ---
+    console.log(`[LEAD] Mới từ IP ${ip}: ${formData.fullname || formData.name} - Source: ${utmSource || 'Direct'}`);
+    if (isSuspicious) {
+      console.warn(`[LEAD] ⚠️ Cảnh báo Spam/Fraud: ${reason}`);
+    }
+
     trackLeadEvent({
       phone: formData.phone || formData.sdt,
       email: formData.email,
@@ -126,6 +128,15 @@ const submitForward = async (req, res) => {
       referralCode,
       utm_source: utmSource,
     });
+
+    // --- Gửi Email (Bất đồng bộ) ---
+    if (formData && formData.email) {
+      sendRewardEmail(formData.email, {
+        customerName: formData.fullname || formData.name || "Khách hàng",
+        prizeName: req.body.prizeName || "Quà tặng đặc biệt",
+        prizeCode: req.body.prizeCode || "ULA-GIFT-2024"
+      });
+    }
 
     res.status(201).json({ message: "Đăng ký thành công!", data: lead });
   } catch (error) {
