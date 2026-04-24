@@ -1,12 +1,38 @@
+export interface MarketingMetaOptions {
+  sites: { key: string; label: string }[];
+  campaigns: { value: string; label: string }[];
+  kocs: { value: string; label: string }[];
+  utmSources: string[];
+  utmMediums: string[];
+}
+
+export interface MarketingLink {
+  _id: string;
+  name: string;
+  siteKey: string;
+  tag?: string;
+  ref?: string;
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  isActive: boolean;
+  notes?: string;
+  fullUrl: string;
+  createdAt: string;
+}
+
 export type Campaign = {
   _id: string;
   tag: string;
   name: string;
-  sections?: Record<string, any>;
+  sections?: Record<string, any> | any[]; // Hỗ trợ cả Object và Array
   prizes?: any[];
   prizeTag?: string;
   isActive: boolean;
   siteKey?: string;
+  discountText?: string; // Trường mới
+  promoCode?: string;    // Trường mới
+  fullUrl?: string;     // URL hoàn chỉnh (trả về từ Backend)
   createdAt?: string;
   updatedAt?: string;
 };
@@ -221,6 +247,31 @@ export const fetchLandingPage = async (site?: string, variant?: string, campaign
   return requestJson<Record<string, unknown>>('/api/landing-page', {}, params);
 };
 
+export type SiteConfig = {
+  discountText: string;
+  sitePromoCode: string;
+};
+
+export const fetchSiteConfig = async (site?: string) => {
+  const { site: finalSite } = getSiteContext(site);
+  return requestJson<SiteConfig>('/api/landing-page/site-config', { method: 'GET' }, { siteKey: finalSite });
+};
+
+export const updateSiteConfig = async (data: SiteConfig, site?: string) => {
+  const token = getStoredAdminToken();
+  const { site: finalSite } = getSiteContext(site);
+  return requestJson<{ message: string; content: SiteConfig }>(
+    '/api/landing-page/site-config',
+    {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    },
+    { siteKey: finalSite },
+    token
+  );
+};
+
 export const updateLandingSection = async <T,>(sectionKey: string, content: T, site?: string, variant?: string) => {
   const token = getStoredAdminToken();
   const { site: finalSite, variant: finalVariant, campaign: activeCampaignTag } = getSiteContext(site, variant);
@@ -343,7 +394,7 @@ export const submitLeadRegistration = async (payload: LeadSubmissionPayload) => 
   });
 };
 
-export const fetchLeads = async (siteOverride?: string) => {
+export const fetchLeads = async (siteOverride?: string, filters: { ref?: string; tag?: string; status?: string } = {}) => {
   const token = getStoredAdminToken();
   const { site } = getSiteContext(siteOverride);
 
@@ -352,8 +403,37 @@ export const fetchLeads = async (siteOverride?: string) => {
     {
       method: 'GET',
     },
-    { siteKey: site },
+    {
+      siteKey: site,
+      ...filters
+    },
     token,
+  );
+};
+
+export const updateLeadStatus = async (id: string, status: string) => {
+  const token = getStoredAdminToken();
+  return requestJson<{ message: string; data: LeadRecord }>(
+    `/api/leads/${id}/status`,
+    {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    },
+    {},
+    token
+  );
+};
+
+export const deleteLead = async (id: string) => {
+  const token = getStoredAdminToken();
+  return requestJson<{ message: string }>(
+    `/api/leads/${id}`,
+    {
+      method: 'DELETE',
+    },
+    {},
+    token
   );
 };
 
@@ -525,6 +605,51 @@ export const deletePrizeApi = async (id: string, siteOverride?: string) => {
     `/api/prizes/${id}`,
     { method: 'DELETE' },
     { siteKey: site },
+    token
+  );
+};
+
+// --- MARKETING LINKS ---
+export const fetchMarketingMetaOptions = async (siteKey: string) => {
+  const token = getStoredAdminToken();
+  return requestJson<MarketingMetaOptions>(
+    `/api/marketing-links/meta-options`,
+    { method: "GET" },
+    { siteKey },
+    token
+  );
+};
+
+export const fetchMarketingLinks = async (siteKey: string) => {
+  const token = getStoredAdminToken();
+  return requestJson<MarketingLink[]>(
+    `/api/marketing-links`,
+    { method: "GET" },
+    { siteKey },
+    token
+  );
+};
+
+export const createMarketingLink = async (data: Partial<MarketingLink>) => {
+  const token = getStoredAdminToken();
+  return requestJson<{ message: string; data: MarketingLink }>(
+    "/api/marketing-links",
+    { 
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    },
+    { siteKey: data.siteKey },
+    token
+  );
+};
+
+export const deleteMarketingLink = async (id: string) => {
+  const token = getStoredAdminToken();
+  return requestJson<{ message: string }>(
+    `/api/marketing-links/${id}`,
+    { method: "DELETE" },
+    {},
     token
   );
 };

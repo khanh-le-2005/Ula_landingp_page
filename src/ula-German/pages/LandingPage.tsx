@@ -10,11 +10,14 @@ import Trust from '../components/SuccessStory';
 import LuckyWheel from '../components/LuckyWheel';
 import LeadForm from '../components/LeadForm';
 import Footer from '../components/Footer';
-import { resolveTrackingData } from '../utils/tracking';
+import { useTracking } from '../hooks/useTracking';
 import { useLocation, useParams } from 'react-router-dom';
 import { LandingSiteProvider } from '../../ula-chinese/context/LandingSiteContext';
 
 export default function LandingPage() {
+  // Kích hoạt Tracking tự động
+  useTracking('tieng-duc');
+
   const [wonPrize, setWonPrize] = useState<{ option: string; code: string } | null>(null);
   const location = useLocation();
   const { tag } = useParams();
@@ -22,11 +25,6 @@ export default function LandingPage() {
   const searchParams = new URLSearchParams(location.search);
   // Ưu tiên: Path (:tag) -> ?campaign -> ?ref (để link KOC cũng hiện nội dung tag)
   const campaignTag = tag || searchParams.get('campaign') || searchParams.get('ref') || undefined;
-
-  useEffect(() => {
-    // Capture tracking data (UTMs, Referral ID) on load
-    resolveTrackingData();
-  }, []);
 
   return (
     <LandingSiteProvider siteKey="tieng-duc" campaignTag={campaignTag}>

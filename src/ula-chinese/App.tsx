@@ -15,15 +15,10 @@ import RequireAdmin from './pages/admin/RequireAdmin';
 // import ExperienceEditor from './pages/admin/pages/ExperienceEditor';
 // import Affiliates from './pages/admin/pages/Affiliates';
 import WelcomePage from './pages/WelcomePage';
-import { trackVisitor } from './pages/admin/adminApi';
 import { ProjectProvider } from './pages/admin/context/ProjectContext';
 import { LandingSiteProvider } from './context/LandingSiteContext';
 
 export default function App() {
-  React.useEffect(() => {
-    // Luồng tracking chuyên nghiệp: Gửi query params cho Backend để đặt Cookie
-    trackVisitor(window.location.search);
-  }, []);
 
 
 

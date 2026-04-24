@@ -6,7 +6,7 @@ const { Affiliate } = require("../models/affiliateModel");
 const getFullUrl = (req, siteKey, tag) => {
   const protocol = req.protocol === "http" && req.get("host").includes("localhost") ? "http" : "https";
   const host = req.get("host");
-  const siteMap = { "tieng-duc": "/german", "tieng-trung": "/china", "main": "" };
+  const siteMap = { "tieng-duc": "/german", "tieng-trung": "/chinese", "main": "" };
   const path = siteMap[siteKey] || "";
   let url = `${protocol}://${host}${path}`;
   if (tag) {

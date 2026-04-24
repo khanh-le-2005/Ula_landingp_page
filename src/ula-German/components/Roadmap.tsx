@@ -109,7 +109,7 @@ const ALL_LEVELS: CourseRoadmapLevel[] = [
   { id: "a1", label: "A1", sub: "Nền tảng" },
   { id: "a2", label: "A2", sub: "Cơ bản" },
   { id: "b1", label: "B1", sub: "Trung cấp" },
-  { id: "b1", label: "B1", sub: "Luyện thi" },
+  { id: "b1_exam", label: "B1", sub: "Luyện thi" },
   { id: "b2", label: "B2", sub: "Nâng cao" },
   { id: "c1", label: "C1", sub: "Cao cấp" },
 

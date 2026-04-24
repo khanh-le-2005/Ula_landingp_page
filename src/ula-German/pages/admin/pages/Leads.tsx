@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { AlertCircle, RefreshCw, Users, Mail, Phone, Calendar, ExternalLink, ShieldAlert, Database, X, Info, Gift, AlertTriangle } from 'lucide-react';
-import { fetchLeads, type LeadRecord } from '../adminApi';
+import { AlertCircle, RefreshCw, Users, Mail, Phone, Calendar, ExternalLink, ShieldAlert, Database, X, Info, Gift, AlertTriangle, Trash2, CheckCircle, Clock, XCircle, Check } from 'lucide-react';
+import { fetchLeads, updateLeadStatus, deleteLead, type LeadRecord } from '../adminApi';
 import { useAdminAuth } from '../hooks/useAdminAuth';
 import { useSiteContext } from '../../../../ula-chinese/context/LandingSiteContext';
 import { adminCard, adminAccentText, adminSecondaryButton } from '../adminTheme';
@@ -18,6 +18,20 @@ const formatValue = (value: unknown) => {
   return String(value);
 };
 
+const getStatusConfig = (status?: string) => {
+  const s = status?.toUpperCase();
+  switch (s) {
+    case 'CONTACTED':
+      return { label: 'ĐÃ LIÊN HỆ', color: 'text-amber-600 bg-amber-50 border-amber-200', dot: 'bg-amber-500' };
+    case 'ENROLLED':
+      return { label: 'ĐÃ NHẬP HỌC', color: 'text-emerald-600 bg-emerald-50 border-emerald-200', dot: 'bg-emerald-500' };
+    case 'CANCELLED':
+      return { label: 'HỦY', color: 'text-rose-600 bg-rose-50 border-rose-200', dot: 'bg-rose-500' };
+    default:
+      return { label: 'MỚI', color: 'text-indigo-600 bg-indigo-50 border-indigo-200', dot: 'bg-indigo-500' };
+  }
+};
+
 export default function Leads() {
   const { isAuthenticated } = useAdminAuth();
   const { siteKey } = useSiteContext();
@@ -25,6 +39,40 @@ export default function Leads() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedLead, setSelectedLead] = useState<LeadRecord | null>(null);
+  const [isActionLoading, setIsActionLoading] = useState(false);
+
+  const handleUpdateStatus = async (id: string, newStatus: string) => {
+    if (isActionLoading) return;
+    setIsActionLoading(true);
+    try {
+      const response = await updateLeadStatus(id, newStatus);
+      // Cập nhật state cục bộ
+      setLeads(prev => prev.map(l => l._id === id ? { ...l, status: newStatus } : l));
+      if (selectedLead?._id === id) {
+        setSelectedLead({ ...selectedLead, status: newStatus });
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Lỗi cập nhật trạng thái');
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleDeleteLead = async (id: string) => {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa Lead này? Hành động này không thể hoàn tác.')) return;
+    if (isActionLoading) return;
+
+    setIsActionLoading(true);
+    try {
+      await deleteLead(id);
+      setLeads(prev => prev.filter(l => l._id !== id));
+      setSelectedLead(null);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Lỗi khi xóa Lead');
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
 
   const loadLeads = async () => {
     setIsLoading(true);
@@ -194,10 +242,15 @@ export default function Leads() {
                         </td>
                         <td className="px-6 py-6">
                           <div className="flex justify-center">
-                            <span className="relative flex items-center gap-2 overflow-hidden rounded-full border border-indigo-200 bg-indigo-50 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-indigo-600">
-                              <div className="h-1.5 w-1.5 rounded-full bg-indigo-500 animate-pulse" />
-                              {lead.status || 'MỚI'}
-                            </span>
+                            {(() => {
+                              const config = getStatusConfig(lead.status);
+                              return (
+                                <span className={`relative flex items-center gap-2 overflow-hidden rounded-full border ${config.color} px-4 py-1.5 text-[10px] font-black uppercase tracking-widest`}>
+                                  <div className={`h-1.5 w-1.5 rounded-full ${config.dot} animate-pulse`} />
+                                  {config.label}
+                                </span>
+                              );
+                            })()}
                           </div>
                         </td>
                       </tr>
@@ -232,12 +285,23 @@ export default function Leads() {
                   </div>
                 </div>
               </div>
-              <button
-                onClick={() => setSelectedLead(null)}
-                className="h-10 w-10 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-rose-50 hover:text-rose-600 transition-all border border-slate-200"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleDeleteLead(selectedLead._id)}
+                  disabled={isActionLoading}
+                  className="h-10 px-4 flex items-center justify-center gap-2 rounded-full bg-rose-50 text-rose-600 hover:bg-rose-100 transition-all border border-rose-100 text-[10px] font-black uppercase tracking-widest disabled:opacity-50"
+                  title="Xóa Lead này"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Xóa
+                </button>
+                <button
+                  onClick={() => setSelectedLead(null)}
+                  className="h-10 w-10 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition-all border border-slate-200"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {/* Content */}
@@ -260,8 +324,18 @@ export default function Leads() {
                         <div className="text-sm font-bold text-slate-800 font-mono tracking-wider">{formatValue(selectedLead.formData?.phone ?? selectedLead.formData?.sdt ?? selectedLead.formData?.phoneNumber)}</div>
                       </div>
                       <div>
-                        <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">Trạng thái</div>
-                        <div className="text-xs font-black text-emerald-600 uppercase tracking-widest">{selectedLead.status || 'MỚI'}</div>
+                        <div className="text-[10px] font-bold text-slate-400 uppercase mb-1.5">Trạng thái</div>
+                        <select
+                          value={selectedLead.status || 'NEW'}
+                          disabled={isActionLoading}
+                          onChange={(e) => handleUpdateStatus(selectedLead._id, e.target.value)}
+                          className={`w-full text-[10px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border appearance-none cursor-pointer focus:outline-none transition-all ${getStatusConfig(selectedLead.status).color}`}
+                        >
+                          <option value="NEW">MỚI</option>
+                          <option value="CONTACTED">ĐÃ LIÊN HỆ</option>
+                          <option value="ENROLLED">ĐÃ NHẬP HỌC</option>
+                          <option value="CANCELLED">HỦY / RÁC</option>
+                        </select>
                       </div>
                     </div>
                     <div className="pt-2">

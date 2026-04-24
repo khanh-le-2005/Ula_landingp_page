@@ -83,7 +83,7 @@ const generateLinks = async (req, res, next) => {
     // Cấu hình mapping giữa site key và path
     const siteMap = {
       "tieng-duc": "/german",
-      "tieng-trung": "/china",
+      "tieng-trung": "/chinese",
       "main": "/"
     };
 
@@ -125,7 +125,7 @@ const buildCustomLink = async (req, res, next) => {
 
     const siteMap = {
       "tieng-duc": "/german",
-      "tieng-trung": "/china",
+      "tieng-trung": "/chinese",
       "main": "/"
     };
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, Link, useNavigate } from 'react-router-dom';
-import { BadgeCheck, LayoutDashboard, Sparkles, Target, Waypoints, Gift, PanelsTopLeft, Eye, LogOut, LogIn, FileText, ChevronRight, Activity, ChevronDown, Globe, Hash, ChevronLeft, Menu } from 'lucide-react';
+import { BadgeCheck, LayoutDashboard, Sparkles, Target, Waypoints, Gift, PanelsTopLeft, Eye, LogOut, LogIn, FileText, ChevronRight, Activity, ChevronDown, Globe, Hash, ChevronLeft, Menu, Settings } from 'lucide-react';
 import { useAdminAuth } from './hooks/useAdminAuth';
 import { ADMIN_SECTION_KEYS } from './adminSections';
 import { adminShell, adminSecondaryButton, adminPrimaryButton, adminAccentText } from './adminTheme';
@@ -18,6 +18,7 @@ import ChinaLuckyWheelEditor from './pages/LuckyWheelEditor';
 import ChinaExperienceEditor from './pages/ExperienceEditor';
 import ChinaAffiliates from './pages/Affiliates';
 import ChinaCampaigns from './pages/Campaigns';
+import ChinaSiteConfig from './pages/SiteConfig';
 import { fetchCampaigns, type Campaign } from './adminApi';
 import { LandingSiteProvider } from '../../context/LandingSiteContext';
 
@@ -33,6 +34,7 @@ import GermanExperienceEditor from '../../../ula-German/pages/admin/pages/Experi
 import GermanAffiliates from '../../../ula-German/pages/admin/pages/Affiliates';
 import GermanCampaigns from '../../../ula-German/pages/admin/pages/Campaigns';
 import GermanMarketingLinks from '../../../ula-German/pages/admin/pages/MarketingLinks';
+import GermanSiteConfig from '../../../ula-German/pages/admin/pages/SiteConfig';
 
 const navItems = [
   { id: 'overview', label: 'Tổng quan', icon: LayoutDashboard },
@@ -46,6 +48,7 @@ const navItems = [
   { id: 'lucky-wheel', label: 'Vòng quay', icon: Gift },
   { id: 'affiliates', label: 'quản lý KOC ', icon: BadgeCheck },
   { id: 'marketing-links', label: 'Link Marketing', icon: Globe },
+  { id: 'site-config', label: 'Mã giảm giá chung', icon: Settings },
 ];
 
 function AdminLayoutInner() {
@@ -122,6 +125,8 @@ function AdminLayoutInner() {
         return <GermanMarketingLinks key={contentKey} />;
       case 'tags': 
         return isGerman ? <GermanCampaigns key={contentKey} /> : <ChinaCampaigns key={contentKey} />;
+      case 'site-config':
+        return isGerman ? <GermanSiteConfig key={contentKey} /> : <ChinaSiteConfig key={contentKey} />;
       default: 
         return isGerman 
           ? <GermanOverview key={contentKey} onNavigate={(s) => selectModuleAndSection(activeProject, s)} />

@@ -1,6 +1,6 @@
 import React, { createContext, useContext } from 'react';
 
-type SiteKey = 'tieng-trung' | 'tieng-duc';
+export type SiteKey = 'tieng-trung' | 'tieng-duc';
 
 interface LandingSiteContextType {
   siteKey: SiteKey;

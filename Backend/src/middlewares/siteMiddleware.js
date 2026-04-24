@@ -17,7 +17,7 @@ const siteMiddleware = (req, res, next) => {
   const path = req.originalUrl.toLowerCase();
   if (path.startsWith("/german") || path.startsWith("/tieng-duc")) {
     siteKey = "tieng-duc";
-  } else if (path.startsWith("/china") || path.startsWith("/china") || path.startsWith("/tieng-trung")) {
+  } else if (path.startsWith("/chinese") || path.startsWith("/tieng-trung")) {
     siteKey = "tieng-trung";
   }
 

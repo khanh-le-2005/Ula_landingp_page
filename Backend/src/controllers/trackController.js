@@ -4,9 +4,11 @@ const { findByCode } = require("../models/affiliateModel");
  * Middleware đặt Cookie tracking khi user click vào link KOC/UTM
  * Frontend gọi: GET /api/track?ref=KOC_Yoncy&utm_source=tiktok&...
  */
-const trackClick = async (req, res) => {
+const trackClick = async (req, res, next) => {
   try {
-    const { ref, campaign, utm_source, utm_medium, utm_campaign, utm_content, fbc, fbp } = req.query;
+    // Hỗ trợ cả GET (?ref=...) lẫn POST ({ ref: ... })
+    const params = { ...req.query, ...req.body };
+    const { ref, campaign, utm_source, utm_medium, utm_campaign, utm_content, fbc, fbp } = params;
 
     const trackingData = {
       aff_id: null,

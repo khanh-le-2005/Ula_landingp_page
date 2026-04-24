@@ -18,11 +18,13 @@ import {
   Gift,
   LayoutGrid,
   Box,
-  Sparkles
+  Sparkles,
+  Globe
 } from 'lucide-react';
 import { fetchCampaigns, createCampaign, updateCampaign, deleteCampaign, fetchLandingPage, fetchPrizes, type Campaign, type LuckyWheelPrize } from '../adminApi';
 import { adminCard, adminInput, adminLabel, adminPrimaryButton, adminSecondaryButton, adminAccentText } from '../adminTheme';
-import { useSiteContext } from '../../../../ula-chinese/context/LandingSiteContext';
+import { useSiteContext, type SiteKey } from '../../../../ula-chinese/context/LandingSiteContext';
+
 
 export default function Campaigns() {
   const { siteKey } = useSiteContext();
@@ -39,6 +41,9 @@ export default function Campaigns() {
     tag: '',
     name: '',
     isActive: true,
+    discountText: '', // CẬP NHẬT: Thêm trường mới
+    promoCode: '',     // CẬP NHẬT: Thêm trường mới
+    siteKey: siteKey   // Mặc định từ Context
   });
 
   // Structured data for ALL sections
@@ -47,11 +52,16 @@ export default function Campaigns() {
     headlineTop: '',
     headlineHighlight: '',
     headlineBottom: '',
-    description: ''
+    description: '',
+    heroImageUrl: ''
   });
 
   const [painpoints, setPainpoints] = useState<any>({
     sectionTitle: '',
+    sectionSubtitle: '',
+    mainTitleTop: '',
+    mainTitleHighlight: '',
+    mascotImageUrl: '',
     bubbles: [] // Max 7
   });
 
@@ -59,18 +69,19 @@ export default function Campaigns() {
     titlePart1: '',
     titleHighlight: '',
     titlePart2: '',
-    cards: [] // Max 3 cards, each with category, title, bullets[]
+    cards: [] // Max 3 cards
   });
 
   const [methodology, setMethodology] = useState<any>({
-    mainCard: { number: '', title: '', subTitle: '' },
-    cards: [] // Max 4 cards, each with number, title, subTitle
+    mainCard: { number: '', title: '', subTitle: '', imgSrc: '' },
+    cards: [] // Max 4 cards
   });
 
   const [luckyWheel, setLuckyWheel] = useState<any>({
     headline: '',
     subHeadline: '',
     description: '',
+    timerLabel: '',
     prizes: []
   });
 
@@ -80,7 +91,7 @@ export default function Campaigns() {
     setIsLoading(true);
     setError('');
     try {
-      const data = await fetchCampaigns();
+      const data = await fetchCampaigns(siteKey);
       setCampaigns(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Không thể tải danh sách chiến dịch');
@@ -93,53 +104,71 @@ export default function Campaigns() {
     void loadCampaigns();
   }, [siteKey]);
 
+  // Hàm Helper để trích xuất content từ mảng Sections (Hỗ trợ tương thích ngược dữ liệu cũ)
+  const getSectionContent = (sectionsData: any, primaryKey: string, fallbackKey: string) => {
+    if (Array.isArray(sectionsData)) {
+      const found = sectionsData.find(s => s.sectionKey === primaryKey || s.sectionKey === fallbackKey);
+      return found ? found.content : {};
+    }
+    return sectionsData[primaryKey] || sectionsData[fallbackKey] || {};
+  };
+
   const handleOpenEditor = async (campaign?: Campaign) => {
     setLastSavedUrl(null);
     setError('');
     setIsLoading(true);
 
     try {
-      let currentSections: any = {};
+      let currentSections: any = [];
       let currentPrizes: LuckyWheelPrize[] = [];
 
       if (campaign) {
         setEditingCampaign(campaign);
         setFormData({
-          tag: campaign.tag,
+          tag: campaign.tag || '',
           name: campaign.name || '',
-          isActive: campaign.isActive,
+          isActive: campaign.isActive !== false,
+          discountText: campaign.discountText || '', // Map data
+          promoCode: campaign.promoCode || '',        // Map data
+          siteKey: (campaign.siteKey || siteKey) as SiteKey
         });
-        currentSections = campaign.sections || {};
+        currentSections = campaign.sections || [];
         currentPrizes = campaign.prizes || [];
       } else {
         // Lấy dữ liệu từ trang gốc theo Site hiện tại
         const baseData = await fetchLandingPage(siteKey);
         const basePrizes = await fetchPrizes(siteKey);
         setEditingCampaign(null);
-        setFormData({ tag: '', name: '', isActive: true });
-        currentSections = baseData;
+        setFormData({ tag: '', name: '', isActive: true, discountText: '', promoCode: '', siteKey: siteKey });
+        currentSections = baseData; // baseData có thể là object
         currentPrizes = basePrizes;
       }
 
       // Ô 1: Hero
-      const h = currentSections.section_1_hero || currentSections.hero || {};
+      const h = getSectionContent(currentSections, 'hero', 'section_1_hero');
       setHero({
         badge: h.badge || '',
         headlineTop: h.headlineTop || '',
         headlineHighlight: h.headlineHighlight || '',
         headlineBottom: h.headlineBottom || '',
-        description: h.description || ''
+        description: h.description || '',
+        heroImageUrl: h.heroImageUrl || ''
       });
 
       // Ô 2: Nỗi đau (Painpoints)
-      const p = currentSections.section_2_painpoints || currentSections.painpoints || {};
+      const p = getSectionContent(currentSections, 'section_2_painpoints', 'painpoints');
       setPainpoints({
         sectionTitle: p.sectionTitle || '',
+        sectionSubtitle: p.sectionSubtitle || '',
+        mainTitleTop: p.mainTitleTop || '',
+        mainTitleHighlight: p.mainTitleHighlight || '',
+        mascotImageUrl: p.mascotImageUrl || '',
         bubbles: (Array.isArray(p.bubbles) ? p.bubbles : []).slice(0, 7)
       });
 
       // Ô 3: Giải pháp (Solution)
-      const sol = currentSections.section_3_solution || currentSections.solution || {};
+      const sol = getSectionContent(currentSections, 'section_3_solution', 'solution');
+      // Xử lý linh hoạt vì Cấu trúc mới Content của solution là 1 Array trực tiếp, cấu trúc cũ là object có chứa cards
       const solArray = Array.isArray(sol) ? sol : (Array.isArray(sol.cards) ? sol.cards : []);
       setSolution({
         titlePart1: sol.titlePart1 || '',
@@ -148,31 +177,37 @@ export default function Campaigns() {
         cards: solArray.slice(0, 3).map((c: any) => ({
           category: c.category || '',
           title: c.title || '',
-          bullets: Array.isArray(c.bullets) ? c.bullets : (Array.isArray(c.points) ? c.points : [])
+          bullets: Array.isArray(c.bullets) ? c.bullets : (Array.isArray(c.points) ? c.points : []),
+          mediaUrl: c.mediaUrl || '',
+          isVideo: !!c.isVideo,
+          gradient: c.gradient || ''
         }))
       });
 
       // Ô 4: Phương pháp (Methodology)
-      const meth = currentSections.section_4_methodology || currentSections.methodology || {};
+      const meth = getSectionContent(currentSections, 'section_4_methodology', 'methodology');
       setMethodology({
         mainCard: {
           number: meth.mainCard?.number || '',
           title: meth.mainCard?.title || '',
-          subTitle: meth.mainCard?.subTitle || ''
+          subTitle: meth.mainCard?.subTitle || '',
+          imgSrc: meth.mainCard?.imgSrc || ''
         },
         cards: (Array.isArray(meth.cards) ? meth.cards : []).slice(0, 4).map((c: any) => ({
           number: c.number || '',
           title: c.title || '',
-          subTitle: c.subTitle || ''
+          subTitle: c.subTitle || '',
+          imgSrc: c.imgSrc || ''
         }))
       });
 
       // Ô 5: LuckySpin
-      const lw = currentSections.luckyspin || currentSections.section_5_lucky_wheel || {};
+      const lw = getSectionContent(currentSections, 'luckyspin', 'section_5_lucky_wheel');
       setLuckyWheel({
         headline: lw.headline || '',
         subHeadline: lw.subHeadline || '',
         description: lw.description || '',
+        timerLabel: lw.timerLabel || '',
         prizes: currentPrizes.length > 0 ? currentPrizes : (lw.prizes || [])
       });
 
@@ -209,18 +244,19 @@ export default function Campaigns() {
     setError('');
 
     try {
-      const sections = {
-        section_1_hero: hero,
-        section_2_painpoints: painpoints,
-        section_3_solution: solution.cards,
-        section_4_methodology: methodology,
-        section_5_lucky_wheel: luckyWheel,
-        luckyspin: luckyWheel // Tương thích ngược
+      // CẬP NHẬT: Build Object Sections (Logical Keys) thay vì Mảng
+      const sectionsObject = {
+        hero: hero,
+        painpoints: painpoints,
+        solution: solution.cards, // Solution truyền mảng cards
+        methodology: methodology,
+        luckyspin: luckyWheel
       };
 
+      // Gói Payload chuẩn chỉnh
       const finalData = {
-        ...formData,
-        sections,
+        ...formData,      // Đã chứa tag, name, isActive, discountText, promoCode, siteKey
+        sections: sectionsObject,
         prizes: luckyWheel.prizes
       };
 
@@ -231,10 +267,11 @@ export default function Campaigns() {
         response = await createCampaign(finalData);
       }
 
-      setLastSavedUrl(response.data.fullUrl || null);
+      setLastSavedUrl(response.data?.fullUrl || null);
       if (editingCampaign) setEditingCampaign(response.data);
       await loadCampaigns();
-      setIsEditing(false); // Quay về trang quản lý
+      
+      alert('Đã lưu thành công!'); // Có thể bỏ nếu ko thích popup
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Lỗi khi lưu chiến dịch');
     } finally {
@@ -403,6 +440,15 @@ export default function Campaigns() {
           <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${formData.isActive ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-slate-100 text-slate-400 border-slate-200'}`}>
             {formData.isActive ? 'Trạng thái: Hoạt động' : 'Trạng thái: Đã tắt'}
           </div>
+          {editingCampaign && (
+            <button
+              onClick={() => handleDelete(editingCampaign._id)}
+              className="flex items-center gap-2 px-6 py-2 rounded-xl bg-rose-50 text-rose-600 border border-rose-100 hover:bg-rose-100 transition-all font-bold text-sm"
+            >
+              <Trash2 className="w-4 h-4" />
+              Xóa chiến dịch
+            </button>
+          )}
           <button
             onClick={handleSave}
             disabled={isSaving}
@@ -424,6 +470,18 @@ export default function Campaigns() {
             </div>
 
             <div className="space-y-6">
+              <div className="space-y-2">
+                <div className={adminLabel}>Site Key (Mặc định)</div>
+                <div className="relative">
+                  <Globe className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <input 
+                    readOnly
+                    className={`${adminInput} pl-12 bg-slate-50 text-slate-500 cursor-not-allowed`}
+                    value={formData.siteKey}
+                  />
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <div className={adminLabel}>Mã định danh (Tag Code)</div>
                 <div className="relative">
@@ -449,6 +507,27 @@ export default function Campaigns() {
                 />
               </div>
 
+              {/* CẬP NHẬT UI: Thêm 2 input cho discountText và promoCode */}
+              <div className="space-y-2">
+                <div className={adminLabel}>Text Ưu đãi (Nổi bật)</div>
+                <input
+                  className={adminInput}
+                  placeholder="Ưu đãi Khóa học 5.0 Giảm 80%..."
+                  value={formData.discountText}
+                  onChange={(e) => setFormData(prev => ({ ...prev, discountText: e.target.value }))}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className={adminLabel}>Mã giảm giá (Promo Code)</div>
+                <input
+                  className={`${adminInput} font-mono font-bold text-amber-600 uppercase`}
+                  placeholder="DUC-ULA-80"
+                  value={formData.promoCode}
+                  onChange={(e) => setFormData(prev => ({ ...prev, promoCode: e.target.value.replace(/\s+/g, '') }))}
+                />
+              </div>
+
               <div className="flex items-center justify-between p-4 rounded-2xl border border-slate-100 bg-slate-50/50">
                 <div className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Kích hoạt</div>
                 <button
@@ -461,6 +540,13 @@ export default function Campaigns() {
               </div>
             </div>
           </section>
+
+          {error && (
+            <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+              <div className="text-sm font-bold text-rose-700">{error}</div>
+            </div>
+          )}
 
           {lastSavedUrl && (
             <section className="bg-emerald-50 border border-emerald-200 rounded-[32px] p-6 animate-in zoom-in-95">

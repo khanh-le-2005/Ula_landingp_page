@@ -46,8 +46,12 @@ export const createMarketingLink = async (data: Partial<MarketingLink>) => {
   const token = getStoredAdminToken();
   return requestJson<{ message: string; data: MarketingLink }>(
     "/api/marketing-links",
-    { method: "POST" },
-    data as any,
+    { 
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    },
+    { siteKey: data.siteKey },
     token
   );
 };
@@ -68,10 +72,12 @@ export type Campaign = {
   tag: string;
   name: string;
   isActive: boolean;
-  sections?: Record<string, any>;
+  sections?: Record<string, any> | any[];
   prizes?: any[];
   prizeTag?: string;
   siteKey?: string;
+  discountText?: string;
+  promoCode?: string;
   fullUrl?: string; // Mới: URL hoàn chỉnh trả về từ BE
   createdAt?: string;
   updatedAt?: string;
@@ -312,6 +318,35 @@ export const fetchLandingPage = async (
   return requestJson<Record<string, unknown>>("/api/landing-page", {}, params);
 };
 
+export type SiteConfig = {
+  discountText: string;
+  sitePromoCode: string;
+};
+
+export const fetchSiteConfig = async (site?: string) => {
+  const { site: finalSite } = getSiteContext(site);
+  return requestJson<SiteConfig>(
+    "/api/landing-page/site-config",
+    { method: "GET" },
+    { siteKey: finalSite },
+  );
+};
+
+export const updateSiteConfig = async (data: SiteConfig, site?: string) => {
+  const token = getStoredAdminToken();
+  const { site: finalSite } = getSiteContext(site);
+  return requestJson<{ message: string; content: SiteConfig }>(
+    "/api/landing-page/site-config",
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    },
+    { siteKey: finalSite },
+    token,
+  );
+};
+
 export const updateLandingSection = async <T>(
   sectionKey: string,
   content: T,
@@ -343,9 +378,17 @@ export const updateLandingSection = async <T>(
 
     // 2. Chuẩn bị dữ liệu update { sections: { [sectionKey]: content } }
     let body: any;
+    let isFormData = false;
 
     if (content instanceof FormData) {
+      isFormData = true;
       body = content;
+      // Khi gửi FormData cho campaign, ta cần đính kèm các sections cũ
+      // Tuy nhiên Backend hiện tại chưa hỗ trợ multer cho updateCampaign
+      // NÊN ta sẽ thông báo lỗi nếu cố upload ảnh cho campaign cho đến khi BE hỗ trợ
+      // HOẶC ta sẽ flatten nó nếu BE có thể parse được.
+      // TẠM THỜI: Nếu là FormData, ta đính kèm tag và id để BE nhận diện
+      body.append("campaignId", targetCampaign._id);
       body.append("sectionUpdateKey", sectionKey);
     } else {
       body = {
@@ -444,7 +487,7 @@ export const submitLeadRegistration = async (
   });
 };
 
-export const fetchLeads = async (siteOverride?: string) => {
+export const fetchLeads = async (siteOverride?: string, filters: { ref?: string; tag?: string; status?: string } = {}) => {
   const token = getStoredAdminToken();
   const { site } = getSiteContext(siteOverride);
 
@@ -453,8 +496,37 @@ export const fetchLeads = async (siteOverride?: string) => {
     {
       method: "GET",
     },
-    { siteKey: site },
+    { 
+      siteKey: site,
+      ...filters
+    },
     token,
+  );
+};
+
+export const updateLeadStatus = async (id: string, status: string) => {
+  const token = getStoredAdminToken();
+  return requestJson<{ message: string; data: LeadRecord }>(
+    `/api/leads/${id}/status`,
+    {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    },
+    {},
+    token
+  );
+};
+
+export const deleteLead = async (id: string) => {
+  const token = getStoredAdminToken();
+  return requestJson<{ message: string }>(
+    `/api/leads/${id}`,
+    {
+      method: 'DELETE',
+    },
+    {},
+    token
   );
 };
 
@@ -580,15 +652,18 @@ export const createCampaign = async (data: Partial<Campaign>) => {
   );
 };
 
-export const updateCampaign = async (id: string, data: Partial<Campaign>) => {
+export const updateCampaign = async (id: string, data: Partial<Campaign> | FormData) => {
   const token = getStoredAdminToken();
   const { site } = getSiteContext();
+  
+  const isFormData = data instanceof FormData;
+  
   return requestJson<{ message: string; data: Campaign }>(
     `/api/campaigns/${id}`,
     {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
+      headers: isFormData ? {} : { "Content-Type": "application/json" },
+      body: isFormData ? data : JSON.stringify(data),
     },
     { siteKey: site },
     token,

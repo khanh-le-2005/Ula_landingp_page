@@ -15,29 +15,30 @@ import {
   Copy,
   Save,
   Zap,
-  Layout,
-  Type,
-  List,
-  Gift,
-  Dices,
-  Sparkles,
-  PlayCircle,
-  MousePointer2,
+  LayoutGrid,
   Box,
-  LayoutGrid
+  Sparkles,
+  Gift,
+  Globe
 } from 'lucide-react';
 import { fetchCampaigns, createCampaign, updateCampaign, deleteCampaign, fetchLandingPage, fetchPrizes, type Campaign, type LuckyWheelPrize } from '../adminApi';
 import { adminCard, adminInput, adminLabel, adminPrimaryButton, adminSecondaryButton, adminAccentText } from '../adminTheme';
-import { useSiteContext } from '../../../context/LandingSiteContext';
+import { useSiteContext, type SiteKey } from '../../../context/LandingSiteContext';
 
 export default function Campaigns() {
-  const { siteKey } = useSiteContext();
+  // Lấy siteKey từ Context để tự động biết đang ở Tiếng Đức hay Tiếng Trung
+  const { siteKey } = useSiteContext(); 
+  
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   
+  // Biến UI động
+  const isGerman = siteKey === 'tieng-duc';
+  const siteName = isGerman ? 'Đức (DE)' : 'Trung (CN)';
+
   // Editor state
   const [isEditing, setIsEditing] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
@@ -45,48 +46,40 @@ export default function Campaigns() {
     tag: '',
     name: '',
     isActive: true,
+    discountText: '', // Trường mới
+    promoCode: '',     // Trường mới
+    siteKey: siteKey   // Mặc định từ Context
   });
   
   // Structured data for ALL sections
   const [hero, setHero] = useState<any>({
-    badge: '',
-    headlineTop: '',
-    headlineHighlight: '',
-    headlineBottom: '',
-    description: ''
+    badge: '', headlineTop: '', headlineHighlight: '', headlineBottom: '', description: '', heroImageUrl: ''
   });
   
   const [painpoints, setPainpoints] = useState<any>({
-    sectionTitle: '',
-    bubbles: [] // Max 7
+    sectionTitle: '', sectionSubtitle: '', mainTitleTop: '', mainTitleHighlight: '', mascotImageUrl: '', bubbles: [] 
   });
 
   const [solution, setSolution] = useState<any>({
-    titlePart1: '',
-    titleHighlight: '',
-    titlePart2: '',
-    cards: [] // Max 3 cards, each with category, title, bullets[]
+    titlePart1: '', titleHighlight: '', titlePart2: '', cards: [] 
   });
 
   const [methodology, setMethodology] = useState<any>({
-    mainCard: { number: '', title: '', subTitle: '' },
-    cards: [] // Max 4 cards, each with number, title, subTitle
+    mainCard: { number: '', title: '', subTitle: '', imgSrc: '' }, cards: [] 
   });
   
   const [luckyWheel, setLuckyWheel] = useState<any>({
-    headline: '',
-    subHeadline: '',
-    description: '',
-    prizes: []
+    headline: '', subHeadline: '', description: '', timerLabel: '', prizes: []
   });
   
   const [lastSavedUrl, setLastSavedUrl] = useState<string | null>(null);
 
+  // CẬP NHẬT: Gửi siteKey vào hàm fetchCampaigns
   const loadCampaigns = async () => {
     setIsLoading(true);
     setError('');
     try {
-      const data = await fetchCampaigns();
+      const data = await fetchCampaigns(siteKey); 
       setCampaigns(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Không thể tải danh sách chiến dịch');
@@ -99,86 +92,101 @@ export default function Campaigns() {
     void loadCampaigns();
   }, [siteKey]);
 
+  // Hàm đọc dữ liệu cũ/mới an toàn
+  const getSectionContent = (sectionsData: any, primaryKey: string, fallbackKey: string) => {
+    if (Array.isArray(sectionsData)) {
+      const found = sectionsData.find(s => s.sectionKey === primaryKey || s.sectionKey === fallbackKey);
+      return found ? found.content : {};
+    }
+    return sectionsData[primaryKey] || sectionsData[fallbackKey] || {};
+  };
+
   const handleOpenEditor = async (campaign?: Campaign) => {
     setLastSavedUrl(null);
     setError('');
     setIsLoading(true);
     
     try {
-      let currentSections: any = {};
+      let currentSections: any = [];
       let currentPrizes: LuckyWheelPrize[] = [];
       
       if (campaign) {
         setEditingCampaign(campaign);
         setFormData({
-          tag: campaign.tag,
+          tag: campaign.tag || '',
           name: campaign.name || '',
-          isActive: campaign.isActive,
+          isActive: campaign.isActive !== false,
+          discountText: campaign.discountText || '',
+          promoCode: campaign.promoCode || '',
+          siteKey: (campaign.siteKey || siteKey) as SiteKey
         });
-        currentSections = campaign.sections || {};
+        currentSections = campaign.sections || [];
         currentPrizes = campaign.prizes || [];
       } else {
-        // Lấy dữ liệu từ trang gốc theo Site hiện tại
         const baseData = await fetchLandingPage(siteKey);
         const basePrizes = await fetchPrizes(siteKey);
         setEditingCampaign(null);
-        setFormData({ tag: '', name: '', isActive: true });
+        setFormData({ tag: '', name: '', isActive: true, discountText: '', promoCode: '', siteKey: siteKey });
         currentSections = baseData;
         currentPrizes = basePrizes;
       }
       
-      // Ô 1: Hero
-      const h = currentSections.section_1_hero || currentSections.hero || {};
-      setHero({
-        badge: h.badge || '',
-        headlineTop: h.headlineTop || '',
-        headlineHighlight: h.headlineHighlight || '',
-        headlineBottom: h.headlineBottom || '',
-        description: h.description || ''
+      const h = getSectionContent(currentSections, 'hero', 'section_1_hero');
+      setHero({ 
+        badge: h.badge || '', 
+        headlineTop: h.headlineTop || '', 
+        headlineHighlight: h.headlineHighlight || '', 
+        headlineBottom: h.headlineBottom || '', 
+        description: h.description || '',
+        heroImageUrl: h.heroImageUrl || ''
       });
       
-      // Ô 2: Nỗi đau (Painpoints)
-      const p = currentSections.section_2_painpoints || currentSections.painpoints || {};
-      setPainpoints({
-        sectionTitle: p.sectionTitle || '',
-        bubbles: (Array.isArray(p.bubbles) ? p.bubbles : []).slice(0, 7)
+      const p = getSectionContent(currentSections, 'section_2_painpoints', 'painpoints');
+      setPainpoints({ 
+        sectionTitle: p.sectionTitle || '', 
+        sectionSubtitle: p.sectionSubtitle || '',
+        mainTitleTop: p.mainTitleTop || '',
+        mainTitleHighlight: p.mainTitleHighlight || '',
+        mascotImageUrl: p.mascotImageUrl || '',
+        bubbles: (Array.isArray(p.bubbles) ? p.bubbles : []).slice(0, 7) 
       });
 
-      // Ô 3: Giải pháp (Solution)
-      const sol = currentSections.section_3_solution || currentSections.solution || {};
+      const sol = getSectionContent(currentSections, 'section_3_solution', 'solution');
       const solArray = Array.isArray(sol) ? sol : (Array.isArray(sol.cards) ? sol.cards : []);
       setSolution({
-        titlePart1: sol.titlePart1 || '',
-        titleHighlight: sol.titleHighlight || '',
-        titlePart2: sol.titlePart2 || '',
-        cards: solArray.slice(0, 3).map((c: any) => ({
-          category: c.category || '',
-          title: c.title || '',
-          bullets: Array.isArray(c.bullets) ? c.bullets : (Array.isArray(c.points) ? c.points : [])
+        titlePart1: sol.titlePart1 || '', titleHighlight: sol.titleHighlight || '', titlePart2: sol.titlePart2 || '',
+        cards: solArray.slice(0, 3).map((c: any) => ({ 
+          category: c.category || '', 
+          title: c.title || '', 
+          bullets: Array.isArray(c.bullets) ? c.bullets : (Array.isArray(c.points) ? c.points : []),
+          mediaUrl: c.mediaUrl || '',
+          isVideo: !!c.isVideo,
+          gradient: c.gradient || ''
         }))
       });
 
-      // Ô 4: Phương pháp (Methodology)
-      const meth = currentSections.section_4_methodology || currentSections.methodology || {};
+      const meth = getSectionContent(currentSections, 'section_4_methodology', 'methodology');
       setMethodology({
-        mainCard: {
-          number: meth.mainCard?.number || '',
-          title: meth.mainCard?.title || '',
-          subTitle: meth.mainCard?.subTitle || ''
+        mainCard: { 
+          number: meth.mainCard?.number || '', 
+          title: meth.mainCard?.title || '', 
+          subTitle: meth.mainCard?.subTitle || '',
+          imgSrc: meth.mainCard?.imgSrc || ''
         },
-        cards: (Array.isArray(meth.cards) ? meth.cards : []).slice(0, 4).map((c: any) => ({
-          number: c.number || '',
-          title: c.title || '',
-          subTitle: c.subTitle || ''
+        cards: (Array.isArray(meth.cards) ? meth.cards : []).slice(0, 4).map((c: any) => ({ 
+          number: c.number || '', 
+          title: c.title || '', 
+          subTitle: c.subTitle || '',
+          imgSrc: c.imgSrc || ''
         }))
       });
       
-      // Ô 5: LuckySpin
-      const lw = currentSections.luckyspin || currentSections.section_5_lucky_wheel || {};
+      const lw = getSectionContent(currentSections, 'luckyspin', 'section_5_lucky_wheel');
       setLuckyWheel({
-        headline: lw.headline || '',
-        subHeadline: lw.subHeadline || '',
+        headline: lw.headline || '', 
+        subHeadline: lw.subHeadline || '', 
         description: lw.description || '',
+        timerLabel: lw.timerLabel || '',
         prizes: currentPrizes.length > 0 ? currentPrizes : (lw.prizes || [])
       });
       
@@ -215,18 +223,18 @@ export default function Campaigns() {
     setError('');
 
     try {
-      const sections = {
-        section_1_hero: hero,
-        section_2_painpoints: painpoints,
-        section_3_solution: solution.cards,
-        section_4_methodology: methodology,
-        section_5_lucky_wheel: luckyWheel,
-        luckyspin: luckyWheel // Tương thích ngược
+      // Format chuẩn Object cho Backend Deep Merge
+      const sectionsObject = {
+        hero: hero,
+        painpoints: painpoints,
+        solution: solution.cards,
+        methodology: methodology,
+        luckyspin: luckyWheel
       };
 
       const finalData = {
         ...formData,
-        sections,
+        sections: sectionsObject,
         prizes: luckyWheel.prizes
       };
 
@@ -237,10 +245,9 @@ export default function Campaigns() {
         response = await createCampaign(finalData);
       }
       
-      setLastSavedUrl(response.data.fullUrl || null);
+      setLastSavedUrl(response.data?.fullUrl || null);
       if (editingCampaign) setEditingCampaign(response.data);
       await loadCampaigns();
-      setIsEditing(false); // Quay về trang quản lý
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Lỗi khi lưu chiến dịch');
     } finally {
@@ -274,7 +281,6 @@ export default function Campaigns() {
 
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const handleCopyLink = (url: string, id: string) => {
-    // Tự động sửa /china thành /chinese ở phía Frontend
     const fixedUrl = url.replace('/china', '/chinese');
     navigator.clipboard.writeText(fixedUrl);
     setCopiedId(id);
@@ -290,7 +296,8 @@ export default function Campaigns() {
             <div>
               <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.4em] font-black text-slate-500 mb-2">
                 <Target className="w-3 h-3 text-rose-500" />
-                Campaign Overlays (CN)
+                {/* Tự động đổi tên theo Site */}
+                Campaign Overlays ({siteName})
               </div>
               <h2 className="text-3xl font-black text-black tracking-tight">Quản lý <span className={adminAccentText}>Chiến dịch & Tag</span></h2>
               <p className="mt-2 text-slate-500 text-sm font-medium">Tạo link Landing Page riêng biệt cho quảng cáo, KOLs hoặc sự kiện.</p>
@@ -340,7 +347,7 @@ export default function Campaigns() {
                   ) : filteredCampaigns.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="px-8 py-20 text-center">
-                        <div className="text-sm font-bold text-slate-400">Chưa có chiến dịch nào được tạo</div>
+                        <div className="text-sm font-bold text-slate-400">Chưa có chiến dịch nào được tạo cho Tiếng {isGerman ? 'Đức' : 'Trung'}</div>
                       </td>
                     </tr>
                   ) : (
@@ -413,6 +420,15 @@ export default function Campaigns() {
            <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${formData.isActive ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-slate-100 text-slate-400 border-slate-200'}`}>
               {formData.isActive ? 'Trạng thái: Hoạt động' : 'Trạng thái: Đã tắt'}
            </div>
+           {editingCampaign && (
+             <button
+               onClick={() => handleDelete(editingCampaign._id)}
+               className="flex items-center gap-2 px-6 py-2 rounded-xl bg-rose-50 text-rose-600 border border-rose-100 hover:bg-rose-100 transition-all font-bold text-sm"
+             >
+               <Trash2 className="w-4 h-4" />
+               Xóa chiến dịch
+             </button>
+           )}
            <button 
                 onClick={handleSave} 
                 disabled={isSaving}
@@ -430,10 +446,22 @@ export default function Campaigns() {
           <section className={adminCard}>
             <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.4em] font-black text-slate-500 mb-6">
                <Zap className="w-3 h-3 text-amber-500" />
-               Cấu hình Tag
+               Cấu hình Tag ({siteName})
             </div>
             
             <div className="space-y-6">
+              <div className="space-y-2">
+                <div className={adminLabel}>Site Key (Mặc định)</div>
+                <div className="relative">
+                  <Globe className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <input 
+                    readOnly
+                    className={`${adminInput} pl-12 bg-slate-50 text-slate-500 cursor-not-allowed`}
+                    value={formData.siteKey}
+                  />
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <div className={adminLabel}>Mã định danh (Tag Code)</div>
                 <div className="relative">
@@ -459,6 +487,26 @@ export default function Campaigns() {
                 />
               </div>
 
+              <div className="space-y-2">
+                <div className={adminLabel}>Text Ưu đãi (Nổi bật góc trên)</div>
+                <input
+                  className={adminInput}
+                  placeholder="Ưu đãi Khóa học 5.0 Giảm 80%..."
+                  value={formData.discountText}
+                  onChange={(e) => setFormData(prev => ({ ...prev, discountText: e.target.value }))}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className={adminLabel}>Mã giảm giá (Promo Code)</div>
+                <input
+                  className={`${adminInput} font-mono font-bold text-amber-600 uppercase`}
+                  placeholder="DUC-ULA-80"
+                  value={formData.promoCode}
+                  onChange={(e) => setFormData(prev => ({ ...prev, promoCode: e.target.value.replace(/\s+/g, '') }))}
+                />
+              </div>
+
               <div className="flex items-center justify-between p-4 rounded-2xl border border-slate-100 bg-slate-50/50">
                  <div className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Kích hoạt</div>
                  <button 
@@ -471,6 +519,13 @@ export default function Campaigns() {
               </div>
             </div>
           </section>
+
+          {error && (
+            <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+              <div className="text-sm font-bold text-rose-700">{error}</div>
+            </div>
+          )}
 
           {lastSavedUrl && (
             <section className="bg-emerald-50 border border-emerald-200 rounded-[32px] p-6 animate-in zoom-in-95">
@@ -523,6 +578,10 @@ export default function Campaigns() {
                   <div className={adminLabel}>Mô tả chính</div>
                   <textarea className={`${adminInput} min-h-[100px] text-sm`} value={hero.description} onChange={(e) => setHero({ ...hero, description: e.target.value })} />
                 </div>
+                <div className="space-y-2">
+                  <div className={adminLabel}>URL Ảnh Hero</div>
+                  <input className={adminInput} value={hero.heroImageUrl} onChange={(e) => setHero({ ...hero, heroImageUrl: e.target.value })} placeholder="https://images.unsplash.com/..." />
+                </div>
               </div>
            </section>
 
@@ -537,13 +596,39 @@ export default function Campaigns() {
               </div>
 
               <div className="space-y-6">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <div className={adminLabel}>Tiêu đề phần</div>
+                    <textarea 
+                      className={`${adminInput} min-h-[80px] py-3`} 
+                      value={painpoints.sectionTitle} 
+                      onChange={(e) => setPainpoints((prev: any) => ({ ...prev, sectionTitle: e.target.value }))} 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <div className={adminLabel}>Tiêu đề phụ (Subtitle)</div>
+                    <textarea 
+                      className={`${adminInput} min-h-[80px] py-3`} 
+                      value={painpoints.sectionSubtitle} 
+                      onChange={(e) => setPainpoints((prev: any) => ({ ...prev, sectionSubtitle: e.target.value }))} 
+                    />
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <div className={adminLabel}>Tiêu đề chính (Phần đầu)</div>
+                    <input className={adminInput} value={painpoints.mainTitleTop} onChange={(e) => setPainpoints({ ...painpoints, mainTitleTop: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <div className={adminLabel}>Tiêu đề chính (Nổi bật)</div>
+                    <input className={adminInput} value={painpoints.mainTitleHighlight} onChange={(e) => setPainpoints({ ...painpoints, mainTitleHighlight: e.target.value })} />
+                  </div>
+                </div>
+
                 <div className="space-y-2">
-                  <div className={adminLabel}>Tiêu đề phần</div>
-                  <textarea 
-                    className={`${adminInput} min-h-[80px] py-3`} 
-                    value={painpoints.sectionTitle} 
-                    onChange={(e) => setPainpoints((prev: any) => ({ ...prev, sectionTitle: e.target.value }))} 
-                  />
+                  <div className={adminLabel}>URL Ảnh Mascot</div>
+                  <input className={adminInput} value={painpoints.mascotImageUrl} onChange={(e) => setPainpoints({ ...painpoints, mascotImageUrl: e.target.value })} placeholder="https://..." />
                 </div>
                 <div className="space-y-4">
                   <div className={adminLabel}>Nội dung 7 bong bóng (Bubbles)</div>
@@ -613,6 +698,24 @@ export default function Campaigns() {
                           }} />
                         </div>
                       </div>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <div className={adminLabel}>URL Media (Ảnh)</div>
+                          <input className={adminInput} value={card.mediaUrl} onChange={(e) => {
+                            const newCards = [...solution.cards];
+                            newCards[idx].mediaUrl = e.target.value;
+                            setSolution({ ...solution, cards: newCards });
+                          }} placeholder="https://..." />
+                        </div>
+                        <div className="space-y-2">
+                          <div className={adminLabel}>Màu nền (Gradient CSS)</div>
+                          <input className={adminInput} value={card.gradient} onChange={(e) => {
+                            const newCards = [...solution.cards];
+                            newCards[idx].gradient = e.target.value;
+                            setSolution({ ...solution, cards: newCards });
+                          }} placeholder="from-indigo-600/40 to-blue-500/10" />
+                        </div>
+                      </div>
                       <div className="space-y-2">
                         <div className={adminLabel}>Các điểm chính (Bullet points)</div>
                         <div className="space-y-2">
@@ -649,6 +752,10 @@ export default function Campaigns() {
                        <input className={adminInput} value={methodology.mainCard.title} onChange={(e) => setMethodology((prev: any) => ({ ...prev, mainCard: { ...prev.mainCard, title: e.target.value } }))} placeholder="Tiêu đề chính" />
                        <input className={adminInput} value={methodology.mainCard.subTitle} onChange={(e) => setMethodology((prev: any) => ({ ...prev, mainCard: { ...prev.mainCard, subTitle: e.target.value } }))} placeholder="Tiêu đề phụ" />
                     </div>
+                    <div className="mt-4">
+                       <div className={adminLabel}>URL Ảnh thẻ chính</div>
+                       <input className={adminInput} value={methodology.mainCard.imgSrc} onChange={(e) => setMethodology((prev: any) => ({ ...prev, mainCard: { ...prev.mainCard, imgSrc: e.target.value } }))} placeholder="https://..." />
+                    </div>
                  </div>
 
                  {/* Cards 1-4 */}
@@ -671,6 +778,11 @@ export default function Campaigns() {
                           newCards[idx].subTitle = e.target.value;
                           setMethodology({ ...methodology, cards: newCards });
                         }} placeholder="Tiêu đề phụ" />
+                        <input className={`${adminInput} !py-2 !text-xs`} value={card.imgSrc} onChange={(e) => {
+                          const newCards = [...methodology.cards];
+                          newCards[idx].imgSrc = e.target.value;
+                          setMethodology({ ...methodology, cards: newCards });
+                        }} placeholder="URL Ảnh" />
                       </div>
                     ))}
                  </div>
@@ -688,7 +800,7 @@ export default function Campaigns() {
               </div>
 
               <div className="space-y-6">
-                 <div className="grid md:grid-cols-2 gap-4">
+                 <div className="grid md:grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <div className={adminLabel}>Tiêu đề mục</div>
                       <input className={adminInput} value={luckyWheel.headline} onChange={(e) => setLuckyWheel((p: any) => ({ ...p, headline: e.target.value }))} />
@@ -696,6 +808,10 @@ export default function Campaigns() {
                     <div className="space-y-2">
                       <div className={adminLabel}>Tiêu đề phụ</div>
                       <input className={adminInput} value={luckyWheel.subHeadline} onChange={(e) => setLuckyWheel((p: any) => ({ ...p, subHeadline: e.target.value }))} />
+                    </div>
+                    <div className="space-y-2">
+                      <div className={adminLabel}>Nhãn đếm ngược (Timer)</div>
+                      <input className={adminInput} value={luckyWheel.timerLabel} onChange={(e) => setLuckyWheel((p: any) => ({ ...p, timerLabel: e.target.value }))} placeholder="Ưu đãi kết thúc sau..." />
                     </div>
                  </div>
                  <div className="space-y-2">

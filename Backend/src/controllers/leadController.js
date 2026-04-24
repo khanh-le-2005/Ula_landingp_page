@@ -192,10 +192,18 @@ const submitForward = async (req, res, next) => {
 };
 
 const getLeads = async (req, res, next) => {
-  const leadService = require("../services/leadService");
   try {
-    const siteKey = req.siteKey;
-    const leads = await Lead.find({ siteKey }).sort({ createdAt: -1 }); // Lọc theo trang
+    const { ref, tag, status } = req.query;
+    
+    // Luôn luôn lọc theo trang hiện tại để đảm bảo bảo mật (Tenant-isolation)
+    const filter = { siteKey: req.siteKey };
+
+    // Thêm các bộ lọc nếu Client có truyền lên
+    if (ref) filter.referralCode = ref;
+    if (tag) filter.campaignTag = tag;
+    if (status) filter.status = status;
+
+    const leads = await Lead.find(filter).sort({ createdAt: -1 });
     res.status(200).json(leads);
   } catch (error) {
     next(error);

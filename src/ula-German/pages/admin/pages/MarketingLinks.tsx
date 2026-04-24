@@ -146,9 +146,14 @@ export default function MarketingLinks() {
               <Globe className="w-3 h-3" />
               Công cụ Marketing
             </div>
-            <h2 className="text-3xl font-black text-black tracking-tight">
-              UTM Link <span className={adminAccentText}>Builder</span>
-            </h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-3xl font-black text-black tracking-tight">
+                UTM Link <span className={adminAccentText}>Builder</span>
+              </h2>
+              <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-widest ${activeProject === 'tieng-duc' ? 'bg-amber-100 text-amber-600' : 'bg-rose-100 text-rose-600'}`}>
+                {activeProject === 'tieng-duc' ? 'Trang Đức' : 'Trang Trung'}
+              </span>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <div className="relative group">
@@ -288,7 +293,12 @@ export default function MarketingLinks() {
                   <Share2 className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black text-slate-900 tracking-tight">Tạo <span className={adminAccentText}>Tracking Link</span></h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-black text-slate-900 tracking-tight">Tạo <span className={adminAccentText}>Tracking Link</span></h3>
+                    <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${activeProject === 'tieng-duc' ? 'bg-amber-100 text-amber-600' : 'bg-rose-100 text-rose-600'}`}>
+                      {activeProject === 'tieng-duc' ? 'Đức' : 'Trung'}
+                    </span>
+                  </div>
                   <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Thiết lập tag/ref/utm cho chiến dịch</p>
                 </div>
               </div>

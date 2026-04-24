@@ -10,7 +10,7 @@ import Trust from '../components/Trust';
 import LuckyWheel from '../components/LuckyWheel';
 import LeadForm from '../components/LeadForm';
 import Footer from '../components/Footer';
-import { resolveTrackingData } from '../utils/tracking';
+import { useTracking } from '../hooks/useTracking';
 import { useLocation, useParams } from 'react-router-dom';
 import { LandingSiteProvider } from '../context/LandingSiteContext';
 import SuccessStory from '../components/SuccessStory';
@@ -26,10 +26,8 @@ export default function LandingPage() {
 
   const siteKey = location.pathname.includes('/german') ? 'tieng-duc' : 'tieng-trung';
 
-  useEffect(() => {
-    // Capture tracking data (UTMs, Referral ID) on load
-    resolveTrackingData();
-  }, []);
+  // Kích hoạt Tracking tự động
+  useTracking(siteKey);
 
   return (
     <LandingSiteProvider siteKey={siteKey} campaignTag={campaignTag}>
