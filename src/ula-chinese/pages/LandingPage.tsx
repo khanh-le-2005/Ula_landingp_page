@@ -13,6 +13,7 @@ import Footer from '../components/Footer';
 import { resolveTrackingData } from '../utils/tracking';
 import { useLocation, useParams } from 'react-router-dom';
 import { LandingSiteProvider } from '../context/LandingSiteContext';
+import SuccessStory from '../components/SuccessStory';
 
 export default function LandingPage() {
   const [wonPrize, setWonPrize] = useState<{ option: string; code: string } | null>(null);
@@ -41,13 +42,14 @@ export default function LandingPage() {
           <Experience />
           <Methodology />
           <Roadmap />
-          <Trust />
+          {/* <Trust /> */}
+          <SuccessStory />
           <LuckyWheel onWin={setWonPrize} />
-          <LeadForm 
-            wonPrize={wonPrize} 
-            options={{ 
-              variant: siteKey === 'tieng-duc' ? 'german' : 'chinese' 
-            }} 
+          <LeadForm
+            wonPrize={wonPrize}
+            options={{
+              variant: siteKey === 'tieng-duc' ? 'german' : 'chinese'
+            }}
           />
         </main>
         <Footer />

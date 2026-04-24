@@ -1,5 +1,6 @@
 const { Lead } = require("../models/leadModel");
 const { findByCode } = require("../models/affiliateModel");
+const { Campaign } = require("../models/campaignModel");
 const { sendRewardEmail } = require("../services/emailService");
 
 /**
@@ -69,8 +70,9 @@ const processLeadSubmission = async (req, res, next, overrideSiteKey = null) => 
     const campaignTag = cookieTracking?.campaign || req.body.campaignTag || null;
     const clickTimestamp = cookieTracking?.created_at ? new Date(cookieTracking.created_at) : null;
 
-    // Ưu tiên siteKey được truyền vào file (từ API riêng), sau đó mới tới Middleware
-    const siteKey = overrideSiteKey || req.siteKey;
+    // Ưu tiên: overrideSiteKey (API riêng) -> body -> Middleware
+    const siteKey = overrideSiteKey || req.body.siteKey || req.siteKey;
+    console.log(`[DEBUG LEAD] siteKey = "${siteKey}", overrideSiteKey = "${overrideSiteKey}", body.siteKey = "${req.body.siteKey}"`);
 
     if (!formData || Object.keys(formData).length === 0) {
       return res.status(400).json({ message: "Dữ liệu form không được để trống" });
@@ -78,7 +80,7 @@ const processLeadSubmission = async (req, res, next, overrideSiteKey = null) => 
 
     let affiliateId = null;
     if (referralCode) {
-      const affiliate = await findByCode(referralCode);
+      const affiliate = await findByCode(referralCode, siteKey);
       if (affiliate) affiliateId = affiliate._id;
     }
 
@@ -123,16 +125,40 @@ const processLeadSubmission = async (req, res, next, overrideSiteKey = null) => 
     );
 
     if (formData && formData.email) {
-      // Logic gán mã code và nội dung giảm giá theo Site
+      // 1. Khởi tạo giá trị quà tặng DỰ PHÒNG (Hardcoded)
       let sitePromoCode = "ULA-SPECIAL";
       let discountText = "Mã Giảm Giá Khóa Học";
-      
-      if (siteKey === "tieng-trung") {
-        sitePromoCode = "ULA45CHI";
-        discountText = "Mã Giảm Giá 45% Khóa Học";
-      } else if (siteKey === "tieng-duc") {
-        sitePromoCode = "ULA40GER";
-        discountText = "Mã Giảm Giá 40% Khóa Học";
+
+      // 2. Lấy quà tặng GỐC từ Database (Cấu hình toàn trang)
+      try {
+        const { LandingPage } = require("../models/lpModel");
+        console.log(`[DEBUG EMAIL] siteKey = "${siteKey}", tìm site_config...`);
+        const siteConfig = await LandingPage.findOne({ siteKey, sectionKey: "site_config" });
+        console.log(`[DEBUG EMAIL] siteConfig = `, JSON.stringify(siteConfig?.content));
+        if (siteConfig && siteConfig.content) {
+          sitePromoCode = siteConfig.content.sitePromoCode || sitePromoCode;
+          discountText = siteConfig.content.discountText || discountText;
+        } else {
+          // Fallback theo siteKey nếu chưa có site_config trong DB
+          if (siteKey === "tieng-trung") {
+            sitePromoCode = "ULA45CHI";
+            discountText = "Mã Giảm Giá 45% Khóa Học";
+          } else if (siteKey === "tieng-duc") {
+            sitePromoCode = "ULA40GER";
+            discountText = "Mã Giảm Giá 40% Khóa Học";
+          }
+        }
+      } catch (err) {
+        console.error("[ERROR] Lỗi khi lấy site_config:", err);
+      }
+
+      // 3. Nếu ĐẶC BIỆT có Tag chiến dịch -> Ghi đè quà của Tag lên quà Gốc
+      if (campaignTag) {
+        const campaign = await Campaign.findOne({ tag: campaignTag, siteKey });
+        if (campaign && campaign.promoCode) {
+          sitePromoCode = campaign.promoCode;
+          discountText = campaign.discountText || discountText;
+        }
       }
 
       sendRewardEmail(formData.email, {
@@ -219,7 +245,7 @@ const getStats = async (req, res, next) => {
 };
 
 /**
- * Thống kê chuyên sâu toàn diện
+ * Thống kê chuyên sâu toàn diện (High-level)
  * GET /api/leads/stats/summary
  */
 const getComprehensiveStats = async (req, res, next) => {
@@ -258,6 +284,59 @@ const getComprehensiveStats = async (req, res, next) => {
       }
     });
 
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Thống kê UTM chuyên sâu (Source > Medium > Campaign)
+ * GET /api/leads/stats/utm?from=2024-01-01&to=2024-12-31
+ */
+const getUtmStats = async (req, res, next) => {
+  try {
+    const siteKey = req.siteKey;
+    const { from, to } = req.query;
+
+    const match = { siteKey };
+    if (from || to) {
+      match.createdAt = {};
+      if (from) match.createdAt.$gte = new Date(from);
+      if (to) match.createdAt.$lte = new Date(to);
+    }
+
+    const utmStats = await Lead.aggregate([
+      { $match: match },
+      {
+        $group: {
+          _id: {
+            source: "$utm_source",
+            medium: "$utm_medium",
+            campaign: "$utm_campaign"
+          },
+          count: { $sum: 1 },
+          lastLeadAt: { $max: "$createdAt" }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          source: { $ifNull: ["$_id.source", "Direct/None"] },
+          medium: { $ifNull: ["$_id.medium", "None"] },
+          campaign: { $ifNull: ["$_id.campaign", "None"] },
+          count: 1,
+          lastLeadAt: 1
+        }
+      },
+      { $sort: { count: -1 } }
+    ]);
+
+    res.status(200).json({
+      siteKey,
+      period: { from, to },
+      totalDistinctUtms: utmStats.length,
+      data: utmStats
+    });
   } catch (error) {
     next(error);
   }
@@ -304,6 +383,7 @@ module.exports = {
   getLeads, 
   getStats, 
   getComprehensiveStats,
+  getUtmStats,
   updateLeadStatus, 
   deleteLead 
 };

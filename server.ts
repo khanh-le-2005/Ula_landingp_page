@@ -43,6 +43,7 @@ async function startServer() {
   const prizeRoutes = require('./Backend/src/routes/prizeRoutes');
   const affiliateRoutes = require('./Backend/src/routes/affiliateRoutes');
   const campaignRoutes = require('./Backend/src/routes/campaignRoutes');
+  const marketingLinkRoutes = require('./Backend/src/routes/marketingLinkRoutes');
 
   app.use('/api/auth', authRoutes);
   app.use('/api/users', authRoutes); // Alias cho frontend cũ
@@ -53,6 +54,7 @@ async function startServer() {
   app.use('/api/prizes', prizeRoutes);
   app.use('/api/affiliates', affiliateRoutes);
   app.use('/api/campaigns', campaignRoutes);
+  app.use('/api/marketing-links', marketingLinkRoutes);
 
   // Alias for legacy Frontend compatibility
   const prizeController = require('./Backend/src/controllers/prizeController');
@@ -86,9 +88,6 @@ async function startServer() {
     // SPA Fallback for Development
     app.use('*', async (req, res, next) => {
       const url = req.originalUrl;
-      const isGerman = url.includes('/german') || url.includes('/tieng-duc');
-      const entryPoint = isGerman ? '/src/ula-German/main.tsx' : '/src/ula-chinese/main.tsx';
-      
       try {
         let template = await vite.transformIndexHtml(url, `
           <!doctype html>
@@ -100,7 +99,7 @@ async function startServer() {
             </head>
             <body>
               <div id="root"></div>
-              <script type="module" src="${entryPoint}"></script>
+              <script type="module" src="/src/main.tsx"></script>
             </body>
           </html>
         `);
@@ -115,8 +114,8 @@ async function startServer() {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
 
-    // Catch-all for SPA Routes (including /german, /chinese)
-    app.get(['/german*', '/chinese*', '/tieng-duc*', '/tieng-trung*', '*'], (_req, res) => {
+    // Catch-all for SPA Routes (including /german, /china)
+    app.get(['/german*', '/china*', '/tieng-duc*', '/tieng-trung*', '*'], (_req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }

@@ -31,6 +31,8 @@ export type Affiliate = {
   source?: string;
   status?: string;
   createdAt?: string;
+  commissionRate?: number; // <--- Thêm cái này
+  notes?: string;
 };
 
 export type AffiliateStats = {
@@ -60,6 +62,11 @@ export type LeadRecord = {
   conversion_timestamp?: string;  // Mới: Lúc khách gửi form
   createdAt?: string;
   updatedAt?: string;
+  prizeName?: string;
+  prizeCode?: string;
+  ip_address?: string;
+  user_agent?: string;
+  is_suspicious?: boolean;
 };
 
 const TOKEN_KEY = 'ula_admin_token';

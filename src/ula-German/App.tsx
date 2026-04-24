@@ -13,6 +13,7 @@ import MethodologyEditor from './pages/admin/pages/MethodologyEditor';
 import LuckyWheelEditor from './pages/admin/pages/LuckyWheelEditor';
 import ExperienceEditor from './pages/admin/pages/ExperienceEditor';
 import Affiliates from './pages/admin/pages/Affiliates';
+import MarketingLinks from './pages/admin/pages/MarketingLinks';
 import { trackVisitor } from './pages/admin/adminApi';
 import { ProjectProvider } from '@/src/ula-chinese/pages/admin/context/ProjectContext';
 import { LandingSiteProvider } from '@/src/ula-chinese/context/LandingSiteContext';
@@ -44,6 +45,7 @@ export default function App() {
               <Route index element={<Overview />} />
               <Route path="leads" element={<Leads />} />
               <Route path="affiliates" element={<Affiliates />} />
+              <Route path="marketing-links" element={<MarketingLinks />} />
               <Route path="hero" element={<HeroEditor />} />
               <Route path="painpoints" element={<PainpointsEditor />} />
               <Route path="solution" element={<SolutionEditor />} />

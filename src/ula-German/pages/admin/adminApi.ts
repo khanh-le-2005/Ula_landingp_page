@@ -1,3 +1,68 @@
+export interface MarketingMetaOptions {
+  sites: { key: string; label: string }[];
+  campaigns: { value: string; label: string }[];
+  kocs: { value: string; label: string }[];
+  utmSources: string[];
+  utmMediums: string[];
+}
+
+export interface MarketingLink {
+  _id: string;
+  name: string;
+  siteKey: string;
+  tag?: string;
+  ref?: string;
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  isActive: boolean;
+  notes?: string;
+  fullUrl: string;
+  createdAt: string;
+}
+
+
+export const fetchMarketingMetaOptions = async (siteKey: string) => {
+  const token = getStoredAdminToken();
+  return requestJson<MarketingMetaOptions>(
+    `/api/marketing-links/meta-options?siteKey=${siteKey}`,
+    { method: "GET" },
+    undefined,
+    token
+  );
+};
+
+export const fetchMarketingLinks = async (siteKey: string) => {
+  const token = getStoredAdminToken();
+  return requestJson<MarketingLink[]>(
+    `/api/marketing-links?siteKey=${siteKey}`,
+    { method: "GET" },
+    undefined,
+    token
+  );
+};
+
+export const createMarketingLink = async (data: Partial<MarketingLink>) => {
+  const token = getStoredAdminToken();
+  return requestJson<{ message: string; data: MarketingLink }>(
+    "/api/marketing-links",
+    { method: "POST" },
+    data as any,
+    token
+  );
+};
+
+export const deleteMarketingLink = async (id: string) => {
+  const token = getStoredAdminToken();
+  return requestJson(
+    `/api/marketing-links/${id}`,
+    { method: "DELETE" },
+    undefined,
+    token
+  );
+};
+
+
 export type Campaign = {
   _id: string;
   tag: string;
@@ -29,9 +94,12 @@ export type Affiliate = {
   code: string;
   phone?: string;
   email?: string;
+  isActive?: boolean;
   source?: string;
   status?: string;
   createdAt?: string;
+  commissionRate?: number; // <--- Thêm cái này
+  notes?: string;
 };
 
 export type AffiliateStats = {
@@ -54,21 +122,26 @@ export type LeadRecord = {
   utm_campaign?: string;
   utm_content?: string;
   referralId?: string;
-  referralCode?: string;         // Mã giới thiệu (vd: KOC_Yoncy)
-  campaignTag?: string;          // Mã chiến dịch (vd: dai_hoc_toan_bo)
+  referralCode?: string; // Mã giới thiệu (vd: KOC_Yoncy)
+  campaignTag?: string; // Mã chiến dịch (vd: dai_hoc_toan_bo)
   status?: string;
-  click_timestamp?: string;       // Mới: Lúc khách nhấn link
-  conversion_timestamp?: string;  // Mới: Lúc khách gửi form
+  click_timestamp?: string; // Mới: Lúc khách nhấn link
+  conversion_timestamp?: string; // Mới: Lúc khách gửi form
   createdAt?: string;
   updatedAt?: string;
+  prizeName?: string;
+  prizeCode?: string;
+  ip_address?: string;
+  user_agent?: string;
+  is_suspicious?: boolean;
 };
 
-const TOKEN_KEY = 'ula_admin_token';
-const USER_KEY = 'ula_admin_user';
+const TOKEN_KEY = "ula_admin_token";
+const USER_KEY = "ula_admin_user";
 
 const getBaseUrl = () => {
   const raw = import.meta.env.VITE_API_BASE_URL?.trim();
-  return raw ? raw.replace(/\/$/, '') : '';
+  return raw ? raw.replace(/\/$/, "") : "";
 };
 
 const buildQuery = (params: Record<string, string | undefined>) => {
@@ -81,42 +154,50 @@ const buildQuery = (params: Record<string, string | undefined>) => {
   });
 
   const query = searchParams.toString();
-  return query ? `?${query}` : '';
+  return query ? `?${query}` : "";
 };
 
-const buildUrl = (path: string, params: Record<string, string | undefined> = {}) => {
+const buildUrl = (
+  path: string,
+  params: Record<string, string | undefined> = {},
+) => {
   const baseUrl = getBaseUrl();
   return `${baseUrl}${path}${buildQuery(params)}`;
 };
 
-const requestJson = async <T>(path: string, init: RequestInit = {}, params: Record<string, string | undefined> = {}, token?: string) => {
+const requestJson = async <T>(
+  path: string,
+  init: RequestInit = {},
+  params: Record<string, string | undefined> = {},
+  token?: string,
+) => {
   const headers = new Headers(init.headers);
 
   if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
+    headers.set("Authorization", `Bearer ${token}`);
   }
 
   // Inject Site Context Header
   const { site: finalSite } = getSiteContext(params.site);
-  headers.set('X-Site-Key', finalSite);
+  headers.set("X-Site-Key", finalSite);
 
   const response = await fetch(buildUrl(path, params), {
     ...init,
     headers,
-    credentials: 'include',
+    credentials: "include",
   });
 
-  const contentType = response.headers.get('content-type') || '';
-  const isJson = contentType.includes('application/json');
+  const contentType = response.headers.get("content-type") || "";
+  const isJson = contentType.includes("application/json");
   const payload = isJson ? await response.json() : await response.text();
 
   if (!response.ok) {
     const message =
-      typeof payload === 'object' && payload && 'message' in payload
-        ? String((payload as { message?: unknown }).message || 'Request failed')
-        : typeof payload === 'string' && payload.trim()
+      typeof payload === "object" && payload && "message" in payload
+        ? String((payload as { message?: unknown }).message || "Request failed")
+        : typeof payload === "string" && payload.trim()
           ? payload
-          : 'Request failed';
+          : "Request failed";
 
     throw new Error(message);
   }
@@ -124,7 +205,7 @@ const requestJson = async <T>(path: string, init: RequestInit = {}, params: Reco
   return payload as T;
 };
 
-export const getStoredAdminToken = () => localStorage.getItem(TOKEN_KEY) || '';
+export const getStoredAdminToken = () => localStorage.getItem(TOKEN_KEY) || "";
 
 export const getStoredAdminUser = (): AdminUserInfo | null => {
   const raw = localStorage.getItem(USER_KEY);
@@ -152,19 +233,27 @@ export const clearStoredAdminSession = () => {
 
 export const loginAdmin = async (username: string, password: string) => {
   return requestJson<{ message: string; data: AdminLoginResponse }>(
-    '/api/auth/login',
+    "/api/auth/login",
     {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({ username, password }),
     },
   );
 };
 
-export const getSiteContext = (siteOverride?: string, variantOverride?: string) => {
-  if (typeof window === 'undefined') return { site: siteOverride || 'tieng-duc', variant: variantOverride || 'default', campaign: undefined };
+export const getSiteContext = (
+  siteOverride?: string,
+  variantOverride?: string,
+) => {
+  if (typeof window === "undefined")
+    return {
+      site: siteOverride || "tieng-duc",
+      variant: variantOverride || "default",
+      campaign: undefined,
+    };
 
   const path = window.location.pathname;
   const params = new URLSearchParams(window.location.search);
@@ -173,62 +262,83 @@ export const getSiteContext = (siteOverride?: string, variantOverride?: string) 
   if (siteOverride) {
     return {
       site: siteOverride,
-      variant: variantOverride || 'default',
-      campaign: params.get('campaign') || undefined
+      variant: variantOverride || "default",
+      campaign: params.get("campaign") || undefined,
     };
   }
 
   // 1. Ưu tiên siteKey từ localStorage (do ProjectContext trong Admin quản lý)
-  const storedProject = localStorage.getItem('ula_admin_active_project');
-  const storedCampaign = localStorage.getItem('ula_admin_active_campaign'); // Mã Tag đang edit trong Admin
+  const storedProject = localStorage.getItem("ula_admin_active_project");
+  const storedCampaign = localStorage.getItem("ula_admin_active_campaign"); // Mã Tag đang edit trong Admin
 
-  if (path.startsWith('/admin') && storedProject) {
+  if (path.startsWith("/admin") && storedProject) {
     return {
       site: storedProject,
-      variant: params.get('variant') || 'default',
-      campaign: storedCampaign || undefined
+      variant: params.get("variant") || "default",
+      campaign: storedCampaign || undefined,
     };
   }
 
   // 2. Kiểm tra đường dẫn URL (vd: /chinese, /german) cho trang khách hàng
-  let site = 'tieng-duc';
-  if (path.includes('/chinese')) site = 'tieng-trung';
-  else if (path.includes('/german')) site = 'tieng-duc';
-  else site = params.get('site') || 'tieng-duc';
+  let site = "tieng-duc";
+  if (path.includes("/chinese")) site = "tieng-trung";
+  else if (path.includes("/german")) site = "tieng-duc";
+  else site = params.get("site") || "tieng-duc";
 
   return {
     site,
-    variant: params.get('variant') || 'default',
-    campaign: params.get('campaign') || undefined
+    variant: params.get("variant") || "default",
+    campaign: params.get("campaign") || undefined,
   };
 };
 
-export const fetchLandingPage = async (site?: string, variant?: string, campaign?: string) => {
-  const { site: finalSite, variant: finalVariant, campaign: finalCampaign } = getSiteContext(site, variant);
+export const fetchLandingPage = async (
+  site?: string,
+  variant?: string,
+  campaign?: string,
+) => {
+  const {
+    site: finalSite,
+    variant: finalVariant,
+    campaign: finalCampaign,
+  } = getSiteContext(site, variant);
 
   const params: Record<string, string | undefined> = {
     siteKey: finalSite,
     variant: finalVariant,
-    campaign: campaign || finalCampaign
+    campaign: campaign || finalCampaign,
   };
 
-  return requestJson<Record<string, unknown>>('/api/landing-page', {}, params);
+  return requestJson<Record<string, unknown>>("/api/landing-page", {}, params);
 };
 
-export const updateLandingSection = async <T,>(sectionKey: string, content: T, site?: string, variant?: string) => {
+export const updateLandingSection = async <T>(
+  sectionKey: string,
+  content: T,
+  site?: string,
+  variant?: string,
+) => {
   const token = getStoredAdminToken();
-  const { site: finalSite, variant: finalVariant, campaign: activeCampaignTag } = getSiteContext(site, variant);
+  const {
+    site: finalSite,
+    variant: finalVariant,
+    campaign: activeCampaignTag,
+  } = getSiteContext(site, variant);
 
   // NẾU ĐANG Ở CHẾ ĐỘ EDIT CAMPAIGN TAG
   if (activeCampaignTag) {
-    console.log(`[ADMIN-GERMAN] Đang lưu Overlay cho Campaign: ${activeCampaignTag} -> Section: ${sectionKey}`);
+    console.log(
+      `[ADMIN-GERMAN] Đang lưu Overlay cho Campaign: ${activeCampaignTag} -> Section: ${sectionKey}`,
+    );
 
     // 1. Lấy thông tin campaign hiện tại để biết ID
     const campaigns = await fetchCampaigns();
-    const targetCampaign = campaigns.find(c => c.tag === activeCampaignTag);
+    const targetCampaign = campaigns.find((c) => c.tag === activeCampaignTag);
 
     if (!targetCampaign) {
-      throw new Error(`Không tìm thấy thông tin Campaign Tag: ${activeCampaignTag}`);
+      throw new Error(
+        `Không tìm thấy thông tin Campaign Tag: ${activeCampaignTag}`,
+      );
     }
 
     // 2. Chuẩn bị dữ liệu update { sections: { [sectionKey]: content } }
@@ -236,13 +346,13 @@ export const updateLandingSection = async <T,>(sectionKey: string, content: T, s
 
     if (content instanceof FormData) {
       body = content;
-      body.append('sectionUpdateKey', sectionKey);
+      body.append("sectionUpdateKey", sectionKey);
     } else {
       body = {
         sections: {
           ...(targetCampaign.sections || {}),
-          [sectionKey]: content
-        }
+          [sectionKey]: content,
+        },
       };
     }
 
@@ -255,24 +365,26 @@ export const updateLandingSection = async <T,>(sectionKey: string, content: T, s
   if (content instanceof FormData) {
     const baseUrl = getBaseUrl();
     const searchParams = new URLSearchParams();
-    searchParams.set('siteKey', finalSite);
-    searchParams.set('variant', finalVariant);
+    searchParams.set("siteKey", finalSite);
+    searchParams.set("variant", finalVariant);
 
     const url = `${baseUrl}${path}?${searchParams.toString()}`;
 
     const response = await fetch(url, {
-      method: 'PUT',
+      method: "PUT",
       headers: {
-        'Authorization': token ? `Bearer ${token}` : '',
-        'X-Site-Key': finalSite
+        Authorization: token ? `Bearer ${token}` : "",
+        "X-Site-Key": finalSite,
       },
       body: content,
-      credentials: 'include',
+      credentials: "include",
     });
 
     if (!response.ok) {
-      const err = await response.json().catch(() => ({ message: 'Update failed' }));
-      throw new Error(err.message || 'Update failed');
+      const err = await response
+        .json()
+        .catch(() => ({ message: "Update failed" }));
+      throw new Error(err.message || "Update failed");
     }
 
     return response.json() as Promise<{ message: string; data: T }>;
@@ -281,9 +393,9 @@ export const updateLandingSection = async <T,>(sectionKey: string, content: T, s
   return requestJson<{ message: string; data: T }>(
     path,
     {
-      method: 'PUT',
+      method: "PUT",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(content),
     },
@@ -318,13 +430,15 @@ export type LeadSubmissionResponse = {
   };
 };
 
-export const submitLeadRegistration = async (payload: LeadSubmissionPayload) => {
+export const submitLeadRegistration = async (
+  payload: LeadSubmissionPayload,
+) => {
   const { site } = getSiteContext();
-  return requestJson<LeadSubmissionResponse>('/api/leads/submit', {
-    method: 'POST',
+  return requestJson<LeadSubmissionResponse>("/api/leads/submit", {
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
-      'X-Site-Key': site,
+      "Content-Type": "application/json",
+      "X-Site-Key": site,
     },
     body: JSON.stringify(payload),
   });
@@ -335,9 +449,9 @@ export const fetchLeads = async (siteOverride?: string) => {
   const { site } = getSiteContext(siteOverride);
 
   return requestJson<LeadRecord[]>(
-    '/api/leads',
+    "/api/leads",
     {
-      method: 'GET',
+      method: "GET",
     },
     { siteKey: site },
     token,
@@ -345,28 +459,49 @@ export const fetchLeads = async (siteOverride?: string) => {
 };
 
 export const trackVisitor = async (queryString: string) => {
-  return fetch(buildUrl('/api/track' + queryString), {
-    method: 'GET',
-    credentials: 'include',
-  }).catch(err => console.error('Tracking failed:', err));
+  return fetch(buildUrl("/api/track" + queryString), {
+    method: "GET",
+    credentials: "include",
+  }).catch((err) => console.error("Tracking failed:", err));
 };
 
-export const fetchAffiliates = async () => {
+// 1. Cập nhật hàm fetchAffiliates
+export const fetchAffiliates = async (siteKey?: string) => {
   const token = getStoredAdminToken();
-  return requestJson<Affiliate[]>('/api/affiliates', { method: 'GET' }, {}, token);
+  // Nếu có siteKey thì gắn thêm ?siteKey=..., nếu không thì gọi URL gốc
+  const url = siteKey
+    ? `/api/affiliates?siteKey=${siteKey}`
+    : "/api/affiliates";
+
+  return requestJson<Affiliate[]>(
+    url,
+    { method: "GET" },
+    undefined, // Method GET không có body nên truyền undefined hoặc {} tuỳ logic requestJson của bạn
+    token,
+  );
+};
+
+// 2. Cập nhật luôn hàm fetchAffiliateStats (Vì trong Affiliates.tsx cũng truyền activeProject vào hàm này)
+export const fetchAffiliateStats = async (siteKey?: string) => {
+  const token = getStoredAdminToken();
+  const url = siteKey
+    ? `/api/affiliates/stats?siteKey=${siteKey}`
+    : "/api/affiliates/stats";
+
+  return requestJson<AffiliateStats>(url, { method: "GET" }, undefined, token);
 };
 
 export const createAffiliate = async (data: Partial<Affiliate>) => {
   const token = getStoredAdminToken();
   return requestJson<{ message: string; data: Affiliate }>(
-    '/api/affiliates',
+    "/api/affiliates",
     {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     },
     {},
-    token
+    token,
   );
 };
 
@@ -375,12 +510,12 @@ export const updateAffiliate = async (id: string, data: Partial<Affiliate>) => {
   return requestJson<{ message: string; data: Affiliate }>(
     `/api/affiliates/${id}`,
     {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     },
     {},
-    token
+    token,
   );
 };
 
@@ -388,45 +523,60 @@ export const deleteAffiliate = async (id: string) => {
   const token = getStoredAdminToken();
   return requestJson<{ message: string }>(
     `/api/affiliates/${id}`,
-    { method: 'DELETE' },
+    { method: "DELETE" },
     {},
-    token
+    token,
   );
 };
 
-export const fetchAffiliateStats = async () => {
-  const token = getStoredAdminToken();
-  return requestJson<AffiliateStats>('/api/leads/stats', { method: 'GET' }, {}, token);
-};
+// export const fetchAffiliateStats = async () => {
+//   const token = getStoredAdminToken();
+//   return requestJson<AffiliateStats>(
+//     "/api/leads/stats",
+//     { method: "GET" },
+//     {},
+//     token,
+//   );
+// };
 
 export type AffiliateLinksResponse = {
   affiliateName: string;
   referralCode: string;
-  links: { platform: string; url: string; }[];
+  links: { platform: string; url: string }[];
 };
 
 export const fetchAffiliateLinks = async (id: string, site?: string) => {
   const token = getStoredAdminToken();
-  return requestJson<AffiliateLinksResponse>(`/api/affiliates/${id}/links`, { method: 'GET' }, { siteKey: site }, token);
+  return requestJson<AffiliateLinksResponse>(
+    `/api/affiliates/${id}/links`,
+    { method: "GET" },
+    { siteKey: site },
+    token,
+  );
 };
 export const fetchCampaigns = async () => {
   const token = getStoredAdminToken();
   const { site } = getSiteContext();
-  return requestJson<Campaign[]>('/api/campaigns', { method: 'GET' }, { siteKey: site }, token);
+  return requestJson<Campaign[]>(
+    "/api/campaigns",
+    { method: "GET" },
+    { siteKey: site },
+    token,
+  );
 };
 
 export const createCampaign = async (data: Partial<Campaign>) => {
   const token = getStoredAdminToken();
   const { site } = getSiteContext();
   return requestJson<{ message: string; data: Campaign }>(
-    '/api/campaigns',
+    "/api/campaigns",
     {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     },
     { siteKey: site },
-    token
+    token,
   );
 };
 
@@ -436,12 +586,12 @@ export const updateCampaign = async (id: string, data: Partial<Campaign>) => {
   return requestJson<{ message: string; data: Campaign }>(
     `/api/campaigns/${id}`,
     {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     },
     { siteKey: site },
-    token
+    token,
   );
 };
 
@@ -450,9 +600,9 @@ export const deleteCampaign = async (id: string) => {
   const { site } = getSiteContext();
   return requestJson<{ message: string }>(
     `/api/campaigns/${id}`,
-    { method: 'DELETE' },
+    { method: "DELETE" },
     { siteKey: site },
-    token
+    token,
   );
 };
 
@@ -471,36 +621,48 @@ export type LuckyWheelPrize = {
 export const fetchPrizes = async (siteOverride?: string) => {
   const token = getStoredAdminToken();
   const { site } = getSiteContext(siteOverride);
-  return requestJson<LuckyWheelPrize[]>('/api/prizes', { method: 'GET' }, { siteKey: site }, token);
-};
-
-export const createPrize = async (data: Partial<LuckyWheelPrize>, siteOverride?: string) => {
-  const token = getStoredAdminToken();
-  const { site } = getSiteContext(siteOverride);
-  return requestJson<{ message: string; data: LuckyWheelPrize }>(
-    '/api/prizes',
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...data, siteKey: site }),
-    },
+  return requestJson<LuckyWheelPrize[]>(
+    "/api/prizes",
+    { method: "GET" },
     { siteKey: site },
-    token
+    token,
   );
 };
 
-export const updatePrizeApi = async (id: string, data: Partial<LuckyWheelPrize>, siteOverride?: string) => {
+export const createPrize = async (
+  data: Partial<LuckyWheelPrize>,
+  siteOverride?: string,
+) => {
+  const token = getStoredAdminToken();
+  const { site } = getSiteContext(siteOverride);
+  return requestJson<{ message: string; data: LuckyWheelPrize }>(
+    "/api/prizes",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...data, siteKey: site }),
+    },
+    { siteKey: site },
+    token,
+  );
+};
+
+export const updatePrizeApi = async (
+  id: string,
+  data: Partial<LuckyWheelPrize>,
+  siteOverride?: string,
+) => {
   const token = getStoredAdminToken();
   const { site } = getSiteContext(siteOverride);
   return requestJson<{ message: string; data: LuckyWheelPrize }>(
     `/api/prizes/${id}`,
     {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     },
     { siteKey: site },
-    token
+    token,
   );
 };
 
@@ -509,8 +671,8 @@ export const deletePrizeApi = async (id: string, siteOverride?: string) => {
   const { site } = getSiteContext(siteOverride);
   return requestJson<{ message: string }>(
     `/api/prizes/${id}`,
-    { method: 'DELETE' },
+    { method: "DELETE" },
     { siteKey: site },
-    token
+    token,
   );
 };

@@ -32,18 +32,20 @@ import GermanLuckyWheelEditor from '../../../ula-German/pages/admin/pages/LuckyW
 import GermanExperienceEditor from '../../../ula-German/pages/admin/pages/ExperienceEditor';
 import GermanAffiliates from '../../../ula-German/pages/admin/pages/Affiliates';
 import GermanCampaigns from '../../../ula-German/pages/admin/pages/Campaigns';
+import GermanMarketingLinks from '../../../ula-German/pages/admin/pages/MarketingLinks';
 
 const navItems = [
   { id: 'overview', label: 'Tổng quan', icon: LayoutDashboard },
   { id: 'leads', label: 'Quản lý Lead', icon: FileText },
-  { id: 'tags', label: 'Quản lý Tag', icon: Hash },
+  { id: 'tags', label: 'Quản lý chiến dịch', icon: Hash },
   { id: 'hero', label: 'Trang đầu', icon: PanelsTopLeft },
   { id: 'painpoints', label: 'Nỗi đau', icon: Target },
   { id: 'solution', label: 'Giải pháp', icon: Sparkles },
   { id: 'methodology', label: 'Phương pháp', icon: Waypoints },
   { id: 'experience', label: 'Trải nghiệm', icon: BadgeCheck },
   { id: 'lucky-wheel', label: 'Vòng quay', icon: Gift },
-  { id: 'affiliates', label: 'Affiliate', icon: BadgeCheck },
+  { id: 'affiliates', label: 'quản lý KOC ', icon: BadgeCheck },
+  { id: 'marketing-links', label: 'Link Marketing', icon: Globe },
 ];
 
 function AdminLayoutInner() {
@@ -116,6 +118,8 @@ function AdminLayoutInner() {
         return isGerman ? <GermanLuckyWheelEditor key={contentKey} /> : <ChinaLuckyWheelEditor key={contentKey} />;
       case 'affiliates': 
         return isGerman ? <GermanAffiliates key={contentKey} /> : <ChinaAffiliates key={contentKey} />;
+      case 'marketing-links':
+        return <GermanMarketingLinks key={contentKey} />;
       case 'tags': 
         return isGerman ? <GermanCampaigns key={contentKey} /> : <ChinaCampaigns key={contentKey} />;
       default: 
@@ -213,7 +217,7 @@ function AdminLayoutInner() {
             )}
           </div>
 
-          <div className="flex-1 w-full overflow-hidden">
+          <div className="flex-1 w-full overflow-y-auto no-scrollbar">
              {!isSidebarCollapsed && <div className="mb-4 px-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 animate-in fade-in duration-300">Điều phối dự án</div>}
              <div className={isSidebarCollapsed ? 'space-y-4' : ''}>
                {renderModuleMenu('tieng-trung', 'Quản lý Tiếng Trung', 'bg-rose-500')}
@@ -249,7 +253,7 @@ function AdminLayoutInner() {
               <div className="flex items-center gap-4">
                 {/* Campaign Context Selector */}
                 <div className="relative">
-                  <button 
+                  {/* <button 
                     onClick={() => setIsCampaignSelectorOpen(!isCampaignSelectorOpen)}
                     className={`flex items-center gap-3 px-4 py-2.5 rounded-2xl border transition-all ${
                       activeCampaign 
@@ -276,7 +280,7 @@ function AdminLayoutInner() {
                         </div>
                     </div>
                     <ChevronDown className={`w-4 h-4 transition-transform ${isCampaignSelectorOpen ? 'rotate-180' : ''}`} />
-                  </button>
+                  </button> */}
 
                   {isCampaignSelectorOpen && (
                     <div className="absolute right-0 mt-2 w-64 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-200">

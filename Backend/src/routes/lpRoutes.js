@@ -6,6 +6,17 @@ const upload = require("../utils/multerConfig");
 
 router.get("/", lpController.getLP);
 
+// API Lấy cấu hình gốc của Site (discountText, sitePromoCode)
+router.get("/site-config", lpController.getSiteConfig);
+
+// API Sửa cấu hình gốc của Site (Chỉ Admin/Editor)
+router.put(
+  "/site-config",
+  verifyToken,
+  checkRole(["ADMIN", "EDITOR"]),
+  lpController.updateSiteConfig,
+);
+
 // API Sửa Content: Đi qua 2 chốt chặn ở utils trước khi vào controller
 router.put(
   "/:section",

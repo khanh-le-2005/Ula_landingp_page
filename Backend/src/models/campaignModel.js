@@ -16,6 +16,8 @@ const campaignSchema = new mongoose.Schema(
       }
     ],
     prizeTag: { type: String },              // Nhãn bộ giải thưởng (nếu muốn dùng chung)
+    discountText: { type: String },          // Nội dung giảm giá cho Email (VD: Giảm 40%)
+    promoCode: { type: String },             // Mã khuyến mãi cho Email (VD: ULA-OFFER-40)
     isActive: { type: Boolean, default: true },
     siteKey: { type: String, default: "main" }
   },

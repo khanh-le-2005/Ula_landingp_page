@@ -274,7 +274,9 @@ export default function Campaigns() {
 
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const handleCopyLink = (url: string, id: string) => {
-    navigator.clipboard.writeText(url);
+    // Tự động sửa /china thành /chinese ở phía Frontend
+    const fixedUrl = url.replace('/china', '/chinese');
+    navigator.clipboard.writeText(fixedUrl);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
   };
@@ -478,7 +480,7 @@ export default function Campaigns() {
                </div>
                <div className="relative group">
                   <div className="bg-white border border-emerald-100 rounded-2xl p-4 pr-12 text-[11px] font-mono text-slate-600 break-all leading-relaxed shadow-inner">
-                    {lastSavedUrl}
+                    {lastSavedUrl?.replace('/china', '/chinese')}
                   </div>
                   <button 
                     onClick={() => handleCopyLink(lastSavedUrl, 'saved')}

@@ -105,12 +105,14 @@ const roadmapThemes = {
 type RoadmapTheme = (typeof roadmapThemes)[CourseRoadmapVariant];
 
 const ALL_LEVELS: CourseRoadmapLevel[] = [
-  { id: "a0", label: "A0", sub: "Mới bắt đầu" },
+  { id: "a0", label: "Bắt đầu", sub: "Chưa biết gì" },
   { id: "a1", label: "A1", sub: "Nền tảng" },
   { id: "a2", label: "A2", sub: "Cơ bản" },
   { id: "b1", label: "B1", sub: "Trung cấp" },
+  { id: "b1", label: "B1", sub: "Luyện thi" },
   { id: "b2", label: "B2", sub: "Nâng cao" },
   { id: "c1", label: "C1", sub: "Cao cấp" },
+
 ];
 
 const MASTER_STEPS_CONTENT: Record<string, CourseRoadmapStep> = {
@@ -260,7 +262,7 @@ const LevelTrackPanel: React.FC<{
                   }}
                   disabled={disabled}
                   title={disabled ? (isTarget ? "Mục tiêu phải cao hơn trình độ hiện tại." : "Không thể chọn") : level.label}
-                  className={`relative flex flex-col items-center rounded-2xl px-1 py-0.5 transition-all duration-300 ${disabled
+                  className={`relative flex flex-col items-center rounded-2xl px-1 py-0.5 transition-all duration-300 w-max ${disabled
                     ? "cursor-not-allowed opacity-40 grayscale-[0.4]"
                     : "cursor-pointer hover:-translate-y-0.5"
                     } ${active ? "scale-[1.035]" : ""}`}
@@ -289,13 +291,13 @@ const LevelTrackPanel: React.FC<{
                   <div className="mt-1 text-center">
                     <div
                       className={`font-black uppercase leading-none ${active
-                        ? `text-[0.95rem] md:text-[1.12rem] ${theme.activeLabel}`
+                        ? `text-[0.95rem] md:text-[1rem] ${theme.activeLabel}`
                         : "text-[0.8rem] text-slate-500 md:text-[0.9rem]"
                         }`}
                     >
                       {level.label}
                     </div>
-                    <div className="mt-0.5 text-[8px] font-semibold leading-tight text-slate-400 md:text-[9px]">
+                    <div className="mt-0.5 text-[8px] font-semibold leading-tight text-slate-400 md:text-[px]">
                       {level.sub}
                     </div>
                   </div>
@@ -487,7 +489,7 @@ const Roadmap: React.FC = () => {
   const [expanded, setExpanded] = React.useState(false);
 
   // Target levels are basically ALL_LEVELS but offset by 1
-  const currentLevelsInput = ALL_LEVELS.slice(0, 5); // A0 to B2
+  const currentLevelsInput = ALL_LEVELS.slice(0, 6); // A0 to B2
   const targetLevelsInput = ALL_LEVELS.slice(1);   // A1 to C1
 
   const handleCurrentChange = (newIdx: number) => {

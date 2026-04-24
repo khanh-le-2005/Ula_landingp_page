@@ -18,9 +18,9 @@ const trackClick = async (req, res) => {
       created_at: new Date().toISOString(),
     };
 
-    // Xác thực mã KOC có hợp lệ không
+    // Xác thực mã KOC có hợp lệ không (Lọc theo site)
     if (ref) {
-      const affiliate = await findByCode(ref);
+      const affiliate = await findByCode(ref, req.siteKey);
       if (affiliate) {
         trackingData.aff_id = ref;
         trackingData.aff_name = affiliate.name;

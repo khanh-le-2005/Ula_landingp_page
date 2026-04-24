@@ -15,7 +15,8 @@ import {
   AlertCircle,
   X,
   Mail,
-  Phone
+  Phone,
+  Share2
 } from 'lucide-react';
 import {
   fetchAffiliates,
@@ -34,11 +35,9 @@ import {
   adminPrimaryButton,
   adminSecondaryButton,
   adminInput,
-  adminLabel,
-  adminCardSoft
+  adminLabel
 } from '../adminTheme';
 import { useProject } from '@/src/ula-chinese/pages/admin/context/ProjectContext';
-import { Share2 } from 'lucide-react';
 
 export default function Affiliates() {
   const [affiliates, setAffiliates] = useState<Affiliate[]>([]);
@@ -52,12 +51,16 @@ export default function Affiliates() {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAffiliate, setEditingAffiliate] = useState<Affiliate | null>(null);
+  
+  // CẬP NHẬT: Thêm commissionRate và notes
   const [formData, setFormData] = useState<Partial<Affiliate>>({
     name: '',
     code: '',
     phone: '',
     email: '',
-    source: 'Influencer'
+    isActive: true,
+    commissionRate: 0.15, // Giá trị mặc định 15%
+    notes: ''
   });
 
   // UTM Links Modal State
@@ -69,12 +72,18 @@ export default function Affiliates() {
     setIsLoading(true);
     setError('');
     try {
-      const [affData, statsData] = await Promise.all([
-        fetchAffiliates(),
-        fetchAffiliateStats()
-      ]);
+      // CHỈ GỌI DUY NHẤT 1 API LẤY DANH SÁCH (GET /api/affiliates)
+      const affData = await fetchAffiliates(activeProject);
+      
       setAffiliates(Array.isArray(affData) ? affData : []);
-      setStats(statsData);
+      
+      // Gán Stats mặc định bằng 0 để giữ giao diện (vì BE chưa trả về thống kê)
+      setStats({
+        totalLeads: 0,
+        totalSuspicious: 0,
+        byAffiliate: []
+      });
+
     } catch (err: any) {
       setError(err.message || 'Không thể tải dữ liệu KOC');
     } finally {
@@ -84,7 +93,7 @@ export default function Affiliates() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [activeProject]);
 
   const filteredAffiliates = useMemo(() => {
     if (!Array.isArray(affiliates)) return [];
@@ -99,15 +108,23 @@ export default function Affiliates() {
     return '/chinese'; // Mặc định là Chinese
   };
 
-  const handleCopyLink = (code: string) => {
+  const getTrackingLink = (aff: Affiliate) => {
     const baseUrl = window.location.origin;
     const path = getActiveSitePath();
-    // Nếu đang chọn một campaign trong Admin, thì link tạo ra cũng phải chứa campaign đó
-    const campaignSuffix = activeCampaign ? `&campaign=${activeCampaign}` : '';
-    const link = `${baseUrl}${path}?ref=${code}${campaignSuffix}`;
+    const url = new URL(`${baseUrl}${path}`);
 
+    url.searchParams.set('utm_source', 'koc'); 
+    url.searchParams.set('utm_medium', 'affiliate');
+    url.searchParams.set('utm_campaign', activeCampaign || 'default_campaign');
+    url.searchParams.set('utm_content', aff.code);
+
+    return decodeURIComponent(url.toString());
+  };
+
+  const handleCopyLink = (aff: Affiliate) => {
+    const link = getTrackingLink(aff);
     navigator.clipboard.writeText(link);
-    setCopiedCode(code);
+    setCopiedCode(aff.code);
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
@@ -119,7 +136,9 @@ export default function Affiliates() {
         code: aff.code,
         phone: aff.phone || '',
         email: aff.email || '',
-        source: aff.source || 'Influencer'
+        isActive: aff.isActive !== false,
+        commissionRate: aff.commissionRate || 0.15, // Cập nhật rate
+        notes: aff.notes || '' // Cập nhật notes
       });
     } else {
       setEditingAffiliate(null);
@@ -128,20 +147,34 @@ export default function Affiliates() {
         code: '',
         phone: '',
         email: '',
-        source: 'Influencer'
+        isActive: true,
+        commissionRate: 0.15,
+        notes: ''
       });
     }
     setIsModalOpen(true);
   };
 
+  // CẬP NHẬT Payload gửi đi có chứa commissionRate và notes
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     try {
+      const payload = {
+        siteKey: activeProject,
+        name: formData.name?.trim(),
+        code: formData.code?.trim().toUpperCase().replace(/\s+/g, ''), 
+        email: formData.email?.trim(),
+        phone: formData.phone?.trim(),
+        isActive: formData.isActive,
+        commissionRate: Number(formData.commissionRate), // Đảm bảo là kiểu số
+        notes: formData.notes?.trim()
+      };
+
       if (editingAffiliate) {
-        await updateAffiliate(editingAffiliate._id, formData);
+        await updateAffiliate(editingAffiliate._id, payload);
       } else {
-        await createAffiliate(formData);
+        await createAffiliate(payload);
       }
       setIsModalOpen(false);
       loadData();
@@ -185,7 +218,6 @@ export default function Affiliates() {
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
-  // Helper to get stats for a specific code
   const getKocStats = (code: string) => {
     return stats?.byAffiliate.find(s => s._id === code) || { total: 0, suspicious: 0 };
   };
@@ -307,10 +339,15 @@ export default function Affiliates() {
                   filteredAffiliates.map((aff) => {
                     const kocStats = getKocStats(aff.code);
                     return (
-                      <tr key={aff._id} className="group hover:bg-slate-50 transition-all border-b border-slate-100 last:border-0">
+                      <tr key={aff._id} className={`group hover:bg-slate-50 transition-all border-b border-slate-100 last:border-0 ${aff.isActive === false ? 'opacity-60' : ''}`}>
                         <td className="px-6 py-6">
                           <div className="space-y-1.5">
-                            <div className="font-black text-slate-900 text-base tracking-tight">{aff.name}</div>
+                            <div className="font-black text-slate-900 text-base tracking-tight flex items-center gap-2">
+                              {aff.name}
+                              {aff.isActive === false && (
+                                <span className="px-2 py-0.5 rounded-full bg-slate-200 text-[9px] text-slate-500 uppercase tracking-widest">Ngừng HĐ</span>
+                              )}
+                            </div>
                             <div className="flex items-center gap-4">
                               {aff.phone && (
                                 <div className="flex items-center gap-1 text-[10px] text-slate-400 font-bold uppercase tracking-wider">
@@ -318,10 +355,19 @@ export default function Affiliates() {
                                   {aff.phone}
                                 </div>
                               )}
-                              <div className="flex items-center gap-2 px-2 py-0.5 rounded bg-slate-100 text-[9px] font-black text-slate-500 uppercase tracking-widest">
-                                {aff.source || 'Influencer'}
-                              </div>
+                              {aff.email && (
+                                <div className="flex items-center gap-1 text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                                  <Mail className="w-2.5 h-2.5" />
+                                  {aff.email}
+                                </div>
+                              )}
                             </div>
+                            {/* Hiển thị Rate nhỏ dưới tên */}
+                            {aff.commissionRate && (
+                               <div className="text-[10px] text-emerald-600 font-bold font-mono tracking-widest mt-1">
+                                 RATE: {(aff.commissionRate * 100).toFixed(0)}%
+                               </div>
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-6">
@@ -333,24 +379,24 @@ export default function Affiliates() {
                           <div className="flex items-center gap-2 group/link">
                             <div className="h-10 px-4 rounded-xl bg-slate-100 border border-slate-200 flex items-center gap-2 max-w-[200px] overflow-hidden">
                               <ExternalLink className="w-3 h-3 text-slate-400 shrink-0" />
-                              <span className="text-[10px] font-medium text-slate-500 truncate lowercase">
-                                {window.location.origin}{getActiveSitePath()}?ref={aff.code}
+                              <span className="text-[10px] font-medium text-slate-500 truncate lowercase" title={getTrackingLink(aff)}>
+                                {getTrackingLink(aff)}
                               </span>
                             </div>
                             <button
-                              onClick={() => handleCopyLink(aff.code)}
+                              onClick={() => handleCopyLink(aff)}
                               className="h-10 w-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 transition-all shadow-sm shrink-0"
-                              title="Sao chép link tracking"
+                              title="Sao chép link tracking UTM"
                             >
                               {copiedCode === aff.code ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
                             </button>
-                            <button
+                            {/* <button
                               onClick={() => handleOpenUtmModal(aff)}
                               className="h-10 w-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-indigo-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 transition-all shadow-sm shrink-0"
-                              title="Tạo link UTM"
+                              title="Tạo link UTM đa nền tảng"
                             >
                               <Share2 className="w-4 h-4" />
-                            </button>
+                            </button> */}
                           </div>
                         </td>
                         <td className="px-6 py-6">
@@ -413,7 +459,7 @@ export default function Affiliates() {
                     className={adminInput}
                     value={formData.name}
                     onChange={e => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="v.d. Yoncy Nguyễn"
+                    placeholder="v.d. Nguyễn Văn A"
                   />
                 </div>
 
@@ -427,22 +473,7 @@ export default function Affiliates() {
                     placeholder="v.d. KOC_01"
                     disabled={!!editingAffiliate}
                   />
-                  <p className="text-[9px] text-slate-400 italic">Không được trùng, không chứa dấu cách.</p>
-                </div>
-
-                <div className="space-y-2">
-                  <label className={adminLabel}>Nguồn khách (Source)</label>
-                  <select
-                    className={adminInput}
-                    value={formData.source}
-                    onChange={e => setFormData({ ...formData, source: e.target.value })}
-                  >
-                    <option value="Influencer">Influencer</option>
-                    <option value="Facebook">Facebook Ads</option>
-                    <option value="Tiktok">Tiktok Ads</option>
-                    <option value="Youtube">Youtube</option>
-                    <option value="Partner">Đối tác giáo dục</option>
-                  </select>
+                  <p className="text-[9px] text-slate-400 italic">Dùng để tạo link, không chứa dấu cách.</p>
                 </div>
 
                 <div className="space-y-2">
@@ -462,9 +493,49 @@ export default function Affiliates() {
                     className={adminInput}
                     value={formData.email}
                     onChange={e => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="koc@ula.edu.vn"
+                    placeholder="koc@example.com"
                   />
                 </div>
+
+                {/* CẬP NHẬT: Thêm Tỷ lệ hoa hồng */}
+                <div className="space-y-2">
+                  <label className={adminLabel}>Tỷ lệ hoa hồng</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="1"
+                    className={adminInput}
+                    value={formData.commissionRate}
+                    onChange={e => setFormData({ ...formData, commissionRate: parseFloat(e.target.value) || 0 })}
+                    placeholder="Ví dụ: 0.15 (15%)"
+                  />
+                  <p className="text-[9px] text-slate-400 italic">Nhập dạng thập phân: 0.15 = 15%</p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className={adminLabel}>Trạng thái hoạt động</label>
+                  <select
+                    className={adminInput}
+                    value={formData.isActive ? "true" : "false"}
+                    onChange={e => setFormData({ ...formData, isActive: e.target.value === "true" })}
+                  >
+                    <option value="true">Đang hoạt động</option>
+                    <option value="false">Ngừng hoạt động</option>
+                  </select>
+                </div>
+
+                {/* CẬP NHẬT: Thêm Ghi chú */}
+                <div className="col-span-2 space-y-2">
+                  <label className={adminLabel}>Ghi chú</label>
+                  <textarea
+                    className={`${adminInput} resize-none h-20 py-3`}
+                    value={formData.notes}
+                    onChange={e => setFormData({ ...formData, notes: e.target.value })}
+                    placeholder="Thông tin thêm về KOC..."
+                  />
+                </div>
+
               </div>
 
               <div className="pt-6 border-t border-slate-100 flex justify-end gap-3">

@@ -6,7 +6,7 @@ import Solution from '../components/Solution';
 import Methodology from '../components/Methodology';
 import Experience from '../components/Experience';
 import Roadmap from '../components/Roadmap';
-import Trust from '../components/Trust';
+import Trust from '../components/SuccessStory';
 import LuckyWheel from '../components/LuckyWheel';
 import LeadForm from '../components/LeadForm';
 import Footer from '../components/Footer';

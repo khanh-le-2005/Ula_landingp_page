@@ -227,38 +227,52 @@ const LeadForm: React.FC<ConsultationModalProps> = ({
     const nextFieldErrors = validateForm();
     setFieldErrors(nextFieldErrors);
 
-    const firstErrorKey = Object.keys(nextFieldErrors)[0] as ConsultationField | undefined;
+    const firstErrorKey = Object.keys(nextFieldErrors)[0] as
+      | ConsultationField
+      | undefined;
+
     if (firstErrorKey) {
-      setError(nextFieldErrors[firstErrorKey] || "Vui lòng kiểm tra lại thông tin");
+      setError(
+        nextFieldErrors[firstErrorKey] || "Vui lòng kiểm tra lại thông tin",
+      );
       return;
     }
 
     setIsSubmitting(true);
 
+    // 1. Lấy dữ liệu tracking từ Cookie (UTM, Ref, Tag...)
     const trackingData = resolveTrackingData();
-    void submitLeadRegistration({
+
+    // 2. Xác định siteKey dựa trên variant
+    const siteKey = options?.variant === "chinese" ? "tieng-trung" : "tieng-duc";
+
+    // 3. Chuẩn bị Payload đúng chuẩn Backend yêu cầu
+    const payload = {
+      siteKey,
+      campaignTag: trackingData.campaignTag || options?.source || undefined,
       formData: {
         fullname: form.fullName.trim(),
-        phone: form.phone.trim(),
         email: form.email.trim(),
-        course_name: form.courseInterest.trim(),
+        phone: form.phone.trim(),
+        course: form.courseInterest.trim(),
         note: form.note.trim(),
-        prize_option: wonPrize?.option || undefined,
-        prize_code: wonPrize?.code || undefined,
-        program_variant: options?.variant || undefined,
-        campaign_tag: trackingData.campaignTag || undefined, // Inject campaignTag into formData
       },
-      ...trackingData,
-    })
+      prizeName: wonPrize?.option || undefined,
+      prizeCode: wonPrize?.code || undefined,
+      ...trackingData, // Chứa utm_source, utm_medium, utm_campaign, referralId, fbp, fbc...
+    };
+
+    void submitLeadRegistration(payload as any)
       .then((response) => {
-        setSuccessMessage(response.message || "Đăng ký nhận ưu đãi Thành Công");
+        setSuccessMessage(response.message || "Đăng ký thành công!");
         setStep("success");
       })
       .catch((submitError) => {
         const message =
           submitError instanceof Error
             ? submitError.message
-            : "Không thể Đăng ký nhận ưu đãi, vui lòng thử lại";
+            : "Đăng ký thất bại, vui lòng thử lại";
+
         setError(message);
       })
       .finally(() => {

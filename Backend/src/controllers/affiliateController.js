@@ -1,9 +1,10 @@
 const { Affiliate } = require("../models/affiliateModel");
 
-// Lấy danh sách tất cả KOC (Admin/Editor)
+// Lấy danh sách tất cả KOC (Admin/Editor) theo trang đang chọn
 const getAffiliates = async (req, res, next) => {
   try {
-    const affiliates = await Affiliate.find().sort({ createdAt: -1 });
+    const siteKey = req.query.siteKey || req.headers["x-site-key"] || req.siteKey; 
+    const affiliates = await Affiliate.find({ siteKey }).sort({ createdAt: -1 });
     res.status(200).json(affiliates);
   } catch (error) {
     next(error);
@@ -24,7 +25,9 @@ const getAffiliateById = async (req, res, next) => {
 // Tạo KOC mới (Admin)
 const createAffiliate = async (req, res, next) => {
   try {
+    const siteKey = req.body.siteKey || req.siteKey;
     const affiliate = new Affiliate(req.body);
+    affiliate.siteKey = siteKey; // Gán cứng siteKey vào model
     await affiliate.save();
     res.status(201).json({ message: "Tạo KOC thành công", data: affiliate });
   } catch (error) {
@@ -80,7 +83,7 @@ const generateLinks = async (req, res, next) => {
     // Cấu hình mapping giữa site key và path
     const siteMap = {
       "tieng-duc": "/german",
-      "tieng-trung": "/chinese",
+      "tieng-trung": "/china",
       "main": "/"
     };
 
@@ -122,7 +125,7 @@ const buildCustomLink = async (req, res, next) => {
 
     const siteMap = {
       "tieng-duc": "/german",
-      "tieng-trung": "/chinese",
+      "tieng-trung": "/china",
       "main": "/"
     };
 

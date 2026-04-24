@@ -1,5 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ArrowRight, CheckCircle2, ChevronDown, Copy, Gift } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  ChevronDown,
+  Copy,
+  Gift,
+} from "lucide-react";
 import consultationBackdrop from "../../assets/69e1e7411e24b12446a443da.jpg";
 import { submitLeadRegistration } from "../pages/admin/adminApi";
 import { resolveTrackingData } from "../utils/tracking";
@@ -52,7 +58,8 @@ const GERMAN_THEME: ConsultationTheme = {
   submitButton:
     "bg-[#e5c986] text-[#1a2b48] hover:bg-[#dbbd73] shadow-[0_18px_36px_rgba(228,199,132,0.28)]",
   shellGlow: "shadow-[0_36px_90px_rgba(124,111,197,0.28)]",
-  shellGradient: "bg-[linear-gradient(135deg,#d9dcff_0%,#efedff_48%,#d4cbff_100%)]",
+  shellGradient:
+    "bg-[linear-gradient(135deg,#d9dcff_0%,#efedff_48%,#d4cbff_100%)]",
   courseOptions: [
     "Lộ trình mất gốc đến HSK3",
     "Khóa tiếng Trung HSK 1",
@@ -69,7 +76,8 @@ const CHINESE_THEME: ConsultationTheme = {
   submitButton:
     "bg-[#e5c986] text-[#1a2b48] hover:bg-[#dbbd73] shadow-[0_18px_36px_rgba(228,199,132,0.28)]",
   shellGlow: "shadow-[0_36px_90px_rgba(124,111,197,0.28)]",
-  shellGradient: "bg-[linear-gradient(135deg,#d9dcff_0%,#efedff_48%,#d4cbff_100%)]",
+  shellGradient:
+    "bg-[linear-gradient(135deg,#d9dcff_0%,#efedff_48%,#d4cbff_100%)]",
   courseOptions: [
     "Lộ trình mất gốc đến HSK 1",
     "Khóa tiếng Trung HSK 1",
@@ -86,7 +94,7 @@ const inputClassName =
 const fieldErrorClassName = "mt-1.5 text-[13px] font-medium text-red-500";
 
 const DEFAULT_OPTIONS: ConsultationModalOptions = { variant: "german" };
-const DEFAULT_ONCLOSE = () => { };
+const DEFAULT_ONCLOSE = () => {};
 
 const LeadForm: React.FC<ConsultationModalProps> = ({
   isOpen = true,
@@ -97,7 +105,9 @@ const LeadForm: React.FC<ConsultationModalProps> = ({
   const [step, setStep] = useState<"form" | "success">("form");
   const [form, setForm] = useState<ConsultationFormState>(INITIAL_FORM);
   const [error, setError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("Đăng ký nhận ưu đãi Thành Công");
+  const [successMessage, setSuccessMessage] = useState(
+    "Đăng ký nhận ưu đãi Thành Công",
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copied, setCopied] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<
@@ -110,7 +120,10 @@ const LeadForm: React.FC<ConsultationModalProps> = ({
   );
 
   const courseOptions = useMemo(() => {
-    if (options?.programName && !theme.courseOptions.includes(options.programName)) {
+    if (
+      options?.programName &&
+      !theme.courseOptions.includes(options.programName)
+    ) {
       return [options.programName, ...theme.courseOptions];
     }
 
@@ -126,13 +139,16 @@ const LeadForm: React.FC<ConsultationModalProps> = ({
   }, []);
 
   useEffect(() => {
-    const defaultNote = options?.variant === 'chinese' 
-      ? "Nhận ưu đãi 45% và quà tặng đặc biệt cho khóa Tiếng Trung"
-      : "Nhận ưu đãi 45% và quà tặng đặc biệt cho khóa Tiếng Đức";
-    
-    setForm(prev => ({
+    const defaultNote =
+      options?.variant === "chinese"
+        ? "Nhận ưu đãi 45% và quà tặng đặc biệt cho khóa Tiếng Trung"
+        : "Nhận ưu đãi 45% và quà tặng đặc biệt cho khóa Tiếng Đức";
+
+    setForm((prev) => ({
       ...prev,
-      note: wonPrize ? `Phần quà may mắn: ${wonPrize.option}` : (prev.note || defaultNote)
+      note: wonPrize
+        ? `Phần quà may mắn: ${wonPrize.option}`
+        : prev.note || defaultNote,
     }));
   }, [wonPrize, options?.variant]);
 
@@ -182,11 +198,11 @@ const LeadForm: React.FC<ConsultationModalProps> = ({
 
   const updateForm =
     <K extends keyof ConsultationFormState>(key: K) =>
-      (value: ConsultationFormState[K]) => {
-        setForm((current) => ({ ...current, [key]: value }));
-        setError("");
-        setFieldErrors((current) => ({ ...current, [key]: undefined }));
-      };
+    (value: ConsultationFormState[K]) => {
+      setForm((current) => ({ ...current, [key]: value }));
+      setError("");
+      setFieldErrors((current) => ({ ...current, [key]: undefined }));
+    };
 
   const validateForm = () => {
     const nextFieldErrors: Partial<Record<ConsultationField, string>> = {};
@@ -263,72 +279,61 @@ const LeadForm: React.FC<ConsultationModalProps> = ({
   //     });
   // };
 
-
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    console.log("🚀 Submit triggered");
-
     event.preventDefault();
 
-    console.log("📥 Form data trước validate:", form);
-
     const nextFieldErrors = validateForm();
-    console.log("⚠️ Field errors:", nextFieldErrors);
-
     setFieldErrors(nextFieldErrors);
 
-    const firstErrorKey = Object.keys(nextFieldErrors)[0] as ConsultationField | undefined;
+    const firstErrorKey = Object.keys(nextFieldErrors)[0] as
+      | ConsultationField
+      | undefined;
 
     if (firstErrorKey) {
-      console.log("❌ Lỗi đầu tiên:", firstErrorKey, nextFieldErrors[firstErrorKey]);
-      setError(nextFieldErrors[firstErrorKey] || "Vui lòng kiểm tra lại thông tin");
+      setError(
+        nextFieldErrors[firstErrorKey] || "Vui lòng kiểm tra lại thông tin",
+      );
       return;
     }
 
-    console.log("✅ Validate pass");
-
     setIsSubmitting(true);
 
+    // 1. Lấy dữ liệu tracking từ Cookie (UTM, Ref, Tag...)
     const trackingData = resolveTrackingData();
-    console.log("📊 Tracking data:", trackingData);
 
+    // 2. Xác định siteKey dựa trên variant
+    const siteKey = options?.variant === "chinese" ? "tieng-trung" : "tieng-duc";
+
+    // 3. Chuẩn bị Payload đúng chuẩn Backend yêu cầu
     const payload = {
+      siteKey,
+      campaignTag: trackingData.campaignTag || options?.source || undefined,
       formData: {
         fullname: form.fullName.trim(),
-        phone: form.phone.trim(),
         email: form.email.trim(),
-        course_name: form.courseInterest.trim(),
+        phone: form.phone.trim(),
+        course: form.courseInterest.trim(),
         note: form.note.trim(),
-        prize_option: wonPrize?.option || undefined,
-        prize_code: wonPrize?.code || undefined,
-        program_variant: options?.variant || undefined,
-        campaign_tag: trackingData.campaignTag || undefined, // Inject campaignTag into formData
       },
-      ...trackingData,
+      prizeName: wonPrize?.option || undefined,
+      prizeCode: wonPrize?.code || undefined,
+      ...trackingData, // Chứa utm_source, utm_medium, utm_campaign, referralId, fbp, fbc...
     };
 
-    console.log("📤 Payload gửi đi:", payload);
-
-    void submitLeadRegistration(payload)
+    void submitLeadRegistration(payload as any)
       .then((response) => {
-        console.log("🎉 API success response:", response);
-
         setSuccessMessage(response.message || "Đăng ký nhận ưu đãi Thành Công");
         setStep("success");
       })
       .catch((submitError) => {
-        console.error("🔥 API error:", submitError);
-
         const message =
           submitError instanceof Error
             ? submitError.message
             : "Không thể Đăng ký nhận ưu đãi, vui lòng thử lại";
 
-        console.log("❌ Error message hiển thị:", message);
-
         setError(message);
       })
       .finally(() => {
-        console.log("🏁 Submit finished");
         setIsSubmitting(false);
       });
   };
@@ -373,23 +378,29 @@ const LeadForm: React.FC<ConsultationModalProps> = ({
 
                   <label className="block">
                     <span className={labelClassName}>
-                      Họ và tên <span className="text-red-500">(*)</span>
+                      Họ và tên{" "}
+                      <span className="text-red-500 font-medium">(*)</span>
                     </span>
-                    <input
+                    <input  
                       type="text"
                       value={form.fullName}
-                      onChange={(event) => updateForm("fullName")(event.target.value)}
+                      onChange={(event) =>
+                        updateForm("fullName")(event.target.value)
+                      }
                       placeholder="Nhập họ và tên của bạn"
                       className={`${inputClassName} ${theme.focus}`}
                     />
                     {fieldErrors.fullName ? (
-                      <p className={fieldErrorClassName}>{fieldErrors.fullName}</p>
+                      <p className={fieldErrorClassName}>
+                        {fieldErrors.fullName}
+                      </p>
                     ) : null}
                   </label>
 
                   <label className="block">
                     <span className={labelClassName}>
-                      Số điện thoại <span className="text-red-500">(*)</span>
+                      Số điện thoại{" "}
+                      <span className="text-red-500 font-medium">(*)</span>
                     </span>
                     <div
                       className={`flex items-center overflow-hidden rounded-[1.05rem] border border-[#d9dbe7] bg-[#f7f7fb] transition-all focus-within:ring-4 ${theme.focusWithin}`}
@@ -401,7 +412,9 @@ const LeadForm: React.FC<ConsultationModalProps> = ({
                       <input
                         type="tel"
                         value={form.phone}
-                        onChange={(event) => updateForm("phone")(event.target.value)}
+                        onChange={(event) =>
+                          updateForm("phone")(event.target.value)
+                        }
                         placeholder="969 848 948"
                         className="min-w-0 flex-1 bg-transparent px-4 text-[1rem] font-medium text-[#1a2b48] outline-none"
                       />
@@ -413,12 +426,15 @@ const LeadForm: React.FC<ConsultationModalProps> = ({
 
                   <label className="block">
                     <span className={labelClassName}>
-                      Email <span className="text-red-500">(*)</span>
+                      Email{" "}
+                      <span className="text-red-500 font-medium">(*)</span>
                     </span>
                     <input
                       type="email"
                       value={form.email}
-                      onChange={(event) => updateForm("email")(event.target.value)}
+                      onChange={(event) =>
+                        updateForm("email")(event.target.value)
+                      }
                       placeholder="Nhập email của bạn"
                       className={`${inputClassName} ${theme.focus}`}
                     />
@@ -429,12 +445,15 @@ const LeadForm: React.FC<ConsultationModalProps> = ({
 
                   <label className="block">
                     <span className={labelClassName}>
-                      Khóa học bạn quan tâm <span className="text-red-500">(*)</span>
+                      Khóa học bạn quan tâm{" "}
+                      <span className="text-red-500 font-medium">(*)</span>
                     </span>
                     <div className="relative">
                       <select
                         value={form.courseInterest}
-                        onChange={(event) => updateForm("courseInterest")(event.target.value)}
+                        onChange={(event) =>
+                          updateForm("courseInterest")(event.target.value)
+                        }
                         className={`${inputClassName} appearance-none pr-12 ${theme.focus}`}
                       >
                         <option value="">Lựa chọn khóa học</option>
@@ -460,7 +479,9 @@ const LeadForm: React.FC<ConsultationModalProps> = ({
                     <span className={labelClassName}>Lời nhắn</span>
                     <textarea
                       value={form.note}
-                      onChange={(event) => updateForm("note")(event.target.value)}
+                      onChange={(event) =>
+                        updateForm("note")(event.target.value)
+                      }
                       rows={1}
                       placeholder=""
                       className={`min-h-[58px] w-full resize-none rounded-[1.05rem] border border-[#d9dbe7] bg-[#f7f7fb] px-4 py-2 text-[0.96rem] font-medium text-[#1a2b48] outline-none transition-all focus:ring-4 ${theme.focus}`}
@@ -529,7 +550,10 @@ const LeadForm: React.FC<ConsultationModalProps> = ({
                       </div>
                       <span className="mb-1 text-xs font-bold uppercase tracking-widest text-slate-400">
                         Vui lòng truy cập{" "}
-                        <a className="text-blue-600 hover:underline" href="https://ulaedu.com">
+                        <a
+                          className="text-blue-600 hover:underline"
+                          href="https://ulaedu.com"
+                        >
                           ulaedu.com
                         </a>{" "}
                         để nhận quà.
@@ -567,13 +591,17 @@ const LeadForm: React.FC<ConsultationModalProps> = ({
                     <p className="text-[0.85rem] font-medium leading-relaxed text-slate-500">
                       Vui lòng chụp màn hình hoặc sao chép mã này. <br />
                       Đội ngũ sẽ liên hệ xác nhận qua số{" "}
-                      <span className="font-bold text-[#1a2b48]">{form.phone}</span>
+                      <span className="font-bold text-[#1a2b48]">
+                        {form.phone}
+                      </span>
                     </p>
                   </div>
                 ) : (
                   <p className="mx-auto mt-3 max-w-md text-[0.98rem] font-medium leading-7 text-slate-500">
                     Đội ngũ sẽ liên hệ lại với bạn qua số{" "}
-                    <span className="font-bold text-[#1a2b48]">{form.phone}</span>{" "}
+                    <span className="font-bold text-[#1a2b48]">
+                      {form.phone}
+                    </span>{" "}
                     trong thời gian sớm nhất.
                   </p>
                 )}

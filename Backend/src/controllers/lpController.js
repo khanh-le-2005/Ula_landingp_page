@@ -14,7 +14,7 @@ const getLP = async (req, res, next) => {
 
     // Dynamic Prizes Injection: 
     const spinKey = Object.keys(data).find(k => k.includes("lucky") || k.includes("spin") || k.includes("wheel"));
-    
+
     if (spinKey && data[spinKey]) {
       const { Prize } = require("../models/prizeModel");
       const prizeFilter = { isActive: true, siteKey }; // Lọc quà của riêng trang đó
@@ -46,7 +46,7 @@ const getLP = async (req, res, next) => {
       if (campaign) {
         if (campaign.sections) {
           const sectionOverrides = campaign.sections;
-          
+
           // Mapping bảng ánh xạ key (từ Logical sang Physical)
           const keyMap = {
             'hero': 'section_1_hero',
@@ -108,6 +108,46 @@ const getLP = async (req, res, next) => {
   }
 };
 
+// GET /api/landing-page/site-config -> Đọc cấu hình quà tặng gốc của site
+const getSiteConfig = async (req, res, next) => {
+  try {
+    const siteKey = req.query.siteKey || req.siteKey;
+    const { LandingPage } = require("../models/lpModel");
+    const siteConfig = await LandingPage.findOne({ siteKey, sectionKey: "site_config" });
+    if (!siteConfig) {
+      return res.status(200).json({
+        siteKey,
+        sectionKey: "site_config",
+        content: null,
+        message: "Chưa có cấu hình riêng. Hệ thống đang dùng giá trị mặc định."
+      });
+    }
+    res.status(200).json({ siteKey, sectionKey: "site_config", content: siteConfig.content });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// PUT /api/landing-page/site-config -> Sửa cấu hình quà tặng gốc của site
+const updateSiteConfig = async (req, res, next) => {
+  try {
+    const siteKey = req.query.siteKey || req.body.siteKey || req.siteKey;
+    const { discountText, sitePromoCode } = req.body;
+    if (!discountText && !sitePromoCode) {
+      return res.status(400).json({ message: "Cần ít nhất 1 trường: discountText hoặc sitePromoCode" });
+    }
+    const { LandingPage } = require("../models/lpModel");
+    const updated = await LandingPage.findOneAndUpdate(
+      { siteKey, sectionKey: "site_config" },
+      { $set: { content: req.body } },
+      { new: true, upsert: true }
+    );
+    res.status(200).json({ message: "Cập nhật cấu hình gốc thành công!", siteKey, content: updated.content });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const updateLP = async (req, res, next) => {
   try {
     const sectionName = req.params.section;
@@ -148,7 +188,7 @@ const updateLP = async (req, res, next) => {
     const isSpinSection = sectionName.includes("lucky") || sectionName.includes("spin") || sectionName.includes("wheel");
     if (isSpinSection && finalData.prizes && Array.isArray(finalData.prizes)) {
       const { Prize } = require("../models/prizeModel");
-      
+
       // 1. Xóa quà cũ của Site này (để ghi đè bản mới từ Editor)
       await Prize.deleteMany({ siteKey });
 
@@ -176,4 +216,4 @@ const updateLP = async (req, res, next) => {
   }
 };
 
-module.exports = { getLP, updateLP };
+module.exports = { getLP, updateLP, getSiteConfig, updateSiteConfig };

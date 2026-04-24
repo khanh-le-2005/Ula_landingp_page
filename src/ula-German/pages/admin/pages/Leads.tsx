@@ -1,23 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { AlertCircle, RefreshCw, Users, Mail, Phone, Calendar, ExternalLink, ShieldAlert, Database, X, Info, Gift } from 'lucide-react';
+import { AlertCircle, RefreshCw, Users, Mail, Phone, Calendar, ExternalLink, ShieldAlert, Database, X, Info, Gift, AlertTriangle } from 'lucide-react';
 import { fetchLeads, type LeadRecord } from '../adminApi';
 import { useAdminAuth } from '../hooks/useAdminAuth';
-import { useSiteContext } from '@/src/ula-chinese/context/LandingSiteContext';
+import { useSiteContext } from '../../../../ula-chinese/context/LandingSiteContext';
 import { adminCard, adminAccentText, adminSecondaryButton } from '../adminTheme';
 
 const formatValue = (value: unknown) => {
   if (value == null || value === '') {
     return '—';
   }
-
   if (Array.isArray(value)) {
     return value.join(', ');
   }
-
   if (typeof value === 'object') {
     return JSON.stringify(value);
   }
-
   return String(value);
 };
 
@@ -47,7 +44,7 @@ export default function Leads() {
 
   useEffect(() => {
     void loadLeads();
-  }, []);
+  }, [siteKey]); // Thêm siteKey để khi đổi site thì tự reload data
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
@@ -59,7 +56,6 @@ export default function Leads() {
               Thông tin Lead
             </div>
             <h2 className="text-3xl font-black text-black tracking-tight">Danh sách <span className={adminAccentText}>Đăng ký</span></h2>
-
           </div>
           <button
             type="button"
@@ -98,7 +94,6 @@ export default function Leads() {
                   <th className="px-6 py-5">Chiến dịch / KOC</th>
                   <th className="px-6 py-5">Link Tracking</th>
                   <th className="px-6 py-5 text-center">Trạng thái</th>
-
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -123,9 +118,9 @@ export default function Leads() {
                 ) : (
                   leads.map((lead) => {
                     const formData = lead.formData || {};
-                    const contactName = formatValue(formData.fullname ?? formData.name);
-                    const contactPhone = formatValue(formData.phone ?? formData.sdt);
-                    const interest = formatValue(formData.course_name ?? formData.courseInterest);
+                    const contactName = formatValue(formData.fullname ?? formData.name ?? formData.fullName);
+                    const contactPhone = formatValue(formData.phone ?? formData.sdt ?? formData.phoneNumber);
+                    const interest = formatValue(formData.course ?? formData.course_name ?? formData.courseInterest ?? 'Chưa xác định');
                     const source = [
                       lead.utm_source,
                       lead.utm_medium,
@@ -138,22 +133,29 @@ export default function Leads() {
                       <tr
                         key={lead._id}
                         onClick={() => setSelectedLead(lead)}
-                        className="group hover:bg-slate-50 transition-all cursor-pointer border-b border-slate-100 last:border-0"
+                        className={`group hover:bg-slate-50 transition-all cursor-pointer border-b border-slate-100 last:border-0 ${lead.is_suspicious ? 'bg-rose-50/50' : ''}`}
                       >
                         <td className="px-6 py-6 whitespace-nowrap">
                           <div className="flex flex-col gap-1">
                             <div className="flex items-center gap-1.5 text-xs font-black text-slate-600">
                               <Calendar className="w-3 h-3 text-indigo-500" />
-                              {lead.createdAt ? new Date(lead.createdAt).toLocaleDateString() : '—'}
+                              {lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('vi-VN') : '—'}
                             </div>
                             <div className="text-[10px] text-slate-400 font-mono">
-                              {lead.createdAt ? new Date(lead.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                              {lead.createdAt ? new Date(lead.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '—'}
                             </div>
                           </div>
                         </td>
                         <td className="px-6 py-6">
                           <div className="space-y-1.5">
-                            <div className="font-black text-slate-900 text-base tracking-tight">{contactName}</div>
+                            <div className="font-black text-slate-900 text-base tracking-tight flex items-center gap-2">
+                              {contactName}
+                              {lead.is_suspicious && (
+                                <span title="Phát hiện đáng ngờ" className="flex items-center">
+                                  <AlertTriangle className="w-4 h-4 text-rose-500" />
+                                </span>
+                              )}
+                            </div>
                             <div className="flex items-center flex-wrap gap-x-4 gap-y-1">
                               <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-bold uppercase tracking-widest">
                                 <Phone className="w-3 h-3 text-indigo-500/60" />
@@ -177,7 +179,8 @@ export default function Leads() {
                               {lead.campaignTag || '—'}
                             </div>
                             <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-                              {lead.referralCode || lead.referralId || 'Tự nhiên'}
+                              {/* CẬP NHẬT: Thêm affiliateId vào để map chuẩn */}
+                              {lead.referralCode || lead.affiliateId || 'Tự nhiên'}
                             </div>
                           </div>
                         </td>
@@ -246,12 +249,15 @@ export default function Leads() {
                   <div className="space-y-3">
                     <div>
                       <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">Họ và tên</div>
-                      <div className="text-lg font-black text-slate-900">{formatValue(selectedLead.formData?.fullname ?? selectedLead.formData?.name)}</div>
+                      <div className="text-lg font-black text-slate-900 flex items-center gap-2">
+                        {formatValue(selectedLead.formData?.fullname ?? selectedLead.formData?.name ?? selectedLead.formData?.fullName)}
+                        {selectedLead.is_suspicious && <span className="bg-rose-100 text-rose-600 text-[9px] px-2 py-0.5 rounded-full uppercase tracking-widest">Spam/Trùng lặp</span>}
+                      </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4 pt-2">
                       <div>
                         <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">Số điện thoại</div>
-                        <div className="text-sm font-bold text-slate-800 font-mono tracking-wider">{formatValue(selectedLead.formData?.phone ?? selectedLead.formData?.sdt)}</div>
+                        <div className="text-sm font-bold text-slate-800 font-mono tracking-wider">{formatValue(selectedLead.formData?.phone ?? selectedLead.formData?.sdt ?? selectedLead.formData?.phoneNumber)}</div>
                       </div>
                       <div>
                         <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">Trạng thái</div>
@@ -269,17 +275,26 @@ export default function Leads() {
                   <div className="text-[9px] font-black uppercase tracking-[0.3em] text-indigo-600">Bối cảnh chiến dịch</div>
                   <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4 space-y-4">
                     <div>
-                      <div className="text-[10px] font-bold text-slate-500 uppercase mb-1">Khóa học bạn quan tâm </div>
+                      <div className="text-[10px] font-bold text-slate-500 uppercase mb-1">Khóa học quan tâm</div>
                       <div className="text-xs font-black text-indigo-600 uppercase tracking-widest leading-relaxed">
-                        {formatValue(selectedLead.formData?.course_name ?? selectedLead.formData?.courseInterest ?? 'Landing Tự nhiên')}
+                        {formatValue(selectedLead.formData?.course ?? selectedLead.formData?.course_name ?? selectedLead.formData?.courseInterest ?? 'Landing Tự nhiên')}
                       </div>
                     </div>
-                    {selectedLead.formData?.prize_option && (
+
+                    {/* CẬP NHẬT: Đọc quà tặng ở cả cấp ngoài và bên trong formData (tương thích ngược lead cũ) */}
+                    {(selectedLead.prizeName || selectedLead.prizeCode || selectedLead.formData?.prize_option) && (
                       <div className="pt-2 border-t border-slate-200">
-                        <div className="text-[10px] font-bold text-slate-500 uppercase mb-1">Quà tặng đã trúng</div>
-                        <div className="inline-flex items-center gap-2 text-xs font-black text-amber-600 uppercase tracking-widest">
-                          <Gift className="w-3 h-3" />
-                          {formatValue(selectedLead.formData.prize_option)}
+                        <div className="text-[10px] font-bold text-slate-500 uppercase mb-1">Quà tặng / Voucher</div>
+                        <div className="flex flex-col gap-1 text-xs font-black text-amber-600 uppercase tracking-widest">
+                          <div className="inline-flex items-center gap-2">
+                            <Gift className="w-3 h-3" />
+                            {formatValue(selectedLead.prizeName ?? selectedLead.formData?.prize_option)}
+                          </div>
+                          {(selectedLead.prizeCode || selectedLead.formData?.prize_code) && (
+                            <div className="text-[10px] text-amber-500/80 tracking-widest">
+                              Code: <span className="font-mono">{selectedLead.prizeCode ?? selectedLead.formData?.prize_code}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
@@ -311,12 +326,10 @@ export default function Leads() {
                     { label: 'Nguồn (Source)', value: selectedLead.utm_source },
                     { label: 'Phương thức', value: selectedLead.utm_medium },
                     { label: 'Chiến dịch', value: selectedLead.utm_campaign },
-                    { label: 'Nội dung', value: selectedLead.utm_content },
-                    { label: 'Mã chiến dịch', value: selectedLead.campaignTag },
-                    { label: 'Mã giới thiệu', value: selectedLead.referralCode || selectedLead.referralId },
-                    { label: 'Ngày tạo', value: selectedLead.createdAt ? new Date(selectedLead.createdAt).toLocaleString() : null },
-                    { label: 'Thời điểm Click', value: selectedLead.click_timestamp ? new Date(selectedLead.click_timestamp).toLocaleString() : null },
-                    { label: 'Thời điểm Gửi form', value: selectedLead.conversion_timestamp ? new Date(selectedLead.conversion_timestamp).toLocaleString() : null },
+                    { label: 'Mã chiến dịch (Tag)', value: selectedLead.campaignTag },
+                    { label: 'Mã giới thiệu (Ref)', value: selectedLead.referralCode || selectedLead.affiliateId },
+                    { label: 'Thời điểm Click', value: selectedLead.click_timestamp ? new Date(selectedLead.click_timestamp).toLocaleString('vi-VN') : null },
+                    { label: 'Thời điểm Gửi form', value: selectedLead.conversion_timestamp ? new Date(selectedLead.conversion_timestamp).toLocaleString('vi-VN') : null },
                   ].map((attr, idx) => (
                     <div key={idx} className="p-4 rounded-xl bg-slate-50 border border-slate-200">
                       <div className="text-[9px] font-bold text-slate-500 uppercase mb-1">{attr.label}</div>
@@ -329,16 +342,25 @@ export default function Leads() {
               </div>
 
               {/* Technical Footprint */}
-              {/* <div className="space-y-3">
-                 <div className="text-[9px] font-black uppercase tracking-[0.3em] text-indigo-600 flex items-center gap-2">
-                    <Info className="w-3 h-3" />
-                    Thông tin kỹ thuật (Header)
-                 </div>
-                 <div className="flex flex-wrap gap-2 text-[10px] font-mono text-slate-500">
-                    {selectedLead.fbp && <span className="bg-slate-100 px-3 py-1 rounded-md border border-slate-200">FBP: {selectedLead.fbp}</span>}
-                    {selectedLead.fbc && <span className="bg-slate-100 px-3 py-1 rounded-md border border-slate-200">FBC: {selectedLead.fbc}</span>}
-                 </div>
-              </div> */}
+              <div className="space-y-3">
+                <div className="text-[9px] font-black uppercase tracking-[0.3em] text-indigo-600 flex items-center gap-2">
+                  <Info className="w-3 h-3" />
+                  Thông tin kỹ thuật (Log/Trình duyệt)
+                </div>
+                <div className="flex flex-wrap gap-2 text-[10px] font-mono text-slate-500">
+                  <span className="bg-slate-100 px-3 py-1 rounded-md border border-slate-200">ID: {selectedLead._id}</span>
+                  {selectedLead.ip_address && (
+                    <span className="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-md border border-indigo-100">IP: {selectedLead.ip_address}</span>
+                  )}
+                  {(selectedLead as any).fbp && <span className="bg-slate-100 px-3 py-1 rounded-md border border-slate-200">FBP: {(selectedLead as any).fbp}</span>}
+                  {(selectedLead as any).fbc && <span className="bg-slate-100 px-3 py-1 rounded-md border border-slate-200">FBC: {(selectedLead as any).fbc}</span>}
+                  {selectedLead.user_agent && (
+                    <span className="bg-slate-100 px-3 py-1 rounded-md border border-slate-200 truncate max-w-full block mt-1" title={selectedLead.user_agent}>
+                      UA: {selectedLead.user_agent}
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Footer */}

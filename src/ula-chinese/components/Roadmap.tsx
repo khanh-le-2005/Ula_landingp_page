@@ -105,46 +105,52 @@ const roadmapThemes = {
 type RoadmapTheme = (typeof roadmapThemes)[CourseRoadmapVariant];
 
 const ALL_LEVELS: CourseRoadmapLevel[] = [
-  { id: "hsk1", label: "HSK 1", sub: "Nhập môn" },
-  { id: "hsk2", label: "HSK 2", sub: "Sơ cấp" },
-  { id: "hsk3", label: "HSK 3", sub: "Trung cấp" },
-  { id: "hsk4", label: "HSK 4", sub: "Nâng cao" },
-  { id: "hsk5", label: "HSK 5", sub: "Cao cấp" },
-  { id: "hsk6", label: "HSK 6", sub: "Thành thạo" },
+  { id: "hsk1", label: "Bắt đầu", sub: "chưa biết gì" },
+  { id: "hsk2", label: "HSK 1", sub: "Nhập môn" },
+  { id: "hsk3", label: "HSK 2", sub: "Sơ cấp" },
+  { id: "hsk4", label: "HSK 3", sub: "Trung cấp" },
+  { id: "hsk5", label: "HSK 4", sub: "Nâng cao" },
+  { id: "hsk6", label: "HSK5 ", sub: "Cao cấp" },
+  { id: "hsk7", label: "HSK6 ", sub: "" },
 ];
 
 const MASTER_STEPS_CONTENT: Record<string, CourseRoadmapStep> = {
   hsk1: {
     id: "hsk1",
     title: "HSK 1 - Nhập môn",
-    desc: "AI chuẩn hoá phát âm • Giới thiệu bản thân • Bộ thủ, quy tắc bút thuận"
+    desc: ""
   },
   hsk2: {
     id: "hsk2",
-    title: "HSK 2 - Sơ cấp",
-    desc: "15 chủ đề đời sống • Phản xạ hỏi đáp • Nhớ chữ Hán sâu"
+    title: "HSK 1 - Sơ cấp",
+    desc: "AI chuẩn hoá phát âm • Giới thiệu bản thân • Bộ thủ, quy tắc bút thuận"
   },
   hsk3: {
     id: "hsk3",
-    title: "HSK 3 - Trung cấp",
-    desc: "Giao tiếp cơ bản • Đọc hiểu đoạn văn • Luyện thi HSK 3"
+    title: "HSK 2 - Trung cấp",
+    desc: "15 chủ đề đời sống • Phản xạ hỏi đáp • Nhớ chữ Hán sâu"
   },
   hsk4: {
     id: "hsk4",
-    title: "HSK 4 - Nâng cao",
-    desc: "Thuyết trình cơ bản • Xem phim, giải trí • Đầu vào du học"
+    title: "HSK 3 - Nâng cao",
+    desc: "Giao tiếp cơ bản • Đọc hiểu đoạn văn • Luyện thi HSK 3"
   },
   hsk5: {
     id: "hsk5",
-    title: "HSK 5 - Cao cấp",
-    desc: "Viết luận • Giao tiếp tự nhiên • Tiếng Trung du học, làm việc"
+    title: "HSK 4 - Cao cấp",
+    desc: "Thuyết trình cơ bản • Xem phim, giải trí • Đầu vào du học"
   },
   hsk6: {
     id: "hsk6",
-    title: "HSK 6",
+    title: "HSK 5",
+    desc: "Viết luận • Giao tiếp tự nhiên • Tiếng Trung du học, làm việc"
+  },
+  hsk7: {
+    id: "HSK 6",
+    title: "HSK6",
     desc: "Văn hoá, thành ngữ • Tiếng Trung học thuật • Chinh phục HSKK"
   },
-};
+}; 
 
 const skillCompanionCards = [
   {
@@ -317,7 +323,7 @@ const CourseRoadmapShowcase: React.FC<CourseRoadmapShowcaseProps> = ({
   targetLevelIdx,
   roadmapSteps,
   roadmapError,
-  canSelectTargetLevel,
+    canSelectTargetLevel,
   onCurrentLevelChange,
   onTargetLevelChange,
   onStepClick,
@@ -487,7 +493,7 @@ const Roadmap: React.FC = () => {
   const [expanded, setExpanded] = React.useState(true);
 
   // Target levels are basically ALL_LEVELS but offset by 1
-  const currentLevelsInput = ALL_LEVELS.slice(0, 5); // A0 to B2
+  const currentLevelsInput = ALL_LEVELS.slice(0, 6); // A0 to B2
   const targetLevelsInput = ALL_LEVELS.slice(1);   // A1 to C1
 
   const handleCurrentChange = (newIdx: number) => {
@@ -537,7 +543,7 @@ const Roadmap: React.FC = () => {
     // Add final goal step
     steps.push({
       id: "goal",
-      title: "Về đích",
+      title: "Đích đến",
       desc: "Chứng chỉ quốc tế • Sẵn sàng du học/làm việc",
     });
 
