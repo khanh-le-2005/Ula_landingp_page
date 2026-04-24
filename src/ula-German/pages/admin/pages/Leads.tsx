@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { AlertCircle, RefreshCw, Users, Mail, Phone, Calendar, ExternalLink, ShieldAlert, Database, X, Info, Gift, AlertTriangle, Trash2, CheckCircle, Clock, XCircle, Check } from 'lucide-react';
-import { fetchLeads, updateLeadStatus, deleteLead, type LeadRecord } from '../adminApi';
+import { 
+  AlertCircle, RefreshCw, Users, Mail, Phone, Calendar, ExternalLink, ShieldAlert, Database, X, Info, Gift, AlertTriangle, Trash2, CheckCircle, Clock, XCircle, Check,
+  Search, Filter 
+} from 'lucide-react';
+import { fetchLeads, updateLeadStatus, deleteLead, fetchMarketingMetaOptions, type LeadRecord, type MarketingMetaOptions } from '../adminApi';
 import { useAdminAuth } from '../hooks/useAdminAuth';
 import { useSiteContext } from '../../../../ula-chinese/context/LandingSiteContext';
 import { adminCard, adminAccentText, adminSecondaryButton } from '../adminTheme';
@@ -40,6 +43,21 @@ export default function Leads() {
   const [error, setError] = useState('');
   const [selectedLead, setSelectedLead] = useState<LeadRecord | null>(null);
   const [isActionLoading, setIsActionLoading] = useState(false);
+  const [filters, setFilters] = useState({ ref: '', tag: '', status: '' });
+  const [metaOptions, setMetaOptions] = useState<MarketingMetaOptions | null>(null);
+
+  const loadMetaOptions = async () => {
+    try {
+      const data = await fetchMarketingMetaOptions(siteKey);
+      setMetaOptions(data);
+    } catch (err) {
+      console.error('Lỗi khi tải meta options:', err);
+    }
+  };
+
+  useEffect(() => {
+    void loadMetaOptions();
+  }, [siteKey]);
 
   const handleUpdateStatus = async (id: string, newStatus: string) => {
     if (isActionLoading) return;
@@ -79,7 +97,7 @@ export default function Leads() {
     setError('');
 
     try {
-      const data = await fetchLeads(siteKey);
+      const data = await fetchLeads(siteKey, filters);
       setLeads(data);
     } catch (loadError) {
       const message = loadError instanceof Error ? loadError.message : 'Không thể tải danh sách leads';
@@ -92,7 +110,7 @@ export default function Leads() {
 
   useEffect(() => {
     void loadLeads();
-  }, [siteKey]); // Thêm siteKey để khi đổi site thì tự reload data
+  }, [siteKey, filters.ref, filters.tag, filters.status]);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
@@ -112,6 +130,63 @@ export default function Leads() {
           >
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             Đồng bộ ngay
+          </button>
+        </div>
+
+        {/* Filter Bar */}
+        <div className="flex flex-wrap items-center gap-4 mb-8 p-6 bg-slate-50/50 rounded-3xl border border-slate-100">
+          <div className="flex items-center gap-2 text-slate-400 mr-2">
+            <Filter className="w-4 h-4" />
+            <span className="text-[10px] font-black uppercase tracking-widest">Bộ lọc</span>
+          </div>
+
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 z-10" />
+            <select
+              value={filters.ref}
+              onChange={(e) => setFilters(prev => ({ ...prev, ref: e.target.value }))}
+              className="w-full pl-9 pr-4 py-2 text-xs font-bold bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all appearance-none cursor-pointer relative"
+            >
+              <option value="">Tất cả KOC (Ref)</option>
+              {metaOptions?.kocs.map(koc => (
+                <option key={koc.value} value={koc.value}>{koc.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="relative flex-1 min-w-[200px]">
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 z-10" />
+            <select
+              value={filters.tag}
+              onChange={(e) => setFilters(prev => ({ ...prev, tag: e.target.value }))}
+              className="w-full pl-9 pr-4 py-2 text-xs font-bold bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all appearance-none cursor-pointer relative"
+            >
+              <option value="">Tất cả Campaign (Tag)</option>
+              {metaOptions?.campaigns.map(camp => (
+                <option key={camp.value} value={camp.value}>{camp.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="min-w-[150px]">
+            <select
+              value={filters.status}
+              onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+              className="w-full px-4 py-2 text-xs font-bold bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all appearance-none cursor-pointer"
+            >
+              <option value="">Tất cả trạng thái</option>
+              <option value="NEW">MỚI</option>
+              <option value="CONTACTED">ĐÃ LIÊN HỆ</option>
+              <option value="ENROLLED">ĐÃ NHẬP HỌC</option>
+              <option value="CANCELLED">HỦY / RÁC</option>
+            </select>
+          </div>
+
+          <button
+            onClick={() => setFilters({ ref: '', tag: '', status: '' })}
+            className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-rose-500 transition-all"
+          >
+            Xóa lọc
           </button>
         </div>
 

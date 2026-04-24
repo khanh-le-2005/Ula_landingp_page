@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { 
   Plus, 
   Hash, 
@@ -247,6 +248,7 @@ export default function Campaigns() {
       
       setLastSavedUrl(response.data?.fullUrl || null);
       if (editingCampaign) setEditingCampaign(response.data);
+      toast.success(editingCampaign ? 'Cập nhật chiến dịch thành công' : 'Tạo chiến dịch mới thành công');
       await loadCampaigns();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Lỗi khi lưu chiến dịch');
@@ -259,18 +261,20 @@ export default function Campaigns() {
     if (!window.confirm('Bạn có chắc chắn muốn xóa chiến dịch này?')) return;
     try {
       await deleteCampaign(id);
+      toast.success('Đã xóa chiến dịch');
       await loadCampaigns();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Lỗi khi xóa chiến dịch');
+      toast.error(err instanceof Error ? err.message : 'Lỗi khi xóa chiến dịch');
     }
   };
 
   const toggleStatus = async (campaign: Campaign) => {
     try {
       await updateCampaign(campaign._id, { isActive: !campaign.isActive });
+      toast.success('Cập nhật trạng thái thành công');
       await loadCampaigns();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Lỗi khi cập nhật trạng thái');
+      toast.error(err instanceof Error ? err.message : 'Lỗi khi cập nhật trạng thái');
     }
   };
 

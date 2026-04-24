@@ -42,6 +42,21 @@ export const fetchMarketingLinks = async (siteKey: string) => {
   );
 };
 
+export const updateMarketingLink = async (id: string, data: Partial<MarketingLink>) => {
+  const token = getStoredAdminToken();
+  const siteKey = data.siteKey || 'tieng-duc';
+  return requestJson<{ message: string; data: MarketingLink }>(
+    `/api/marketing-links/${id}`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    },
+    { siteKey },
+    token
+  );
+};
+
 export const createMarketingLink = async (data: Partial<MarketingLink>) => {
   const token = getStoredAdminToken();
   return requestJson<{ message: string; data: MarketingLink }>(
@@ -65,7 +80,6 @@ export const deleteMarketingLink = async (id: string) => {
     token
   );
 };
-
 
 export type Campaign = {
   _id: string;

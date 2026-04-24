@@ -11,7 +11,13 @@ const handleDeleteImage = async (imageId) => {
   try {
     if (!imageId) return false;
 
-    const image = await Image.findById(imageId);
+    // Trích xuất ID nếu đầu vào là đường dẫn URL (vd: http://.../api/images/69e...)
+    let extractedId = imageId;
+    if (imageId.includes("/api/images/")) {
+      extractedId = imageId.split("/api/images/").pop();
+    }
+
+    const image = await Image.findById(extractedId);
     if (!image) return false;
 
     // 1. Xóa file vật lý

@@ -45,7 +45,20 @@ const getLP = async (req, res, next) => {
 
       if (campaign) {
         if (campaign.sections) {
-          const sectionOverrides = campaign.sections;
+          let sectionOverrides = campaign.sections;
+
+          // Hỗ trợ Frontend: Nếu Frontend ném array [{ sectionKey: 'hero', content: {...} }] lên
+          // Ta tự động chuyển nó về chuẩn Object { 'hero': {...} } trước khi merge
+          if (Array.isArray(sectionOverrides)) {
+            const normalizedObj = {};
+            sectionOverrides.forEach(item => {
+              const key = item.sectionKey || item.key;
+              if (key && item.content) {
+                normalizedObj[key] = item.content;
+              }
+            });
+            sectionOverrides = normalizedObj;
+          }
 
           // Mapping bảng ánh xạ key (từ Logical sang Physical)
           const keyMap = {
@@ -176,7 +189,9 @@ const updateLP = async (req, res, next) => {
         });
         await newImage.save();
 
-        rawData[file.fieldname] = newImage._id.toString();
+        // Chỉ lưu Relative URL để tương thích trên môi trường Monolithic (Server phục vụ luôn Frontend)
+        const relativeImageUrl = `/api/images/${newImage._id.toString()}`;
+        rawData[file.fieldname] = relativeImageUrl;
       }
     }
 

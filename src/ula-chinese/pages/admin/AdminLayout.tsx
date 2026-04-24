@@ -21,6 +21,7 @@ import ChinaCampaigns from './pages/Campaigns';
 import ChinaSiteConfig from './pages/SiteConfig';
 import { fetchCampaigns, type Campaign } from './adminApi';
 import { LandingSiteProvider } from '../../context/LandingSiteContext';
+import { Toaster } from 'react-hot-toast';
 
 // Import German editors
 import GermanOverview from '../../../ula-German/pages/admin/pages/Overview';
@@ -47,7 +48,7 @@ const navItems = [
   { id: 'experience', label: 'Trải nghiệm', icon: BadgeCheck },
   { id: 'lucky-wheel', label: 'Vòng quay', icon: Gift },
   { id: 'affiliates', label: 'quản lý KOC ', icon: BadgeCheck },
-  { id: 'marketing-links', label: 'Link Marketing', icon: Globe },
+  { id: 'marketing-links', label: 'Link Marketing(UTM)', icon: Globe },
   { id: 'site-config', label: 'Mã giảm giá chung', icon: Settings },
 ];
 
@@ -382,6 +383,13 @@ function AdminLayoutInner() {
 export default function AdminLayout() {
   return (
     <ProjectProvider>
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          style: { fontFamily: 'inherit', fontSize: '13px', fontWeight: '600' },
+          success: { iconTheme: { primary: '#6366f1', secondary: '#fff' } },
+        }}
+      />
        <AdminLayoutInner />
     </ProjectProvider>
   );

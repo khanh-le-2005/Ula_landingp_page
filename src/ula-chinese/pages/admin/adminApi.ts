@@ -644,6 +644,20 @@ export const createMarketingLink = async (data: Partial<MarketingLink>) => {
   );
 };
 
+export const updateMarketingLink = async (id: string, data: Partial<MarketingLink>) => {
+  const token = getStoredAdminToken();
+  return requestJson<{ message: string; data: MarketingLink }>(
+    `/api/marketing-links/${id}`,
+    { 
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    },
+    { siteKey: data.siteKey },
+    token
+  );
+};
+
 export const deleteMarketingLink = async (id: string) => {
   const token = getStoredAdminToken();
   return requestJson<{ message: string }>(

@@ -6,18 +6,23 @@ const fs = require("fs");
 // API lấy file ảnh để browser hiển thị (GET /api/images/:id)
 const getImage = async (req, res, next) => {
   try {
+    console.log(`[DEBUG] Fetching image with ID: ${req.params.id}`);
     const image = await Image.findById(req.params.id);
     if (!image) {
+      console.log(`[DEBUG] Image ID not found in DB`);
       return res.status(404).json({ message: "Không tìm thấy ảnh" });
     }
 
     const absolutePath = path.resolve(image.path);
+    console.log(`[DEBUG] Resolving image path: ${image.path} -> ${absolutePath}`);
     if (fs.existsSync(absolutePath)) {
       res.sendFile(absolutePath);
     } else {
+      console.log(`[DEBUG] File does not exist on disk: ${absolutePath}`);
       res.status(404).json({ message: "File ảnh không tồn tại trên máy chủ" });
     }
   } catch (error) {
+    console.log(`[DEBUG] Error in getImage:`, error.message);
     next(error);
   }
 };

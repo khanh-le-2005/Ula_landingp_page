@@ -270,7 +270,7 @@ export default function Campaigns() {
       setLastSavedUrl(response.data?.fullUrl || null);
       if (editingCampaign) setEditingCampaign(response.data);
       await loadCampaigns();
-      
+
       alert('Đã lưu thành công!'); // Có thể bỏ nếu ko thích popup
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Lỗi khi lưu chiến dịch');
@@ -388,8 +388,8 @@ export default function Campaigns() {
                           <button
                             onClick={() => toggleStatus(campaign)}
                             className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all ${campaign.isActive
-                                ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                                : 'bg-slate-100 text-slate-400 border-slate-200'
+                              ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                              : 'bg-slate-100 text-slate-400 border-slate-200'
                               }`}
                           >
                             {campaign.isActive ? 'Đang chạy' : 'Đã tắt'}
@@ -405,8 +405,8 @@ export default function Campaigns() {
                             <button
                               onClick={() => handleCopyLink(campaign.fullUrl || '', campaign._id)}
                               className={`h-9 w-9 flex items-center justify-center rounded-xl border transition-all ${copiedId === campaign._id
-                                  ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
-                                  : 'border-slate-200 bg-white text-slate-400 hover:bg-slate-100 hover:text-slate-900 shadow-sm'
+                                ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
+                                : 'border-slate-200 bg-white text-slate-400 hover:bg-slate-100 hover:text-slate-900 shadow-sm'
                                 }`}
                               title="Sao chép link chiến dịch"
                             >
@@ -474,7 +474,7 @@ export default function Campaigns() {
                 <div className={adminLabel}>Site Key (Mặc định)</div>
                 <div className="relative">
                   <Globe className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                  <input 
+                  <input
                     readOnly
                     className={`${adminInput} pl-12 bg-slate-50 text-slate-500 cursor-not-allowed`}
                     value={formData.siteKey}
@@ -599,6 +599,10 @@ export default function Campaigns() {
                 <div className={adminLabel}>Mô tả chính</div>
                 <textarea className={`${adminInput} min-h-[100px] text-sm`} value={hero.description} onChange={(e) => setHero({ ...hero, description: e.target.value })} />
               </div>
+              <div className="space-y-2">
+                <div className={adminLabel}>URL Ảnh Hero</div>
+                <input className={adminInput} value={hero.heroImageUrl} onChange={(e) => setHero({ ...hero, heroImageUrl: e.target.value })} placeholder="https://images.unsplash.com/..." />
+              </div>
             </div>
           </section>
 
@@ -613,13 +617,39 @@ export default function Campaigns() {
             </div>
 
             <div className="space-y-6">
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <div className={adminLabel}>Tiêu đề phần</div>
+                  <textarea
+                    className={`${adminInput} min-h-[80px] py-3`}
+                    value={painpoints.sectionTitle}
+                    onChange={(e) => setPainpoints((prev: any) => ({ ...prev, sectionTitle: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <div className={adminLabel}>Tiêu đề phụ (Subtitle)</div>
+                  <textarea
+                    className={`${adminInput} min-h-[80px] py-3`}
+                    value={painpoints.sectionSubtitle}
+                    onChange={(e) => setPainpoints((prev: any) => ({ ...prev, sectionSubtitle: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <div className={adminLabel}>Tiêu đề chính (Phần đầu)</div>
+                  <input className={adminInput} value={painpoints.mainTitleTop} onChange={(e) => setPainpoints({ ...painpoints, mainTitleTop: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <div className={adminLabel}>Tiêu đề chính (Nổi bật)</div>
+                  <input className={adminInput} value={painpoints.mainTitleHighlight} onChange={(e) => setPainpoints({ ...painpoints, mainTitleHighlight: e.target.value })} />
+                </div>
+              </div>
+
               <div className="space-y-2">
-                <div className={adminLabel}>Tiêu đề phần</div>
-                <textarea
-                  className={`${adminInput} min-h-[80px] py-3`}
-                  value={painpoints.sectionTitle}
-                  onChange={(e) => setPainpoints((prev: any) => ({ ...prev, sectionTitle: e.target.value }))}
-                />
+                <div className={adminLabel}>URL Ảnh Mascot</div>
+                <input className={adminInput} value={painpoints.mascotImageUrl} onChange={(e) => setPainpoints({ ...painpoints, mascotImageUrl: e.target.value })} placeholder="https://..." />
               </div>
               <div className="space-y-4">
                 <div className={adminLabel}>Nội dung 7 bong bóng (Bubbles)</div>
@@ -689,6 +719,24 @@ export default function Campaigns() {
                       }} />
                     </div>
                   </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div className={adminLabel}>URL Media (Ảnh)</div>
+                      <input className={adminInput} value={card.mediaUrl} onChange={(e) => {
+                        const newCards = [...solution.cards];
+                        newCards[idx].mediaUrl = e.target.value;
+                        setSolution({ ...solution, cards: newCards });
+                      }} placeholder="https://..." />
+                    </div>
+                    <div className="space-y-2">
+                      <div className={adminLabel}>Màu nền (Gradient CSS)</div>
+                      <input className={adminInput} value={card.gradient} onChange={(e) => {
+                        const newCards = [...solution.cards];
+                        newCards[idx].gradient = e.target.value;
+                        setSolution({ ...solution, cards: newCards });
+                      }} placeholder="from-indigo-600/40 to-blue-500/10" />
+                    </div>
+                  </div>
                   <div className="space-y-2">
                     <div className={adminLabel}>Các điểm chính (Bullet points - Mỗi dòng 1 điểm)</div>
                     <textarea
@@ -725,6 +773,10 @@ export default function Campaigns() {
                   <input className={adminInput} value={methodology.mainCard.title} onChange={(e) => setMethodology((prev: any) => ({ ...prev, mainCard: { ...prev.mainCard, title: e.target.value } }))} placeholder="Tiêu đề chính" />
                   <input className={adminInput} value={methodology.mainCard.subTitle} onChange={(e) => setMethodology((prev: any) => ({ ...prev, mainCard: { ...prev.mainCard, subTitle: e.target.value } }))} placeholder="Tiêu đề phụ" />
                 </div>
+                <div className="mt-4">
+                  <div className={adminLabel}>URL Ảnh thẻ chính</div>
+                  <input className={adminInput} value={methodology.mainCard.imgSrc} onChange={(e) => setMethodology((prev: any) => ({ ...prev, mainCard: { ...prev.mainCard, imgSrc: e.target.value } }))} placeholder="https://..." />
+                </div>
               </div>
 
               {/* Cards 1-4 */}
@@ -747,6 +799,11 @@ export default function Campaigns() {
                       newCards[idx].subTitle = e.target.value;
                       setMethodology({ ...methodology, cards: newCards });
                     }} placeholder="Tiêu đề phụ" />
+                    <input className={`${adminInput} !py-2 !text-xs`} value={card.imgSrc} onChange={(e) => {
+                      const newCards = [...methodology.cards];
+                      newCards[idx].imgSrc = e.target.value;
+                      setMethodology({ ...methodology, cards: newCards });
+                    }} placeholder="URL Ảnh" />
                   </div>
                 ))}
               </div>
@@ -764,7 +821,7 @@ export default function Campaigns() {
             </div>
 
             <div className="space-y-6">
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <div className={adminLabel}>Tiêu đề mục</div>
                   <input className={adminInput} value={luckyWheel.headline} onChange={(e) => setLuckyWheel((p: any) => ({ ...p, headline: e.target.value }))} />
@@ -772,6 +829,10 @@ export default function Campaigns() {
                 <div className="space-y-2">
                   <div className={adminLabel}>Tiêu đề phụ</div>
                   <input className={adminInput} value={luckyWheel.subHeadline} onChange={(e) => setLuckyWheel((p: any) => ({ ...p, subHeadline: e.target.value }))} />
+                </div>
+                <div className="space-y-2">
+                  <div className={adminLabel}>Nhãn đếm ngược (Timer)</div>
+                  <input className={adminInput} value={luckyWheel.timerLabel} onChange={(e) => setLuckyWheel((p: any) => ({ ...p, timerLabel: e.target.value }))} placeholder="Ưu đãi kết thúc sau..." />
                 </div>
               </div>
               <div className="space-y-2">

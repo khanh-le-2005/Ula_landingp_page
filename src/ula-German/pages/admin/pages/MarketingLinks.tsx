@@ -14,10 +14,12 @@ import {
   Tag,
   Share2,
   Globe,
+  Pencil,
 } from 'lucide-react';
 import {
   fetchMarketingLinks,
   createMarketingLink,
+  updateMarketingLink,
   deleteMarketingLink,
   fetchMarketingMetaOptions,
   type MarketingLink,
@@ -42,6 +44,7 @@ export default function MarketingLinks() {
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<MarketingLink>>({
     name: '',
     tag: '',
@@ -87,16 +90,30 @@ export default function MarketingLinks() {
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
-  const handleOpenModal = () => {
-    setFormData({
-      name: '',
-      tag: '',
-      ref: '',
-      utm_source: '',
-      utm_medium: '',
-      utm_campaign: '',
-      notes: '',
-    });
+  const handleOpenModal = (link?: MarketingLink) => {
+    if (link) {
+      setEditingId(link._id);
+      setFormData({
+        name: link.name,
+        tag: link.tag,
+        ref: link.ref,
+        utm_source: link.utm_source,
+        utm_medium: link.utm_medium,
+        utm_campaign: link.utm_campaign,
+        notes: link.notes,
+      });
+    } else {
+      setEditingId(null);
+      setFormData({
+        name: '',
+        tag: '',
+        ref: '',
+        utm_source: '',
+        utm_medium: '',
+        utm_campaign: '',
+        notes: '',
+      });
+    }
     setIsModalOpen(true);
   };
 
@@ -113,12 +130,19 @@ export default function MarketingLinks() {
         utm_medium: formData.utm_medium || undefined,
         utm_campaign: formData.utm_campaign?.trim() || undefined,
         notes: formData.notes?.trim(),
+        isActive: true,
       };
-      await createMarketingLink(payload);
+      
+      if (editingId) {
+        await updateMarketingLink(editingId, payload);
+      } else {
+        await createMarketingLink(payload);
+      }
+      
       setIsModalOpen(false);
       await loadData();
     } catch (err: any) {
-      setError(err.message || 'Lỗi khi tạo Link Tracking');
+      setError(err.message || 'Lỗi khi lưu Link Tracking');
     } finally {
       setIsLoading(false);
     }
@@ -166,7 +190,7 @@ export default function MarketingLinks() {
                 className={`${adminInput} !pl-11 !py-2.5 max-w-[240px] text-xs`}
               />
             </div>
-            <button type="button" onClick={handleOpenModal} className={adminPrimaryButton}>
+            <button type="button" onClick={() => handleOpenModal()} className={adminPrimaryButton}>
               <Plus className="h-4 w-4" />
               Tạo Link Mới
             </button>
@@ -268,6 +292,12 @@ export default function MarketingLinks() {
                       <td className="px-6 py-6">
                         <div className="flex justify-end gap-2 text-end">
                           <button
+                            onClick={() => handleOpenModal(link)}
+                            className="h-9 w-9 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 transition-all shadow-sm"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
                             onClick={() => handleDelete(link._id)}
                             className="h-9 w-9 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-rose-600 hover:border-rose-100 transition-all shadow-sm"
                           >
@@ -294,12 +324,12 @@ export default function MarketingLinks() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-black text-slate-900 tracking-tight">Tạo <span className={adminAccentText}>Tracking Link</span></h3>
+                    <h3 className="text-lg font-black text-slate-900 tracking-tight">{editingId ? 'Chỉnh sửa' : 'Tạo'} <span className={adminAccentText}>Tracking Link</span></h3>
                     <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${activeProject === 'tieng-duc' ? 'bg-amber-100 text-amber-600' : 'bg-rose-100 text-rose-600'}`}>
                       {activeProject === 'tieng-duc' ? 'Đức' : 'Trung'}
                     </span>
                   </div>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Thiết lập tag/ref/utm cho chiến dịch</p>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">{editingId ? 'Cập nhật lại các thông số tracking' : 'Thiết lập tag/ref/utm cho chiến dịch'}</p>
                 </div>
               </div>
               <button
@@ -406,7 +436,7 @@ export default function MarketingLinks() {
                   Hủy
                 </button>
                 <button type="submit" disabled={isLoading} className={adminPrimaryButton}>
-                  {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : 'Tạo link'}
+                  {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : (editingId ? 'Cập nhật link' : 'Tạo link')}
                 </button>
               </div>
             </form>

@@ -28,7 +28,7 @@ const siteMiddleware = (req, res, next) => {
   }
 
   // 3. Nhận diện theo Query Param hoặc Body (Dành cho Postman/Admin)
-  const siteInRequest = req.query.site || req.body?.siteKey || req.body?.site;
+  const siteInRequest = req.query.site || req.query.siteKey || req.body?.siteKey || req.body?.site;
   if (siteInRequest) {
     siteKey = siteInRequest;
   }
