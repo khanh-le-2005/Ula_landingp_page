@@ -9,16 +9,21 @@ const sha256 = (value) => {
 
 /**
  * Gửi sự kiện đăng ký (Lead) sang Facebook Conversion API (CAPI)
- * @param {Object} userData - Thông tin người dùng (email, phone, ip, user_agent...)
+ * @param {Object} userData - Thông tin người dùng
+ * @param {string} siteKey - Mã trang để chọn đúng Pixel (tieng-duc, tieng-trung...)
  * @param {string} eventName - Tên sự kiện (mặc định là 'Lead')
  */
-const trackLeadEvent = async (userData, eventName = "Lead") => {
+const trackLeadEvent = async (userData, siteKey = "main", eventName = "Lead") => {
   try {
-    const pixelId = process.env.FB_PIXEL_ID;
-    const accessToken = process.env.FB_ACCESS_TOKEN;
+    // 1. Logic chọn ưu tiên: Pixel theo Site -> Pixel chung
+    const sitePixelId = process.env[`FB_PIXEL_ID_${siteKey.toUpperCase().replace(/-/g, "_")}`];
+    const siteAccessToken = process.env[`FB_ACCESS_TOKEN_${siteKey.toUpperCase().replace(/-/g, "_")}`];
+
+    const pixelId = sitePixelId || process.env.FB_PIXEL_ID;
+    const accessToken = siteAccessToken || process.env.FB_ACCESS_TOKEN;
 
     if (!pixelId || !accessToken || pixelId.includes("YOUR_") || accessToken.includes("YOUR_")) {
-      console.warn("⚠️ FB CAPI chưa được cấu hình (đang dùng placeholder). Đang bỏ qua gửi event.");
+      console.warn(`⚠️ FB CAPI [${siteKey}] chưa được cấu hình. Đang bỏ qua gửi event.`);
       return;
     }
 

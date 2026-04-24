@@ -4,7 +4,7 @@ const path = require("path");
 const fs = require("fs");
 
 // API lấy file ảnh để browser hiển thị (GET /api/images/:id)
-const getImage = async (req, res) => {
+const getImage = async (req, res, next) => {
   try {
     const image = await Image.findById(req.params.id);
     if (!image) {
@@ -18,12 +18,12 @@ const getImage = async (req, res) => {
       res.status(404).json({ message: "File ảnh không tồn tại trên máy chủ" });
     }
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // API xóa ảnh hoàn toàn (DELETE /api/images/:id)
-const deleteImage = async (req, res) => {
+const deleteImage = async (req, res, next) => {
   try {
     const success = await imageService.handleDeleteImage(req.params.id);
     if (!success) {
@@ -31,13 +31,8 @@ const deleteImage = async (req, res) => {
     }
     res.status(200).json({ message: "Xóa ảnh thành công" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
-};
-
-module.exports = {
-  getImage,
-  deleteImage,
 };
 
 module.exports = {

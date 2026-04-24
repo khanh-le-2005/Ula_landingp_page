@@ -43,7 +43,7 @@ const INITIAL_FORM: ConsultationFormState = {
   phone: "",
   email: "",
   courseInterest: "",
-  note: "",
+  note: "Nhận ưu đãi 40% và quà tặng đặc biệt cho khóa Tiếng Đức",
 };
 
 const GERMAN_THEME: ConsultationTheme = {
@@ -86,7 +86,7 @@ const inputClassName =
 const fieldErrorClassName = "mt-1.5 text-[13px] font-medium text-red-500";
 
 const DEFAULT_OPTIONS: ConsultationModalOptions = { variant: "german" };
-const DEFAULT_ONCLOSE = () => {};
+const DEFAULT_ONCLOSE = () => { };
 
 const LeadForm: React.FC<ConsultationModalProps> = ({
   isOpen = true,
@@ -97,7 +97,7 @@ const LeadForm: React.FC<ConsultationModalProps> = ({
   const [step, setStep] = useState<"form" | "success">("form");
   const [form, setForm] = useState<ConsultationFormState>(INITIAL_FORM);
   const [error, setError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("Gửi Đăng Ký Thành Công");
+  const [successMessage, setSuccessMessage] = useState("Đăng ký nhận ưu đãi Thành Công");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copied, setCopied] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<
@@ -143,7 +143,7 @@ const LeadForm: React.FC<ConsultationModalProps> = ({
 
       const resetTimer = window.setTimeout(() => {
         setStep("form");
-        setSuccessMessage("Gửi Đăng Ký Thành Công");
+        setSuccessMessage("Đăng ký nhận ưu đãi Thành Công");
         setForm((prev) => ({
           ...INITIAL_FORM,
           courseInterest: options?.programName || "",
@@ -183,11 +183,11 @@ const LeadForm: React.FC<ConsultationModalProps> = ({
 
   const updateForm =
     <K extends keyof ConsultationFormState>(key: K) =>
-    (value: ConsultationFormState[K]) => {
-      setForm((current) => ({ ...current, [key]: value }));
-      setError("");
-      setFieldErrors((current) => ({ ...current, [key]: undefined }));
-    };
+      (value: ConsultationFormState[K]) => {
+        setForm((current) => ({ ...current, [key]: value }));
+        setError("");
+        setFieldErrors((current) => ({ ...current, [key]: undefined }));
+      };
 
   const validateForm = () => {
     const nextFieldErrors: Partial<Record<ConsultationField, string>> = {};
@@ -244,20 +244,21 @@ const LeadForm: React.FC<ConsultationModalProps> = ({
         course_name: form.courseInterest.trim(),
         note: form.note.trim(),
         prize_option: wonPrize?.option || undefined,
+        prize_code: wonPrize?.code || undefined,
         program_variant: options?.variant || undefined,
         campaign_tag: trackingData.campaignTag || undefined, // Inject campaignTag into formData
       },
       ...trackingData,
     })
       .then((response) => {
-        setSuccessMessage(response.message || "Gửi Đăng Ký Thành Công");
+        setSuccessMessage(response.message || "Đăng ký nhận ưu đãi Thành Công");
         setStep("success");
       })
       .catch((submitError) => {
         const message =
           submitError instanceof Error
             ? submitError.message
-            : "Không thể gửi đăng ký, vui lòng thử lại";
+            : "Không thể Đăng ký nhận ưu đãi, vui lòng thử lại";
         setError(message);
       })
       .finally(() => {
@@ -269,7 +270,7 @@ const LeadForm: React.FC<ConsultationModalProps> = ({
     setStep("form");
     setError("");
     setFieldErrors({});
-    setSuccessMessage("Gửi Đăng Ký Thành Công");
+    setSuccessMessage("Đăng ký nhận ưu đãi Thành Công");
   };
 
   if (!isOpen) {
@@ -403,7 +404,7 @@ const LeadForm: React.FC<ConsultationModalProps> = ({
                   </label>
 
                   <p className="px-1 text-center text-[11px] italic leading-4 text-slate-400">
-                    Bằng việc gửi đăng ký nhận tư vấn, bạn đã đồng ý với{" "}
+                    Bằng việc Đăng ký nhận ưu đãi nhận tư vấn, bạn đã đồng ý với{" "}
                     <span className="font-semibold text-[#5f88c6]">
                       Chính sách bảo mật thông tin
                     </span>{" "}
@@ -421,7 +422,7 @@ const LeadForm: React.FC<ConsultationModalProps> = ({
                     disabled={isSubmitting}
                     className={`inline-flex h-[3rem] w-full items-center justify-center gap-2 rounded-full px-6 text-[0.98rem] font-black transition-all hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-70 ${theme.submitButton}`}
                   >
-                    {isSubmitting ? "Đang gửi..." : "Gửi đăng kí"}
+                    {isSubmitting ? "Đang gửi..." : "Đăng ký nhận ưu đãi"}
                     {!isSubmitting ? <ArrowRight size={18} /> : null}
                   </button>
                 </form>
@@ -461,7 +462,7 @@ const LeadForm: React.FC<ConsultationModalProps> = ({
                       </div>
                       <span className="mb-1 text-xs font-bold uppercase tracking-widest text-slate-400">
                         Vui lòng truy cập{" "}
-                        <a className="text-blue-600 hover:underline" href="https://ulaedu.vn">
+                        <a className="text-blue-600 hover:underline" href="https://ulaedu.com">
                           ulaedu.vn
                         </a>{" "}
                         để nhận quà.
@@ -512,10 +513,10 @@ const LeadForm: React.FC<ConsultationModalProps> = ({
 
                 <button
                   type="button"
-                  onClick={handleResetForm}
+                  onClick={() => window.open("https://ulaedu.com", "_blank")}
                   className={`mt-6 inline-flex h-[3.2rem] w-full items-center justify-center gap-2 rounded-full px-6 text-[0.98rem] font-black transition-all hover:-translate-y-0.5 ${theme.submitButton}`}
                 >
-                  Gửi yêu cầu khác
+                  Trải nghiệm sâu với web học tập
                 </button>
               </div>
             </div>

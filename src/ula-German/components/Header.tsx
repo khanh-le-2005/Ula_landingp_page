@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import logoUla from '../assets/2 LOGO ULA-05.png'
 import { Menu } from 'lucide-react';
 
@@ -8,7 +9,9 @@ export default function Header() {
     <header className="flex h-16 bg-[#004e89] items-center justify-between sticky top-0 z-50  px-4 sm:px-20  ">
       <div className="flex items-center py-4">
         <div className="flex items-center gap-2">
-          <img className='w-auto h-10 text-white 'src={logoUla} alt="ULA Logo" />
+          <Link to="/">
+            <img className='w-auto h-10 text-white 'src={logoUla} alt="ULA Logo" />
+          </Link>
         </div>
       </div>
       <div className='flex'>

@@ -6,12 +6,15 @@ const { findByCode } = require("../models/affiliateModel");
  */
 const trackClick = async (req, res) => {
   try {
-    const { ref, campaign, utm_source, utm_medium, utm_campaign, utm_content } = req.query;
+    const { ref, campaign, utm_source, utm_medium, utm_campaign, utm_content, fbc, fbp } = req.query;
 
     const trackingData = {
       aff_id: null,
-      campaign: campaign || null, // Lưu tag chiến dịch vào tracking
+      siteKey: req.siteKey, // Lưu trang gốc mà khách truy cập
+      campaign: campaign || null, 
       utm: { source: utm_source, medium: utm_medium, campaign: utm_campaign, content: utm_content },
+      fbc: fbc || null,
+      fbp: fbp || null,
       created_at: new Date().toISOString(),
     };
 
@@ -39,7 +42,7 @@ const trackClick = async (req, res) => {
     console.log(`[TRACK] Khởi tạo tracking cho link: ${ref || 'Tự nhiên (No-Ref)'} (UTM Source: ${utm_source || 'Direct'})`);
     res.status(200).json({ message: "Tracking đã được lưu", data: trackingData });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

@@ -261,8 +261,8 @@ const LevelTrackPanel: React.FC<{
                   disabled={disabled}
                   title={disabled ? (isTarget ? "Mục tiêu phải cao hơn trình độ hiện tại." : "Không thể chọn") : level.label}
                   className={`relative flex flex-col items-center rounded-2xl px-1 py-0.5 transition-all duration-300 ${disabled
-                      ? "cursor-not-allowed opacity-40 grayscale-[0.4]"
-                      : "cursor-pointer hover:-translate-y-0.5"
+                    ? "cursor-not-allowed opacity-40 grayscale-[0.4]"
+                    : "cursor-pointer hover:-translate-y-0.5"
                     } ${active ? "scale-[1.035]" : ""}`}
                 >
                   {active && (
@@ -278,10 +278,10 @@ const LevelTrackPanel: React.FC<{
                       src={markerSrc}
                       alt={level.label}
                       className={`object-contain transition-all duration-300 ${active
-                          ? isTarget
-                            ? `h-[3rem] w-auto md:h-[3.35rem] ${theme.activeMarkerShadow}`
-                            : `h-[3.15rem] w-auto md:h-[3.5rem] ${theme.activeMarkerShadow}`
-                          : "h-7 w-7 md:h-8 md:w-8"
+                        ? isTarget
+                          ? `h-[3rem] w-auto md:h-[3.35rem] ${theme.activeMarkerShadow}`
+                          : `h-[3.15rem] w-auto md:h-[3.5rem] ${theme.activeMarkerShadow}`
+                        : "h-7 w-7 md:h-8 md:w-8"
                         } ${disabled && !active ? "grayscale-[0.2]" : ""}`}
                     />
                   </div>
@@ -289,8 +289,8 @@ const LevelTrackPanel: React.FC<{
                   <div className="mt-1 text-center">
                     <div
                       className={`font-black uppercase leading-none ${active
-                          ? `text-[0.95rem] md:text-[1.12rem] ${theme.activeLabel}`
-                          : "text-[0.8rem] text-slate-500 md:text-[0.9rem]"
+                        ? `text-[0.95rem] md:text-[1.12rem] ${theme.activeLabel}`
+                        : "text-[0.8rem] text-slate-500 md:text-[0.9rem]"
                         }`}
                     >
                       {level.label}

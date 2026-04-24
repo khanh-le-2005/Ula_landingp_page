@@ -11,11 +11,14 @@ const imageRoutes = require("./src/routes/imageRoutes");
 const trackRoutes = require("./src/routes/trackRoutes");
 const prizeRoutes = require("./src/routes/prizeRoutes");
 const affiliateRoutes = require("./src/routes/affiliateRoutes");
+const campaignRoutes = require("./src/routes/campaignRoutes");
+const siteMiddleware = require("./src/middlewares/siteMiddleware");
 
 const app = express();
 app.use(cors({ origin: true, credentials: true })); // credentials: true để gửi Cookie
 app.use(express.json());
 app.use(cookieParser()); // Đọc Cookie từ request
+app.use(siteMiddleware); // Phân tách site tieng-trung / tieng-duc
 
 // Kết nối database
 connectDB();
@@ -28,6 +31,7 @@ app.use("/api/images", imageRoutes);
 app.use("/api/track", trackRoutes);     // Endpoint đặt Cookie tracking
 app.use("/api/prizes", prizeRoutes);    // CRUD vòng quay may mắn
 app.use("/api/affiliates", affiliateRoutes); // CRUD KOC/Affiliate
+app.use("/api/campaigns", campaignRoutes);   // Quản lý Chiến dịch/Tag
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

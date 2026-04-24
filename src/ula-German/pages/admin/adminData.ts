@@ -9,6 +9,7 @@ export interface HeroContent {
   primaryCta: string;
   secondaryCta: string;
   heroVideoWatchUrl: string;
+  heroImageUrl?: string | File;
 }
 
 export const PAINPOINTS_DEFAULT_COUNT = 7;
@@ -26,6 +27,13 @@ export interface SolutionFeature {
   mediaUrl: string | File;
   isVideo: boolean;
   gradient: string;
+}
+
+export interface SolutionContent {
+  titlePart1: string;
+  titleHighlight: string;
+  titlePart2: string;
+  cards: SolutionFeature[];
 }
 
 export interface MethodologyCard {
@@ -66,6 +74,7 @@ export interface ExperienceContent {
   sectionTitle: string;
   sectionSubtitle: string;
   aiPronunciationImageUrl: string | File;
+  videoUrl: string;
   quizzes: ExperienceQuiz[];
 }
 
@@ -87,11 +96,15 @@ export const heroDefault: HeroContent = {
   primaryCta: 'Học thử miễn phí',
   secondaryCta: 'Nhận tư vấn lộ trình',
   heroVideoWatchUrl:
-    'https://player.vimeo.com/video/76979871?h=62c6f0f9d0&title=0&byline=0&portrait=0',
+    'https://player.vimeo.com/manage/videos/1176153399/09b018576d',
+  heroImageUrl: '/assets/images/hero-thumbnail.png',
 };
 
 export const painpointsDefault: PainpointsContent = {
-  sectionTitle: 'ULA GIẢI QUYẾT MỌI NỖI LO',
+  sectionTitle: 'ULA HIỂU NỖI LO CỦA PHỤ HUYNH VÀ HỌC SINH',
+  sectionSubtitle: '',
+  mainTitleTop: '',
+  mainTitleHighlight: '',
   mascotImageUrl: '',
   bubbles: [
     'Lớp học offline đông',
@@ -104,32 +117,37 @@ export const painpointsDefault: PainpointsContent = {
   ],
 };
 
-export const solutionDefault: SolutionFeature[] = [
-  {
-    category: 'Coaching',
-    title: 'Hiệu quả như gia sư 1 kèm 1',
-    bullets: ['Video bài giảng cùng chuyên gia', 'Bắt đầu sớm từ lớp 10–11', 'Đội ngũ hỗ trợ 24/7'],
-    mediaUrl: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=600',
-    isVideo: false,
-    gradient: 'from-indigo-600/40 to-blue-500/10',
-  },
-  {
-    category: 'Practice',
-    title: 'Luyện tập không giới hạn',
-    bullets: ['Bài tập tương tác ngay trong video', 'AI luyện phát âm, phản xạ'],
-    mediaUrl: 'https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=600',
-    isVideo: false,
-    gradient: 'from-blue-400/20 to-white/5',
-  },
-  {
-    category: 'Flexible',
-    title: 'Học linh hoạt và tiết kiệm',
-    bullets: ['Chỉ với 10k/ngày (giảm 80%)', 'Học mọi lúc với đa thiết bị'],
-    mediaUrl: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=600',
-    isVideo: false,
-    gradient: 'from-blue-900/60 to-black/40',
-  },
-];
+export const solutionDefault: SolutionContent = {
+  titlePart1: 'Chỉ',
+  titleHighlight: '30 phút/ngày',
+  titlePart2: 'dễ dàng bắt đầu',
+  cards: [
+    {
+      category: 'Coaching',
+      title: 'Hiệu quả như gia sư 1 kèm 1',
+      bullets: ['Video bài giảng cùng chuyên gia', 'Bắt đầu sớm từ lớp 10–11', 'Đội ngũ hỗ trợ 24/7'],
+      mediaUrl: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=600',
+      isVideo: false,
+      gradient: 'from-indigo-600/40 to-blue-500/10',
+    },
+    {
+      category: 'Practice',
+      title: 'Luyện tập không giới hạn',
+      bullets: ['Bài tập tương tác ngay trong video', 'AI luyện phát âm, phản xạ'],
+      mediaUrl: 'https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=600',
+      isVideo: false,
+      gradient: 'from-blue-400/20 to-white/5',
+    },
+    {
+      category: 'Flexible',
+      title: 'Học linh hoạt và tiết kiệm',
+      bullets: ['Chỉ với 10k/ngày (giảm 80%)', 'Học mọi lúc với đa thiết bị'],
+      mediaUrl: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=600',
+      isVideo: false,
+      gradient: 'from-blue-900/60 to-black/40',
+    },
+  ],
+};
 
 export const methodologyDefault: MethodologyContent = {
   mainCard: {
@@ -170,6 +188,7 @@ export const experienceDefault: ExperienceContent = {
   sectionTitle: 'Trải nghiệm học tập',
   sectionSubtitle: 'Cùng AI chấm chữa',
   aiPronunciationImageUrl: 'https://media.istockphoto.com/id/1370433251/photo/black-woman-sitting-at-desk-using-computer-writing-in-notebook.jpg?s=612x612&w=0&k=20&c=rHpy3cX4LVFtzLI4gyy0T-fNYdTeAcdNQgTmy9maAIA=',
+  videoUrl: 'https://player.vimeo.com/video/1163868662?h=2e449d303e',
   quizzes: [
     {
       id: 1,
@@ -181,7 +200,7 @@ export const experienceDefault: ExperienceContent = {
         { id: 'B', text: 'Xin chào' },
         { id: 'C', text: 'Cảm ơn' },
       ],
-      imageUrl: 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?q=80&w=400',
+      imageUrl: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=800',
     },
     {
       id: 2,
@@ -193,7 +212,7 @@ export const experienceDefault: ExperienceContent = {
         { id: 'B', text: 'Chúc ngủ ngon' },
         { id: 'C', text: 'Cảm ơn bạn' },
       ],
-      imageUrl: 'https://images.unsplash.com/photo-1599422315624-8015e9718420?q=80&w=400',
+      imageUrl: 'https://images.unsplash.com/photo-1454165833767-1390e72611da?q=80&w=800',
     },
     {
       id: 3,
@@ -205,7 +224,7 @@ export const experienceDefault: ExperienceContent = {
         { id: 'B', text: 'Hẹn gặp lại' },
         { id: 'C', text: 'Rất vui được gặp' },
       ],
-      imageUrl: 'https://images.unsplash.com/photo-152666130d554-1b25d036ea47?q=80&w=400',
+      imageUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800',
     },
     {
       id: 4,

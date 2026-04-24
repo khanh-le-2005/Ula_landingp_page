@@ -1,43 +1,39 @@
 const { Affiliate } = require("../models/affiliateModel");
 
 // Lấy danh sách tất cả KOC (Admin/Editor)
-const getAffiliates = async (req, res) => {
+const getAffiliates = async (req, res, next) => {
   try {
     const affiliates = await Affiliate.find().sort({ createdAt: -1 });
     res.status(200).json(affiliates);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // Lấy 1 KOC theo ID
-const getAffiliateById = async (req, res) => {
+const getAffiliateById = async (req, res, next) => {
   try {
     const affiliate = await Affiliate.findById(req.params.id);
     if (!affiliate) return res.status(404).json({ message: "Không tìm thấy KOC" });
     res.status(200).json(affiliate);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // Tạo KOC mới (Admin)
-const createAffiliate = async (req, res) => {
+const createAffiliate = async (req, res, next) => {
   try {
     const affiliate = new Affiliate(req.body);
     await affiliate.save();
     res.status(201).json({ message: "Tạo KOC thành công", data: affiliate });
   } catch (error) {
-    // Xử lý lỗi trùng mã Code
-    if (error.code === 11000) {
-      return res.status(400).json({ message: "Mã giới thiệu (Code) này đã tồn tại" });
-    }
-    res.status(400).json({ message: error.message });
+    next(error);
   }
 };
 
 // Sửa KOC (Admin)
-const updateAffiliate = async (req, res) => {
+const updateAffiliate = async (req, res, next) => {
   try {
     const affiliate = await Affiliate.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -46,26 +42,23 @@ const updateAffiliate = async (req, res) => {
     if (!affiliate) return res.status(404).json({ message: "Không tìm thấy KOC" });
     res.status(200).json({ message: "Cập nhật thành công", data: affiliate });
   } catch (error) {
-    if (error.code === 11000) {
-      return res.status(400).json({ message: "Mã giới thiệu (Code) này đã tồn tại" });
-    }
-    res.status(400).json({ message: error.message });
+    next(error);
   }
 };
 
 // Xóa hoặc vô hiệu hóa KOC (Admin)
-const deleteAffiliate = async (req, res) => {
+const deleteAffiliate = async (req, res, next) => {
   try {
     const affiliate = await Affiliate.findByIdAndDelete(req.params.id);
     if (!affiliate) return res.status(404).json({ message: "Không tìm thấy KOC" });
     res.status(200).json({ message: "Xóa KOC thành công" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // --- NEW: UTM Link Builder Utility ---
-const generateLinks = async (req, res) => {
+const generateLinks = async (req, res, next) => {
   try {
     const affiliate = await Affiliate.findById(req.params.id);
     if (!affiliate) return res.status(404).json({ message: "Không tìm thấy KOC" });
@@ -87,7 +80,7 @@ const generateLinks = async (req, res) => {
     // Cấu hình mapping giữa site key và path
     const siteMap = {
       "tieng-duc": "/german",
-      "tieng-trung": "/china",
+      "tieng-trung": "/chinese",
       "main": "/"
     };
 
@@ -113,12 +106,12 @@ const generateLinks = async (req, res) => {
       links,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // --- NEW: Manual Custom Link Builder ---
-const buildCustomLink = async (req, res) => {
+const buildCustomLink = async (req, res, next) => {
   try {
     const { affiliateId, site, utm_source, utm_medium, utm_campaign, utm_content, custom_path } = req.body;
     
@@ -129,7 +122,7 @@ const buildCustomLink = async (req, res) => {
 
     const siteMap = {
       "tieng-duc": "/german",
-      "tieng-trung": "/china",
+      "tieng-trung": "/chinese",
       "main": "/"
     };
 
@@ -149,7 +142,7 @@ const buildCustomLink = async (req, res) => {
       customUrl: url.toString(),
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

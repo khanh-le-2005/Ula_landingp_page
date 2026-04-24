@@ -52,13 +52,13 @@ const PainpointBubble: React.FC<{ text: string; className: string; size?: string
   className,
   size = 'w-40 h-40',
 }) => (
-  <div className={`absolute group transition-all duration-700 ${className} z-50`}>
+  <div className={`absolute group transition-all duration-700 ${className} z-50 [transform:translateZ(0)]`}>
     <div className={`relative ${size} rounded-full transition-all duration-500 group-hover:scale-110 flex items-center justify-center`}>
       {/* Subtle background glow */}
       <div className="absolute inset-0 rounded-full bg-cyan-500/10 blur-xl group-hover:bg-cyan-500/20 transition-colors" />
 
-      {/* Main bubble body: Dark glass with cyan border and glow */}
-      <div className="absolute inset-0 rounded-full border border-cyan-400/60 bg-[#0a192f]/40 backdrop-blur-md shadow-[0_0_20px_rgba(34,211,238,0.3),inset_0_0_20px_rgba(34,211,238,0.3)] transition-all duration-500 group-hover:shadow-[0_0_30px_rgba(34,211,238,0.5),inset_0_0_25px_rgba(34,211,238,0.4)]" />
+      {/* Main bubble body: Dark glass with cyan border and glow - Optimized blur */}
+      <div className="absolute inset-0 rounded-full border border-cyan-400/60 bg-[#0a192f]/40 backdrop-blur-sm shadow-[0_0_20px_rgba(34,211,238,0.3),inset_0_0_20px_rgba(34,211,238,0.3)] transition-all duration-500 group-hover:shadow-[0_0_30px_rgba(34,211,238,0.5),inset_0_0_25px_rgba(34,211,238,0.4)]" />
 
       {/* Top reflection highlight (Sphere effect) */}
       <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
@@ -67,7 +67,7 @@ const PainpointBubble: React.FC<{ text: string; className: string; size?: string
 
       {/* Content */}
       <div className="relative z-10 px-4 text-center">
-        <p className="font-be-vietnam font-extrabold text-white text-[10px] md:text-[14px] leading-tight uppercase tracking-wider">
+        <p className="font-be-vietnam font-extrabold text-white text-[10px] md:text-[13px] leading-tight uppercase tracking-[0.2em] whitespace-pre-line">
           {text}
         </p>
       </div>
@@ -98,14 +98,14 @@ export default function Painpoints() {
         <div className="relative z-20 flex flex-col items-center pt-12">
           {/* PHẦN TIÊU ĐỀ ĐÃ KHÔI PHỤC */}
           <div className="mb-5 text-center animate-fade-in-up px-1 sm:px-5">
-            <h3 className=" font-be-vietnam font-extrabold text-lg  uppercase tracking-widest text-cyan-400 md:text-3xl">
+            <h3 className=" font-be-vietnam font-extrabold text-lg uppercase tracking-widest text-[#dfc38a] md:text-3xl whitespace-pre-line">
               {content.sectionTitle}
             </h3>
           </div>
 
           <div className="relative h-[550px] w-full">
             {/* ĐẨY ROBOT XUỐNG DƯỚI ĐỂ BONG BÓNG Ở TRÊN ĐẦU */}
-            <div className="absolute bottom-[150px] md:bottom-[-200px] left-1/2 z-10 -translate-x-1/2">
+            <div className="absolute bottom-[150px] md:bottom-[-150px] left-1/2 z-10 -translate-x-1/2">
               <div className="relative transform scale-[1.1]">
                 <img
                   src={resolveAssetUrl(mascotImageUrl)}

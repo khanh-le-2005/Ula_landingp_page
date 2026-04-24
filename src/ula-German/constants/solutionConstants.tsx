@@ -9,7 +9,7 @@ export const MOCK_QUIZ_DATA = [
       { id: 'B', text: 'Xin chào' },
       { id: 'C', text: 'Cảm ơn' }
     ],
-    imageUrl: "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?q=80&w=400"
+    imageUrl: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=800"
   },
   // --- CÂU HỎI DẠNG NỐI (MATCHING) ---
   {
@@ -22,7 +22,7 @@ export const MOCK_QUIZ_DATA = [
       { id: 'B', text: 'Chúc ngủ ngon' },
       { id: 'C', text: 'Cảm ơn bạn' }
     ],
-    imageUrl: "https://images.unsplash.com/photo-1599422315624-8015e9718420?q=80&w=400" // Ảnh minh họa lời cảm ơn
+    imageUrl: "https://images.unsplash.com/photo-1454165833767-1390e72611da?q=80&w=800" // Ảnh minh họa lời cảm ơn
   },
   // --- CÂU HỎI DẠNG ĐIỀN NGHĨA (FILL IN THE BLANK) ---
   {
@@ -35,9 +35,8 @@ export const MOCK_QUIZ_DATA = [
       { id: 'B', text: 'Hẹn gặp lại' },
       { id: 'C', text: 'Rất vui được gặp' }
     ],
-    imageUrl: "https://images.unsplash.com/photo-152666130d554-1b25d036ea47?q=80&w=400" // Ảnh minh họa tạm biệt
+    imageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800" // Ảnh minh họa tạm biệt
   },
-  // ... các câu hỏi cũ
   {
     id: 4,
     type: "matching",

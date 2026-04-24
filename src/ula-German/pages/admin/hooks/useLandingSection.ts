@@ -1,16 +1,47 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { fetchLandingPage, updateLandingSection } from '../adminApi';
+import { fetchLandingPage, updateLandingSection, getSiteContext } from '../adminApi';
 import { ADMIN_SECTION_KEYS } from '../adminSections';
 import { PAINPOINTS_DEFAULT_COUNT, type PainpointsContent } from '../adminData';
+import { useSiteContext } from '@/src/ula-chinese/context/LandingSiteContext';
+import { useLocation } from 'react-router-dom';
 
 const LANDING_PAGE_SYNC_CHANNEL = 'ula-landing-page-sync';
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 
+const tryConvertToArray = (value: unknown): any => {
+  if (Array.isArray(value)) return value;
+  if (!isPlainObject(value)) return value;
+
+  const keys = Object.keys(value);
+  if (keys.length === 0) return [];
+
+  // Kiểm tra nếu tất cả các phím đều là số (hoặc chuỗi số)
+  const isNumericKeys = keys.every(key => /^\d+$/.test(key));
+  if (isNumericKeys) {
+    const arr: any[] = [];
+    keys.forEach(k => {
+      arr[parseInt(k, 10)] = value[k];
+    });
+    // Loại bỏ các phần tử empty nếu có (hole)
+    return arr.filter(() => true);
+  }
+
+  return value;
+};
+
 const mergeWithFallback = <T,>(fallback: T, remote: unknown): T => {
   if (Array.isArray(fallback)) {
-    return (Array.isArray(remote) ? remote : fallback) as T;
+    if (!Array.isArray(remote)) return fallback as T;
+
+    // Nếu fallback có phần tử mẫu, ta dùng nó để merge từng phần tử của remote
+    if (fallback.length > 0) {
+      const template = fallback[0];
+      return remote.map((item) => mergeWithFallback(template, item)) as unknown as T;
+    }
+
+    return remote as unknown as T;
   }
 
   if (!isPlainObject(fallback)) {
@@ -35,6 +66,18 @@ const mergeWithFallback = <T,>(fallback: T, remote: unknown): T => {
     if (isPlainObject(fallbackValue) && isPlainObject(remoteValue)) {
       merged[key] = mergeWithFallback(fallbackValue, remoteValue);
       return;
+    }
+
+    // --- FIX: Normalize boolean strings from FormData ---
+    if (typeof fallbackValue === 'boolean') {
+      if (remoteValue === 'true') {
+        merged[key] = true;
+        return;
+      }
+      if (remoteValue === 'false') {
+        merged[key] = false;
+        return;
+      }
     }
 
     merged[key] = remoteValue;
@@ -67,29 +110,29 @@ const normalizePainpointsSection = (remote: unknown, fallback: PainpointsContent
 
   const bubbles = Array.isArray(remote.bubbles)
     ? remote.bubbles
-        .map((item) => {
-          if (typeof item === 'string') return item;
-          if (item && typeof item === 'object' && 'text' in item) {
-            return String((item as { text?: unknown }).text ?? '');
-          }
-          return '';
-        })
-        .filter(Boolean)
-        .slice(0, PAINPOINTS_DEFAULT_COUNT)
+      .map((item) => {
+        if (typeof item === 'string') return item;
+        if (item && typeof item === 'object' && 'text' in item) {
+          return String((item as { text?: unknown }).text ?? '');
+        }
+        return '';
+      })
+      .filter(Boolean)
+      .slice(0, PAINPOINTS_DEFAULT_COUNT)
     : fallback.bubbles;
 
   return {
     sectionTitle: typeof remote.sectionTitle === 'string' ? remote.sectionTitle : fallback.sectionTitle,
-    sectionSubtitle: typeof remote.sectionSubtitle === 'string' ? remote.sectionSubtitle : fallback.sectionSubtitle,
-    mainTitleTop: typeof remote.mainTitleTop === 'string' ? remote.mainTitleTop : fallback.mainTitleTop,
-    mainTitleHighlight:
-      typeof remote.mainTitleHighlight === 'string' ? remote.mainTitleHighlight : fallback.mainTitleHighlight,
     mascotImageUrl: typeof remote.mascotImageUrl === 'string' ? remote.mascotImageUrl : fallback.mascotImageUrl,
     bubbles: bubbles.length > 0 ? bubbles : fallback.bubbles,
   };
 };
 
 export function useLandingSection<T>(sectionKey: string, fallback: T) {
+  const { siteKey, campaignTag } = useSiteContext();
+  const location = useLocation();
+  const isAdmin = location.pathname.startsWith('/admin');
+
   const fallbackRef = useRef(fallback);
   fallbackRef.current = fallback;
 
@@ -126,7 +169,7 @@ export function useLandingSection<T>(sectionKey: string, fallback: T) {
     setError(null);
 
     try {
-      const landingPage = await fetchLandingPage();
+      const landingPage = await fetchLandingPage(siteKey, undefined, isAdmin ? undefined : campaignTag);
       const section = landingPage[sectionKey];
       if (sectionKey === ADMIN_SECTION_KEYS.painpoints && !Array.isArray(fallbackRef.current)) {
         setContent(normalizePainpointsSection(section, fallbackRef.current as PainpointsContent) as T);
@@ -141,7 +184,7 @@ export function useLandingSection<T>(sectionKey: string, fallback: T) {
     } finally {
       setIsLoading(false);
     }
-  }, [sectionKey]);
+  }, [sectionKey, siteKey, isAdmin, campaignTag]);
 
   useEffect(() => {
     void load();
@@ -199,17 +242,18 @@ export function useLandingSection<T>(sectionKey: string, fallback: T) {
     };
   }, [load, sectionKey]);
 
-  const save = async (nextContent?: T) => {
+  const save = async (nextContent?: T | FormData) => {
     const value = nextContent ?? content;
     setIsSaving(true);
     setError(null);
 
     try {
-      const response = await updateLandingSection(sectionKey, value);
-      setContent(response.data);
+      const response = await updateLandingSection(sectionKey, value, siteKey);
+      const normalizedData = mergeWithFallback(fallbackRef.current, response.data);
+      setContent(normalizedData);
       setLastSavedAt(new Date().toISOString());
       broadcastSectionUpdate(sectionKey);
-      return response.data;
+      return normalizedData;
     } catch (saveError) {
       const message = saveError instanceof Error ? saveError.message : 'Không thể lưu nội dung';
       setError(message);

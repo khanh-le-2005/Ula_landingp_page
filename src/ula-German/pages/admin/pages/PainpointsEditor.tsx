@@ -15,7 +15,8 @@ export default function PainpointsEditor() {
   );
 
   const fixedBubbles = React.useMemo(() => {
-    const normalized = [...content.bubbles].slice(0, PAINPOINTS_DEFAULT_COUNT);
+    const bubbles = Array.isArray(content.bubbles) ? content.bubbles : [];
+    const normalized = [...bubbles].slice(0, PAINPOINTS_DEFAULT_COUNT);
     while (normalized.length < PAINPOINTS_DEFAULT_COUNT) {
       normalized.push(painpointsDefault.bubbles[normalized.length] || 'Nỗi lo mới');
     }
@@ -25,12 +26,12 @@ export default function PainpointsEditor() {
   const updateBubble = (index: number, value: string) => {
     setContent((prev) => ({
       ...prev,
-      bubbles: prev.bubbles.map((item, i) => (i === index ? value : item)),
+      bubbles: (Array.isArray(prev.bubbles) ? prev.bubbles : []).map((item, i) => (i === index ? value : item)),
     }));
   };
 
   return (
-    <div className="flex flex-col-reverse gap-8 ">
+    <div className="space-y-8">
       <section className={adminCard}>
         <div className="mb-10 flex flex-wrap items-start justify-between gap-6">
           <div>
@@ -71,8 +72,8 @@ export default function PainpointsEditor() {
         <div className="grid gap-5">
           <div className="space-y-2">
             <div className={adminLabel}>Tiêu đề phần</div>
-            <input
-              className={adminInput}
+            <textarea
+              className={`${adminInput} min-h-[80px] py-2 resize-y`}
               value={content.sectionTitle}
               onChange={(e) => setContent((prev) => ({ ...prev, sectionTitle: e.target.value }))}
             />
@@ -115,81 +116,6 @@ export default function PainpointsEditor() {
         </div>
       </section>
 
-      <aside className="space-y-8">
-        <section className={adminCard}>
-          <div className="mb-8 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">
-              <Layout className="h-3 w-3" />
-              Bộ máy xem trước không gian
-            </div>
-            <div className="h-2 w-2 rounded-full bg-indigo-500 animate-pulse" />
-          </div>
-
-          <div className="relative overflow-hidden rounded-[32px] border border-slate-200 bg-slate-50 p-6 shadow-xl">
-            <div className="space-y-4 text-center">
-              <div className="text-[10px] font-black uppercase tracking-[0.45em] text-slate-400">{content.sectionTitle}</div>
-            </div>
-
-            <div className="relative min-h-[500px] overflow-hidden rounded-[26px] bg-white border border-slate-200 shadow-inner">
-              <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.02)_1px,transparent_1px)] bg-[size:20px_20px]" />
-
-              {fixedBubbles.map((item, index) => (
-                <div
-                  key={index}
-                  className={`absolute flex items-center justify-center rounded-full bg-slate-100 px-4 text-center backdrop-blur-lg shadow-sm ${
-                    [
-                      'top-[5%] left-[18%] md:left-[22%] animate-float',
-                      'top-[25%] left-[5%] md:left-[8%] animate-float-delayed',
-                      'top-[5%] right-[18%] md:right-[22%] animate-float-slow',
-                      'top-[30%] right-[5%] md:right-[8%] animate-float',
-                      'top-[60%] left-[10%] md:left-[15%] animate-float-slow',
-                      'top-[65%] right-[10%] md:right-[15%] animate-float-delayed',
-                      '-top-[15%] left-1/2 -translate-x-1/2 animate-float-slow',
-                    ][index]
-                  } ${
-                    [
-                      'w-32 h-32 md:w-36 md:h-36',
-                      'w-36 h-36 md:w-44 md:h-44',
-                      'w-32 h-32 md:w-36 md:h-36',
-                      'w-36 h-36 md:w-42 md:h-42',
-                      'w-28 h-28 md:w-32 md:h-32',
-                      'w-28 h-28 md:w-32 md:h-32',
-                      'w-40 h-40 md:w-48 md:h-48',
-                    ][index]
-                  } border border-slate-200 shadow-[0_4px_12px_rgba(0,0,0,0.03)]`}
-                >
-                  <span className="text-[9px] font-bold leading-tight tracking-tight text-slate-600 opacity-90 md:text-xs">
-                    {item}
-                  </span>
-                  <div className="absolute inset-0 rounded-full border border-indigo-500/5 transition-colors group-hover:border-indigo-500/20" />
-                </div>
-              ))}
-
-              <div className="absolute bottom-[-50px] left-1/2 h-[180px] w-[240px] -translate-x-1/2 rounded-full bg-indigo-100 blur-[80px]" />
-              
-              <div className="absolute bottom-0 left-1/2 z-10 -translate-x-1/2">
-                <div className="relative transform scale-[1.1]">
-                  <img
-                    src={resolveAssetUrl(content.mascotImageUrl || robotMascotFallback)}
-                    alt="Mascot Preview"
-                    className="w-[180px] rounded-full object-cover drop-shadow-[0_10px_20px_rgba(59,130,246,0.2)]"
-                  />
-                </div>
-              </div>
-
-              <div className="absolute bottom-0 left-1/2 h-[200px] w-[180px] -translate-x-1/2 rounded-[100%_100%_0_0] border-t border-slate-200 bg-slate-50/50" />
-            </div>
-
-            <div className="relative z-10 mt-4 space-y-1 rounded-2xl border border-slate-200 bg-white p-4">
-              <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-slate-400">
-                <Box className="h-3 w-3 text-indigo-500" />
-                Danh bạ thực thể
-              </div>
-              <div className="font-mono text-[9px] text-slate-400">Bong bóng hoạt động: 7 | Đang xử lý: Tăng tốc phần cứng</div>
-            </div>
-          </div>
-        </section>
-      </aside>
     </div>
   );
 }

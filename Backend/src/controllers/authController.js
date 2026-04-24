@@ -1,6 +1,6 @@
 const authService = require("../services/authService");
 
-const login = async (req, res) => {
+const login = async (req, res, next) => {
   try {
     const { username, password } = req.body;
     const result = await authService.login(username, password);
@@ -8,7 +8,7 @@ const login = async (req, res) => {
     res.status(200).json({ message: "Thành công", data: result });
   } catch (error) {
     console.warn(`[AUTH] ❌ Đăng nhập thất bại: User "${req.body.username}" - Lý do: ${error.message}`);
-    res.status(401).json({ message: error.message });
+    next(error);
   }
 };
 

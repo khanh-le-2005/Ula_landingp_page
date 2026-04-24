@@ -1,7 +1,7 @@
 export const REVIEWS_DATA = [
   {
     name: "Nguyễn Minh Anh",
-    level: "HSK 5",
+    level: "A1 German",
     avatar: "https://i.pravatar.cc/150?u=anhnm",
     text: "Lộ trình học cực kỳ rõ ràng, giúp mình tự tin hơn khi giao tiếp với người bản xứ. AI chấm chữa rất sát thực tế.",
     tags: ["Lộ trình chuẩn", "Giao tiếp"],
@@ -10,17 +10,17 @@ export const REVIEWS_DATA = [
   {
     name: "Trần Bảo Long",
     level: "B1 German",
-    avatar: "https://i.pravatar.cc/150?u=longtb",
+    avatar: "https://images.pexels.com/photos/25884724/pexels-photo-25884724.jpeg?auto=compress&cs=tinysrgb&w=160&h=160&fit=crop",
     text: "Học tiếng Đức không còn là nỗi sợ nữa. Các bài giảng video rất cô đọng và dễ hiểu.",
     tags: ["Tiếng Đức", "Cấp tốc"],
     likes: 89,
   },
   {
     name: "Lê Thị Thu Thảo",
-    level: "HSK 4",
-    avatar: "https://i.pravatar.cc/150?u=thaoltt",
-    text: "Mình đã đỗ HSK 4 chỉ sau 6 tháng học tại Ula. Rất cảm ơn đội ngũ hỗ trợ nhiệt tình.",
-    tags: ["HSK 4", "Hài lòng"],
+    level: "A2 German",
+    avatar: "https://images.pexels.com/photos/31035788/pexels-photo-31035788.jpeg?auto=compress&cs=tinysrgb&w=160&h=160&fit=crop",
+    text: "Mình đã đỗ A2 German chỉ sau 6 tháng học tại Ula. Rất cảm ơn đội ngũ hỗ trợ nhiệt tình.",
+    tags: ["A2 German", "Hài lòng"],
     likes: 215,
   },
   {
@@ -33,8 +33,8 @@ export const REVIEWS_DATA = [
   },
   {
     name: "Hoàng Kim Ngân",
-    level: "HSK 6",
-    avatar: "https://i.pravatar.cc/150?u=nganhk",
+    level: "B2 German",
+    avatar: "https://images.pexels.com/photos/4063968/pexels-photo-4063968.jpeg?auto=compress&cs=tinysrgb&w=160&h=160&fit=crop",
     text: "Môi trường học tập hiện đại, tài liệu học phong phú và sát với đề thi thật.",
     tags: ["Tiếng Trung", "Tài liệu"],
     likes: 178,
@@ -42,7 +42,7 @@ export const REVIEWS_DATA = [
   {
     name: "Đặng Quốc Việt",
     level: "A2 German",
-    avatar: "https://i.pravatar.cc/150?u=vietdq",
+    avatar: "https://images.pexels.com/photos/32242324/pexels-photo-32242324.jpeg?auto=compress&cs=tinysrgb&w=300&h=380&fit=crop",
     text: "Rất phù hợp cho những người bận rộn. Mình có thể chủ động học mọi lúc mọi nơi.",
     tags: ["Chủ động", "Linh hoạt"],
     likes: 67,

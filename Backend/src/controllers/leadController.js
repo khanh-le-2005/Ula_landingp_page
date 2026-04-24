@@ -50,15 +50,17 @@ const checkFraud = async (ip, formData, affiliateCode) => {
   };
 };
 
-const submitForward = async (req, res) => {
+// --- CORE LOGIC: Xử lý lưu Lead và gửi Email ---
+const processLeadSubmission = async (req, res, next, overrideSiteKey = null) => {
   const leadService = require("../services/leadService");
   const { trackLeadEvent } = require("../services/marketingService");
 
   try {
-    const { formData, utm_source, utm_medium, utm_campaign, utm_content, captchaToken, fbp, fbc } = req.body;
+    const { formData, utm_source, utm_medium, utm_campaign, utm_content, fbp: bodyFbp, fbc: bodyFbc } = req.body;
 
-    // --- Đọc tracking từ Cookie (ưu tiên) hoặc body ---
     const cookieTracking = getTrackingFromCookie(req);
+    const fbp = bodyFbp || cookieTracking?.fbp || null;
+    const fbc = bodyFbc || cookieTracking?.fbc || null;
     const referralCode = cookieTracking?.aff_id || req.body.referralCode || null;
     const utmSource = cookieTracking?.utm?.source || utm_source;
     const utmMedium = cookieTracking?.utm?.medium || utm_medium;
@@ -67,32 +69,22 @@ const submitForward = async (req, res) => {
     const campaignTag = cookieTracking?.campaign || req.body.campaignTag || null;
     const clickTimestamp = cookieTracking?.created_at ? new Date(cookieTracking.created_at) : null;
 
-    // --- Site Key ---
-    const host = req.headers.host || "";
-    let siteKey = "main";
-    if (!host.includes("localhost") && !host.includes("127.0.0.1") && host.split(".").length > 2) {
-      siteKey = host.split(".")[0];
-    }
-
-    // --- reCAPTCHA ---
-    // (User yêu cầu gỡ bỏ hệ thống chống spam ReCAPTCHA)
+    // Ưu tiên siteKey được truyền vào file (từ API riêng), sau đó mới tới Middleware
+    const siteKey = overrideSiteKey || req.siteKey;
 
     if (!formData || Object.keys(formData).length === 0) {
       return res.status(400).json({ message: "Dữ liệu form không được để trống" });
     }
 
-    // --- Xác thực ref KOC và lấy affiliateId ---
     let affiliateId = null;
     if (referralCode) {
       const affiliate = await findByCode(referralCode);
       if (affiliate) affiliateId = affiliate._id;
     }
 
-    // --- Kiểm tra Fraud ---
     const ip = req.ip || req.headers["x-forwarded-for"] || "unknown";
     const { isSuspicious, reason } = await checkFraud(ip, formData, referralCode);
 
-    // --- Lưu Lead ---
     const lead = await leadService.createLead({
       formData,
       siteKey,
@@ -112,45 +104,75 @@ const submitForward = async (req, res) => {
       fraud_reason: reason || undefined,
     });
 
-    // --- Facebook CAPI (Bất đồng bộ, không block response) ---
-    console.log(`[LEAD] Mới từ IP ${ip}: ${formData.fullname || formData.name} - Source: ${utmSource || 'Direct'}`);
     if (isSuspicious) {
-      console.warn(`[LEAD] ⚠️ Cảnh báo Spam/Fraud: ${reason}`);
+      console.warn(`[LEAD] [${siteKey}] ⚠️ Cảnh báo Spam/Fraud: ${reason}`);
     }
 
-    trackLeadEvent({
-      phone: formData.phone || formData.sdt,
-      email: formData.email,
-      ip,
-      user_agent: req.headers["user-agent"],
-      fbp,
-      fbc,
-      referralCode,
-      utm_source: utmSource,
-    });
+    trackLeadEvent(
+      {
+        email: formData.email,
+        phone: formData.phone || formData.sdt,
+        ip: ip,
+        user_agent: req.headers["user-agent"],
+        fbp,
+        fbc,
+        referralId: affiliateId,
+        utm_source: utmSource,
+      },
+      siteKey
+    );
 
-    // --- Gửi Email (Bất đồng bộ) ---
     if (formData && formData.email) {
+      // Logic gán mã code và nội dung giảm giá theo Site
+      let sitePromoCode = "ULA-SPECIAL";
+      let discountText = "Mã Giảm Giá Khóa Học";
+      
+      if (siteKey === "tieng-trung") {
+        sitePromoCode = "ULA45CHI";
+        discountText = "Mã Giảm Giá 45% Khóa Học";
+      } else if (siteKey === "tieng-duc") {
+        sitePromoCode = "ULA40GER";
+        discountText = "Mã Giảm Giá 40% Khóa Học";
+      }
+
       sendRewardEmail(formData.email, {
         customerName: formData.fullname || formData.name || "Khách hàng",
-        prizeName: req.body.prizeName || "Quà tặng đặc biệt",
-        prizeCode: req.body.prizeCode || "ULA-GIFT-2024"
+        prizeName: req.body.prizeName || "Quà tặng may mắn",
+        prizeCode: req.body.prizeCode || "ULA-LUCKY",
+        sitePromoCode: sitePromoCode,
+        discountText: discountText
       });
     }
 
-    res.status(201).json({ message: "Đăng ký thành công!", data: lead });
+    res.status(201).json({ message: "Đăng ký thành công!", data: lead, site: siteKey });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getLeads = async (req, res) => {
+// API 1: Submit Tiếng Đức
+const submitGerman = async (req, res, next) => {
+  return processLeadSubmission(req, res, next, "tieng-duc");
+};
+
+// API 2: Submit Tiếng Trung
+const submitChinese = async (req, res, next) => {
+  return processLeadSubmission(req, res, next, "tieng-trung");
+};
+
+// API Mặc định (Tự nhận diện qua Header/Subdomain)
+const submitForward = async (req, res, next) => {
+  return processLeadSubmission(req, res, next, null);
+};
+
+const getLeads = async (req, res, next) => {
   const leadService = require("../services/leadService");
   try {
-    const leads = await leadService.getAllLeads();
+    const siteKey = req.siteKey;
+    const leads = await Lead.find({ siteKey }).sort({ createdAt: -1 }); // Lọc theo trang
     res.status(200).json(leads);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -158,16 +180,17 @@ const getLeads = async (req, res) => {
  * Báo cáo thống kê Leads theo KOC
  * GET /api/leads/stats?from=2024-01-01&to=2024-12-31
  */
-const getStats = async (req, res) => {
+const getStats = async (req, res, next) => {
   try {
-    const { from, to, siteKey } = req.query;
-    const filter = {};
+    const { from, to } = req.query;
+    const siteKey = req.siteKey; // Lọc theo trang đang chọn
+
+    const filter = { siteKey };
     if (from || to) {
       filter.createdAt = {};
       if (from) filter.createdAt.$gte = new Date(from);
       if (to) filter.createdAt.$lte = new Date(to);
     }
-    if (siteKey) filter.siteKey = siteKey;
 
     const stats = await Lead.aggregate([
       { $match: filter },
@@ -191,12 +214,57 @@ const getStats = async (req, res) => {
 
     res.status(200).json(summary);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
+  }
+};
+
+/**
+ * Thống kê chuyên sâu toàn diện
+ * GET /api/leads/stats/summary
+ */
+const getComprehensiveStats = async (req, res, next) => {
+  try {
+    const siteKey = req.siteKey; // Lọc theo trang đang chọn
+    const match = { siteKey };
+
+    // 1. Thống kê theo Campaign Tag (SL Tag)
+    const byTag = await Lead.aggregate([
+      { $match: match },
+      { $group: { _id: "$campaignTag", count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]);
+
+    // 2. Thống kê theo KOC (Referral Code)
+    const byKoc = await Lead.aggregate([
+      { $match: match },
+      { $group: { _id: "$referralCode", count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]);
+
+    // 3. Thống kê theo UTM Source (Nguồn traffic)
+    const byUtmSource = await Lead.aggregate([
+      { $match: match },
+      { $group: { _id: "$utm_source", count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]);
+
+    res.status(200).json({
+      siteKey,
+      timestamp: new Date(),
+      stats: {
+        byTag: byTag.map(i => ({ tag: i._id || "Tự nhiên/Mặc định", count: i.count })),
+        byKoc: byKoc.map(i => ({ koc: i._id || "Không có KOC", count: i.count })),
+        byUtmSource: byUtmSource.map(i => ({ source: i._id || "Direct/Unknown", count: i.count }))
+      }
+    });
+
+  } catch (error) {
+    next(error);
   }
 };
 
 // Cập nhật trạng thái chìa khóa (CRM)
-const updateLeadStatus = async (req, res) => {
+const updateLeadStatus = async (req, res, next) => {
   try {
     const { status } = req.body;
     const validStatuses = ["NEW", "CONTACTED", "ENROLLED", "CANCELLED"];
@@ -214,19 +282,28 @@ const updateLeadStatus = async (req, res) => {
     if (!lead) return res.status(404).json({ message: "Không tìm thấy Lead" });
     res.status(200).json({ message: "Cập nhật thành công", data: lead });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    next(error);
   }
 };
 
 // Xóa Lead (Spam/Rác)
-const deleteLead = async (req, res) => {
+const deleteLead = async (req, res, next) => {
   try {
     const lead = await Lead.findByIdAndDelete(req.params.id);
     if (!lead) return res.status(404).json({ message: "Không tìm thấy Lead" });
     res.status(200).json({ message: "Đã xóa Lead" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-module.exports = { submitForward, getLeads, getStats, updateLeadStatus, deleteLead };
+module.exports = { 
+  submitForward, 
+  submitGerman, 
+  submitChinese, 
+  getLeads, 
+  getStats, 
+  getComprehensiveStats,
+  updateLeadStatus, 
+  deleteLead 
+};

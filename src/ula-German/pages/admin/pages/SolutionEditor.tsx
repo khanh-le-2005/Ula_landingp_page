@@ -1,6 +1,6 @@
 import React from 'react';
-import { RefreshCw, Save, Layout, Sparkles, Box, Type, MousePointer2 } from 'lucide-react';
-import { solutionDefault, type SolutionFeature } from '../adminData';
+import { RefreshCw, Save, Sparkles, Box, Type } from 'lucide-react';
+import { solutionDefault, type SolutionFeature, type SolutionContent } from '../adminData';
 import { ADMIN_SECTION_KEYS } from '../adminSections';
 import { useLandingSection } from '../hooks/useLandingSection';
 import { adminCard, adminInput, adminLabel, adminPrimaryButton, adminSecondaryButton, adminAccentText } from '../adminTheme';
@@ -9,43 +9,64 @@ import { flattenToFormData } from '../utils/formDataUtil';
 import { resolveAssetUrl } from '../../../utils/assetUtil';
 
 export default function SolutionEditor() {
-  const { content: features, setContent: setFeatures, isLoading, isSaving, error, lastSavedAt, reload, save } = useLandingSection<SolutionFeature[]>(
+  const { content, setContent, isLoading, isSaving, error, save, reload } = useLandingSection<SolutionContent>(
     ADMIN_SECTION_KEYS.solution,
     solutionDefault,
   );
 
+  const updateTitle = (patch: Partial<SolutionContent>) => {
+    setContent(prev => ({ ...prev, ...patch }));
+  };
+
   const updateFeature = (index: number, updates: Partial<SolutionFeature>) => {
-    setFeatures((prev) => prev.map((f, i) => (i === index ? { ...f, ...updates } : f)));
+    setContent((prev) => ({
+      ...prev,
+      cards: (Array.isArray(prev.cards) ? prev.cards : []).map((f, i) =>
+        i === index ? { ...f, ...updates } : f
+      )
+    }));
   };
 
   const updateBullet = (fIndex: number, bIndex: number, value: string) => {
-    setFeatures((prev) =>
-      prev.map((f, i) =>
+    setContent((prev) => ({
+      ...prev,
+      cards: (Array.isArray(prev.cards) ? prev.cards : []).map((f, i) =>
         i === fIndex
-          ? { ...f, bullets: f.bullets.map((b, j) => (j === bIndex ? value : b)) }
-          : f,
-      ),
-    );
+          ? {
+            ...f,
+            bullets: (Array.isArray(f.bullets) ? f.bullets : []).map((b, j) =>
+              j === bIndex ? value : b
+            ),
+          }
+          : f
+      )
+    }));
   };
 
   const handleSave = async () => {
-    const formData = flattenToFormData(features);
-    await save(formData);
+    try {
+      const formData = flattenToFormData(content);
+      const result = await save(formData);
+      console.log('[SolutionEditor] Lưu thành công!', result);
+      alert('Đã lưu thay đổi thành công!');
+    } catch (err) {
+      console.error('[SolutionEditor] Lỗi khi lưu:', err);
+      alert('Có lỗi xảy ra khi lưu: ' + (err instanceof Error ? err.message : 'Lỗi không xác định'));
+    }
   };
 
   return (
-    <div className="grid gap-8 xl:grid-cols-[1fr_0.8fr]">
+    <div className="space-y-8">
       <section className={adminCard}>
         <div className="mb-10 flex flex-wrap items-start justify-between gap-6">
           <div>
             <div className="mb-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">
               <Sparkles className="h-3 w-3 text-indigo-500" />
-              Cấu hình Bộ tính năng
+              Cấu hình Bộ tính năng (DE)
             </div>
             <h2 className="text-3xl font-black tracking-tight text-slate-900">
               Thiết kế <span className={adminAccentText}>Giải pháp</span>
             </h2>
-
           </div>
           <div className="flex flex-wrap gap-3">
             <button onClick={() => void reload()} className={adminSecondaryButton}>
@@ -62,7 +83,28 @@ export default function SolutionEditor() {
         {error && <div className="mb-8 rounded-2xl border border-rose-500/20 bg-rose-500/10 p-4 text-xs font-bold text-rose-400">{error}</div>}
 
         <div className="space-y-12">
-          {features.map((feature, fIndex) => (
+          {/* Cấu hình tiêu đề chính */}
+          <div className="p-8 rounded-[32px] bg-indigo-50/30 border border-indigo-100 shadow-sm shadow-indigo-500/5">
+            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-indigo-500 mb-6">
+              <Type className="w-3 h-3" /> Tiêu đề phần (Headline)
+            </div>
+            <div className="grid md:grid-cols-3 gap-6">
+               <div className="space-y-1">
+                 <div className={adminLabel}>Phần 1 (Chỉ)</div>
+                 <input className={adminInput} value={content.titlePart1} onChange={(e) => updateTitle({ titlePart1: e.target.value })} />
+               </div>
+               <div className="space-y-1">
+                 <div className={adminLabel}>Phần nổi bật (30 phút/ngày)</div>
+                 <input className={adminInput} value={content.titleHighlight} onChange={(e) => updateTitle({ titleHighlight: e.target.value })} />
+               </div>
+               <div className="space-y-1">
+                 <div className={adminLabel}>Phần 2 (dễ dàng bắt đầu)</div>
+                 <input className={adminInput} value={content.titlePart2} onChange={(e) => updateTitle({ titlePart2: e.target.value })} />
+               </div>
+            </div>
+          </div>
+
+          {(Array.isArray(content.cards) ? content.cards : []).map((feature, fIndex) => (
             <div key={fIndex} className="group relative rounded-[32px] border border-slate-200 bg-slate-50/30 p-8 transition-all hover:bg-slate-50">
               <div className="mb-8 flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -89,7 +131,7 @@ export default function SolutionEditor() {
                   <div className="space-y-3">
                     <div className={adminLabel}>Các điểm chính (Bullet points)</div>
                     <div className="space-y-3">
-                      {feature.bullets.map((bullet, bIndex) => (
+                      {(Array.isArray(feature.bullets) ? feature.bullets : []).map((bullet, bIndex) => (
                         <div key={bIndex} className="relative group/bullet">
                            <input className={adminInput} value={bullet} onChange={(e) => updateBullet(fIndex, bIndex, e.target.value)} />
                            <div className="absolute left-[-15px] top-1/2 -translate-y-1/2 h-1 w-1 rounded-full bg-indigo-500 opacity-0 group-hover/bullet:opacity-100 transition-opacity" />
@@ -119,43 +161,6 @@ export default function SolutionEditor() {
         </div>
       </section>
 
-      <aside className="space-y-8">
-        <section className={adminCard}>
-           <div className="mb-8 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.4em] font-black text-slate-400">
-                 <Box className="h-3 w-3" />
-                 Xem trước mô phỏng
-              </div>
-              <div className="h-2 w-2 rounded-full bg-indigo-500 animate-pulse" />
-           </div>
-
-           <div className="space-y-6">
-              {features.map((feature, i) => (
-                <div key={i} className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-white p-1.5 shadow-xl">
-                   <div className="relative h-[200px] w-full overflow-hidden rounded-[22px] bg-slate-50 shadow-inner">
-                      <img src={resolveAssetUrl(feature.mediaUrl instanceof File ? URL.createObjectURL(feature.mediaUrl) : feature.mediaUrl)} className="h-full w-full object-cover transition-all duration-700 hover:scale-110" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-white/80 to-transparent" />
-                      <div className="absolute bottom-4 left-4">
-                         <div className="inline-block rounded-full bg-slate-900 px-2.5 py-1 text-[8px] font-black text-white uppercase tracking-widest shadow-sm">{feature.category}</div>
-                         <h4 className="mt-2 text-sm font-black text-slate-900">{feature.title}</h4>
-                      </div>
-                   </div>
-                </div>
-              ))}
-           </div>
-        </section>
-
-        <section className="rounded-[32px] border border-slate-100 bg-slate-50 p-6">
-           <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-400">
-              <Type className="h-3 w-3 text-indigo-500" />
-              Thông tin cấu trúc
-           </div>
-           <div className="mt-4 font-mono text-[9px] text-slate-400 leading-relaxed">
-              Mã phân mục: {ADMIN_SECTION_KEYS.solution}<br/>
-              Kiểm tra lần cuối: {new Date().toLocaleTimeString()}
-           </div>
-        </section>
-      </aside>
     </div>
   );
 }

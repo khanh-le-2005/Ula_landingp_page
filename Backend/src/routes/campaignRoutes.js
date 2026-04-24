@@ -9,6 +9,7 @@ router.get("/tag/:tag", campaignController.getCampaignByTag);
 
 // --- Admin / Editor ---
 router.get("/", verifyToken, checkRole(["ADMIN", "EDITOR"]), campaignController.getCampaigns);
+router.post("/generate-link", verifyToken, checkRole(["ADMIN", "EDITOR"]), campaignController.generateMarketingLink);
 router.post("/", verifyToken, checkRole(["ADMIN"]), campaignController.createCampaign);
 router.put("/:id", verifyToken, checkRole(["ADMIN"]), campaignController.updateCampaign);
 router.delete("/:id", verifyToken, checkRole(["ADMIN"]), campaignController.deleteCampaign);

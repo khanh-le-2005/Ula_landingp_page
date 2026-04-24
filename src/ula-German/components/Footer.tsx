@@ -145,7 +145,7 @@ const Footer: React.FC = () => {
               </li>
             </ul>
 
-            <div className="mt-6 rounded-xl border border-white/10 bg-white/5 p-4">
+            <div className="mt-6 rounded-lg border border-white/10 bg-white/5 p-4">
               <div className="flex items-start gap-3">
                 <FileText size={18} className="mt-0.5 shrink-0 text-[#c5a059]" />
                 <p className="text-xs font-medium leading-relaxed text-slate-400">
@@ -158,23 +158,13 @@ const Footer: React.FC = () => {
           </div>
 
           <div className="space-y-6">
-            <h4 className="text-xs font-black uppercase tracking-widest text-[#c5a059]">
-              NHẬN ƯU ĐÃI
-            </h4>
             <div className="flex flex-col space-y-3">
-              <input
-                type="email"
-                value={registerEmail}
-                onChange={(event) => setRegisterEmail(event.target.value)}
-                placeholder="Nhập email của bạn"
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white transition-all placeholder:text-slate-500 focus:border-[#c5a059] focus:bg-white/10 focus:outline-none"
-              />
               <Link
-                to="/register"
-                state={registerRouteState}
-                className="inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-[#c5a059] to-[#dfc38a] py-3 text-sm font-black uppercase tracking-widest text-[#1a2b48] transition-all hover:-translate-y-0.5 hover:shadow-[0_0_20px_rgba(197,160,89,0.3)]"
+                to="https://www.ulaedu.com/#/german"
+                target="_blank"
+                className="inline-flex w-full items-center justify-center rounded-lg bg-gradient-to-r from-[#c5a059] to-[#dfc38a] py-3 text-sm font-black uppercase tracking-widest text-[#1a2b48] transition-all hover:-translate-y-0.5 hover:shadow-[0_0_20px_rgba(197,160,89,0.3)]"
               >
-                Đăng ký ngay
+                Khám phá web học ULA
               </Link>
             </div>
           </div>

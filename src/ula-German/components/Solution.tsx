@@ -1,13 +1,13 @@
 import React from 'react';
-import { solutionDefault } from '../pages/admin/adminData';
+import { solutionDefault, type SolutionContent } from '../pages/admin/adminData';
 import { ADMIN_SECTION_KEYS } from '../pages/admin/adminSections';
 import { useLandingSection } from '../pages/admin/hooks/useLandingSection';
 import { resolveAssetUrl } from '../utils/assetUtil';
 
 const GlassFeatureCard = ({ category, title, bulletPoints, mediaUrl, isVideo = false, gradient }: any) => (
-  // h-full kết hợp với max-w nhỏ giúp thẻ trông cao và gầy
-  <div className="relative group overflow-hidden rounded-[35px] p-[1px] bg-gradient-to-b from-white/30 to-transparent shadow-xl h-[500px] flex flex-col max-w-[340px] mx-auto">
-    <div className="bg-white/10 backdrop-blur-2xl rounded-[34px] p-6 h-full flex flex-col border border-white/20 transition-all duration-500 hover:bg-white/25 w-">
+  // h-full kết hợp với min-h giúp thẻ luôn cao đồng đều và không bị vỡ khi nội dung dài
+  <div className="relative group overflow-hidden rounded-[35px] p-[1px] bg-gradient-to-b from-white/30 to-transparent shadow-xl min-h-[520px] h-full w-full flex flex-col max-w-[340px] mx-auto [transform:translateZ(0)]">
+    <div className="bg-white/10 backdrop-blur-lg rounded-[34px] p-6 h-full flex flex-col border border-white/20 transition-all duration-500 hover:bg-white/25">
 
       <span className="text-[14px] text-center font-bold text-white uppercase tracking-[0.2em] mb-3 block">
         {category}
@@ -46,34 +46,32 @@ const GlassFeatureCard = ({ category, title, bulletPoints, mediaUrl, isVideo = f
 );
 
 const UlaLandingSection = () => {
-  const { content: features } = useLandingSection(ADMIN_SECTION_KEYS.solution, solutionDefault);
-  const visibleFeatures = features.slice(0, 3);
+  const { content } = useLandingSection<SolutionContent>(ADMIN_SECTION_KEYS.solution, solutionDefault);
+  const cards = Array.isArray(content.cards) ? content.cards : [];
+  const visibleFeatures = cards.slice(0, 3);
 
   return (
     // Sử dụng min-h-screen để linh hoạt hơn trên mobile
     <section className="min-h-screen bg-gradient-to-br from-[#004e89] via-[#003b66] to-[#004e89] flex flex-col items-center justify-center py-16 md:py-20 mt-20 p-4 lg:p-10 font-sans relative reveal">
 
-      {/* Background Decor */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/20 rounded-full blur-[120px] pointer-events-none" />
+      {/* Background Decor - Giảm blur để tối ưu hiệu năng */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/10 rounded-full blur-[80px] pointer-events-none" />
 
       {/* Headline - Thu gọn margin để không chiếm diện tích dọc */}
       <div className="text-center mb-10 md:mb-12 px-4 animate-fade-in-up">
-        <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-white uppercase tracking-tight leading-tight">
+        <h1 className="text-2xl sm:text-3xl md:text-5xl font-extrabold font-be-vietnam-pro text-white uppercase tracking-tight leading-tight ">
           <div className='inline-block'>
-            <span className="md:inline">
-              Chỉ
+            <span className="md:inline font-be-vietnam-pro font-extrabold md:px-2">
+              {content.titlePart1 || 'Chỉ'}
             </span>
-            <span className="text-yellow-300 italic px-1 py-1 rounded-xl md:p-0">
-              30 phút/ngày
+            <span className="text-[#dfc38a] font-be-vietnam-pro px-1 sm:px-1 py-1 rounded-xl md:p-0">
+              {content.titleHighlight || '30 phút/ngày'}
             </span>
           </div>
 
-          <span className="hidden md:inline">,</span>
-
-          <span className="block md:inline mt-2 md:mt-0">
-            dễ dàng bắt đầu
+          <span className="block md:inline mt-2 md:mt-0 ml-2">
+            {content.titlePart2 || 'dễ dàng bắt đầu'}
           </span>
-
         </h1>
       </div>
 
@@ -81,44 +79,36 @@ const UlaLandingSection = () => {
       <div className="max-w-6xl w-full relative z-10">
 
         <div className="
-    flex md:grid
-    md:grid-cols-3
-    gap-4 md:gap-6
-    overflow-x-auto md:overflow-visible
-    snap-x snap-mandatory
-    pb-2
+    flex md:grid 
+    md:grid-cols-3 
+    gap-4 md:gap-6 
+    pb-10
+    overflow-x-auto 
+    md:overflow-x-visible
+    snap-x snap-mandatory 
+    scrollbar-hide
+    -mx-4 px-4 md:mx-0 md:px-0
   ">
-
-          {visibleFeatures.map((feature, index) => (
-            <div
-              key={`${feature.category}-${index}`}
-              className={`
-                min-w-[85%] sm:min-w-[70%] md:min-w-0
-                snap-center
-                shrink-0
-                reveal reveal-delay-${(index % 3) + 1}
-              `}
-            >
+          {visibleFeatures.map((feature: any, index: number) => (
+            <div key={index} className="w-[85vw] md:w-full shrink-0 snap-center">
               <GlassFeatureCard
                 category={feature.category}
                 title={feature.title}
-                gradient={feature.gradient}
+                bulletPoints={feature.bullets}
                 mediaUrl={feature.mediaUrl}
                 isVideo={feature.isVideo}
-                bulletPoints={feature.bullets}
+                gradient={feature.gradient}
               />
             </div>
           ))}
-
         </div>
 
-      </div>
-
-      {/* CTA Button - Thu nhỏ một chút để dành diện tích cho thẻ */}
-      <div className="mt-10 relative z-10">
-        {/* <button onClick={() => window.location.href = "#lead-form"} className="bg-[#89cff0] text-[#1a2b48] px-8 py-3 rounded-full font-bold text-sm shadow-[0_0_20px_rgba(37,99,235,0.3)] transition-all hover:scale-105 active:scale-95 uppercase tracking-wider">
-          Bắt đầu trải nghiệm ngay
-        </button> */}
+        {/* Mobile-only scroll indicator */}
+        <div className="flex md:hidden justify-center gap-2 mt-4">
+          {visibleFeatures.map((_: any, i: number) => (
+            <div key={i} className="w-1.5 h-1.5 rounded-full bg-white/30" />
+          ))}
+        </div>
       </div>
     </section>
   );
