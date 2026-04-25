@@ -17,6 +17,7 @@ import MarketingLinks from './pages/admin/pages/MarketingLinks';
 import { trackVisitor } from './pages/admin/adminApi';
 import { ProjectProvider } from '@/src/ula-chinese/pages/admin/context/ProjectContext';
 import { LandingSiteProvider } from '@/src/ula-chinese/context/LandingSiteContext';
+import { ToastContainer } from 'react-toastify';
 
 export default function App() {
   React.useEffect(() => {
@@ -30,6 +31,20 @@ export default function App() {
     <ProjectProvider defaultProject="tieng-duc">
       <LandingSiteProvider siteKey="tieng-duc">
         <BrowserRouter>
+          {/* ĐẶT TOAST CONTAINER Ở ĐÂY CHO BÊN TIẾNG ĐỨC */}
+          <ToastContainer 
+            position="top-right"
+            autoClose={3000}
+            hideProgressBar={false}
+            newestOnTop={false}
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            theme="light"
+          />
+
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/:tag" element={<LandingPage />} />

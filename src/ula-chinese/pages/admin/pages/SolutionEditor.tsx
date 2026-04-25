@@ -44,8 +44,31 @@ export default function SolutionEditor() {
   };
   const handleSave = async () => {
     try {
-      const formData = flattenToFormData(content);
+      const cleanContent = { ...content };
+
+      if (Array.isArray(cleanContent.cards)) {
+        cleanContent.cards = cleanContent.cards.map(card => {
+          const newCard = { ...card };
+
+          // BỘ LỌC THÔNG MINH:
+          const isNewFile = newCard.mediaUrl instanceof File;
+          const isOldValidUrl = typeof newCard.mediaUrl === 'string' &&
+            newCard.mediaUrl.trim() !== '' &&
+            newCard.mediaUrl !== 'null' &&
+            !newCard.mediaUrl.includes('[object Object]');
+
+          // NẾU KHÔNG PHẢI FILE MỚI, CŨNG KHÔNG PHẢI LINK CŨ HỢP LỆ -> MỚI XÓA ĐỂ TRÁNH LƯU RÁC
+          if (!isNewFile && !isOldValidUrl) {
+            delete newCard.mediaUrl;
+          }
+
+          return newCard;
+        });
+      }
+
+      const formData = flattenToFormData(cleanContent);
       const result = await save(formData);
+
       console.log('[SolutionEditor] Lưu thành công!', result);
       alert('Đã lưu thay đổi thành công!');
     } catch (err) {
@@ -89,18 +112,18 @@ export default function SolutionEditor() {
               <Type className="w-3 h-3" /> Tiêu đề phần (Headline)
             </div>
             <div className="grid md:grid-cols-3 gap-6">
-               <div className="space-y-1">
-                 <div className={adminLabel}>Phần 1 (Chỉ)</div>
-                 <input className={adminInput} value={content.titlePart1} onChange={(e) => updateTitle({ titlePart1: e.target.value })} />
-               </div>
-               <div className="space-y-1">
-                 <div className={adminLabel}>Phần nổi bật (30 phút/ngày)</div>
-                 <input className={adminInput} value={content.titleHighlight} onChange={(e) => updateTitle({ titleHighlight: e.target.value })} />
-               </div>
-               <div className="space-y-1">
-                 <div className={adminLabel}>Phần 2 (dễ dàng bắt đầu)</div>
-                 <input className={adminInput} value={content.titlePart2} onChange={(e) => updateTitle({ titlePart2: e.target.value })} />
-               </div>
+              <div className="space-y-1">
+                <div className={adminLabel}>Phần 1 (Chỉ)</div>
+                <input className={adminInput} value={content.titlePart1} onChange={(e) => updateTitle({ titlePart1: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <div className={adminLabel}>Phần nổi bật (30 phút/ngày)</div>
+                <input className={adminInput} value={content.titleHighlight} onChange={(e) => updateTitle({ titleHighlight: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <div className={adminLabel}>Phần 2 (dễ dàng bắt đầu)</div>
+                <input className={adminInput} value={content.titlePart2} onChange={(e) => updateTitle({ titlePart2: e.target.value })} />
+              </div>
             </div>
           </div>
 

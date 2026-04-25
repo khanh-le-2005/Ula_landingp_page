@@ -93,7 +93,7 @@ export default function PainpointsEditor() {
 
         <div className="mt-8 space-y-6">
           {fixedBubbles.map((item, index) => (
-            <div key={`${index}-${item}`} className="group relative rounded-[28px] border border-slate-100 bg-slate-50/30 p-6 transition-all hover:bg-slate-50">
+            <div key={index} className="group relative rounded-[28px] border border-slate-100 bg-slate-50/30 p-6 transition-all hover:bg-slate-50">
               <div className="mb-6 flex items-center gap-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-xs font-black font-mono text-indigo-600">
                   #{index + 1}

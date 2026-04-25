@@ -173,11 +173,28 @@ const updateLP = async (req, res, next) => {
 
     const newData = unflatten(rawData);
 
+    const { getNestedValue } = require("../utils/objectUtil");
+    
     if (req.files && req.files.length > 0) {
+      console.log(`[UPDATE_LP] [${siteKey}] Processing ${req.files.length} files for section: ${sectionName}`);
+      
       for (const file of req.files) {
-        const oldImageId = existingContent[file.fieldname];
-        if (oldImageId) {
-          await imageService.handleDeleteImage(oldImageId);
+        // 1. Lấy URL ảnh cũ từ data hiện tại (Vd: /api/images/65abc...)
+        const oldImageUrl = getNestedValue(existingContent, file.fieldname);
+        
+        if (oldImageUrl && typeof oldImageUrl === 'string' && oldImageUrl.includes('/api/images/')) {
+          // 2. Tách lấy ID (phần cuối của URL)
+          const oldImageId = oldImageUrl.split('/').pop();
+          
+          // 3. Xóa ảnh cũ nếu hợp lệ (MongoDB ID có độ dài 24 ký tự)
+          if (oldImageId && oldImageId.length === 24) {
+            console.log(`[CLEANUP] [${siteKey}] Deleting legacy image: ${oldImageId} from field: ${file.fieldname}`);
+            await imageService.handleDeleteImage(oldImageId);
+          }
+        } else if (oldImageUrl && oldImageUrl.length === 24) {
+          // Hỗ trợ trường hợp cũ chỉ lưu ID (không phải URL)
+          console.log(`[CLEANUP] [${siteKey}] Deleting legacy image ID: ${oldImageUrl}`);
+          await imageService.handleDeleteImage(oldImageUrl);
         }
 
         const newImage = new Image({
@@ -189,7 +206,7 @@ const updateLP = async (req, res, next) => {
         });
         await newImage.save();
 
-        // Chỉ lưu Relative URL để tương thích trên môi trường Monolithic (Server phục vụ luôn Frontend)
+        // Chỉ lưu Relative URL để tương thích trên môi trường Monolithic
         const relativeImageUrl = `/api/images/${newImage._id.toString()}`;
         rawData[file.fieldname] = relativeImageUrl;
       }

@@ -59,7 +59,12 @@ const mergeWithFallback = <T,>(fallback: T, remote: unknown): T => {
     const remoteValue = remote[key];
 
     if (Array.isArray(fallbackValue) || Array.isArray(remoteValue)) {
-      merged[key] = Array.isArray(remoteValue) ? remoteValue : fallbackValue;
+      // FIX: Nếu remote trả về mảng rỗng nhưng fallback có dữ liệu, giữ lại fallback
+      if (Array.isArray(remoteValue) && remoteValue.length === 0 && Array.isArray(fallbackValue) && fallbackValue.length > 0) {
+        merged[key] = fallbackValue;
+      } else {
+        merged[key] = Array.isArray(remoteValue) ? remoteValue : fallbackValue;
+      }
       return;
     }
 

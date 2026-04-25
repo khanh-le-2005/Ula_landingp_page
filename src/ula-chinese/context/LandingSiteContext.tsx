@@ -9,10 +9,10 @@ interface LandingSiteContextType {
 
 const LandingSiteContext = createContext<LandingSiteContextType | undefined>(undefined);
 
-export const LandingSiteProvider: React.FC<{ 
-  siteKey: SiteKey; 
+export const LandingSiteProvider: React.FC<{
+  siteKey: SiteKey;
   campaignTag?: string | null;
-  children: React.ReactNode 
+  children: React.ReactNode
 }> = ({ siteKey, campaignTag, children }) => {
   // Đảm bảo campaignTag luôn là string hoặc undefined (không để null)
   const finalTag = campaignTag || undefined;

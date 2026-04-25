@@ -188,8 +188,8 @@ export const methodologyDefault: MethodologyContent = {
 };
 
 export const experienceDefault: ExperienceContent = {
-  sectionTitle: 'HỌC TẬP KHÔNG GIỚI HẠN CÙNG ULA',
-  sectionSubtitle: 'Demo bài tập tương tác ngay trên hệ thống',
+  sectionTitle: 'Trải nghiệm học tập',
+  sectionSubtitle: 'Cùng AI chấm chữa',
   aiPronunciationImageUrl: 'https://media.istockphoto.com/id/1370433251/photo/black-woman-sitting-at-desk-using-computer-writing-in-notebook.jpg?s=612x612&w=0&k=20&c=rHpy3cX4LVFtzLI4gyy0T-fNYdTeAcdNQgTmy9maAIA=',
   videoUrl: 'https://player.vimeo.com/video/76979871?h=62c6f0f9d0',
   quizzes: [

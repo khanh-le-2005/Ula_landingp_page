@@ -132,13 +132,13 @@ export default function MarketingLinks() {
         notes: formData.notes?.trim(),
         isActive: true,
       };
-      
+
       if (editingId) {
         await updateMarketingLink(editingId, payload);
       } else {
         await createMarketingLink(payload);
       }
-      
+
       setIsModalOpen(false);
       await loadData();
     } catch (err: any) {
@@ -359,45 +359,51 @@ export default function MarketingLinks() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className={adminLabel}>Ref / KOC</label>
-                  <select
+                  <label className={adminLabel}>UTM Source</label>
+                  <input
+                    list="utm-sources-list"
                     className={adminInput}
-                    value={formData.ref || ''}
-                    onChange={(e) => setFormData({ ...formData, ref: e.target.value || undefined })}
-                  >
-                    <option value="">Chọn mã ref</option>
-                    {(metaOptions?.kocs || []).map((k) => (
-                      <option key={k.value} value={k.value}>{k.label}</option>
+                    value={formData.utm_source || ''}
+                    onChange={(e) => setFormData({ ...formData, utm_source: e.target.value || undefined })}
+                    placeholder="VD: facebook, tiktok, zalo..."
+                  />
+                  <datalist id="utm-sources-list">
+                    {(metaOptions?.utmSources || []).map((source) => (
+                      <option key={source} value={source} />
                     ))}
-                  </select>
+                  </datalist>
                 </div>
 
                 <div className="space-y-2">
                   <label className={adminLabel}>UTM Source</label>
-                  <select
+                  <input
+                    list="utm-sources-list"
                     className={adminInput}
                     value={formData.utm_source || ''}
                     onChange={(e) => setFormData({ ...formData, utm_source: e.target.value || undefined })}
-                  >
-                    <option value="">Chọn source</option>
+                    placeholder="VD: facebook, tiktok, zalo..."
+                  />
+                  <datalist id="utm-sources-list">
                     {(metaOptions?.utmSources || []).map((source) => (
-                      <option key={source} value={source}>{source}</option>
+                      <option key={source} value={source} />
                     ))}
-                  </select>
+                  </datalist>
                 </div>
 
                 <div className="space-y-2">
                   <label className={adminLabel}>UTM Medium</label>
-                  <select
+                  <input
+                    list="utm-mediums-list"
                     className={adminInput}
                     value={formData.utm_medium || ''}
                     onChange={(e) => setFormData({ ...formData, utm_medium: e.target.value || undefined })}
-                  >
-                    <option value="">Chọn medium</option>
+                    placeholder="VD: ads, social, email..."
+                  />
+                  <datalist id="utm-mediums-list">
                     {(metaOptions?.utmMediums || []).map((medium) => (
-                      <option key={medium} value={medium}>{medium}</option>
+                      <option key={medium} value={medium} />
                     ))}
-                  </select>
+                  </datalist>
                 </div>
 
                 <div className="md:col-span-2 space-y-2">

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, createContext } from 'react';
 import { fetchLandingPage, updateLandingSection } from '../adminApi';
 import { ADMIN_SECTION_KEYS } from '../adminSections';
 import { PAINPOINTS_DEFAULT_COUNT, type PainpointsContent } from '../adminData';
@@ -13,13 +13,13 @@ const isPlainObject = (value: unknown): value is Record<string, unknown> =>
 const mergeWithFallback = <T,>(fallback: T, remote: unknown): T => {
   if (Array.isArray(fallback)) {
     if (!Array.isArray(remote)) return fallback as T;
-    
+
     // Nếu fallback có phần tử mẫu, ta dùng nó để merge từng phần tử của remote
     if (fallback.length > 0) {
       const template = fallback[0];
       return remote.map((item) => mergeWithFallback(template, item)) as unknown as T;
     }
-    
+
     return remote as unknown as T;
   }
 
@@ -38,7 +38,12 @@ const mergeWithFallback = <T,>(fallback: T, remote: unknown): T => {
     const remoteValue = remote[key];
 
     if (Array.isArray(fallbackValue) || Array.isArray(remoteValue)) {
-      merged[key] = Array.isArray(remoteValue) ? remoteValue : fallbackValue;
+      // FIX: Nếu remote trả về mảng rỗng nhưng fallback có dữ liệu, giữ lại fallback
+      if (Array.isArray(remoteValue) && remoteValue.length === 0 && Array.isArray(fallbackValue) && fallbackValue.length > 0) {
+        merged[key] = fallbackValue;
+      } else {
+        merged[key] = Array.isArray(remoteValue) ? remoteValue : fallbackValue;
+      }
       return;
     }
 
@@ -111,6 +116,11 @@ const normalizePainpointsSection = (remote: unknown, fallback: PainpointsContent
   };
 };
 
+
+export const PreloadDataContext = createContext<any>(null);
+
+
+
 export function useLandingSection<T>(sectionKey: string, fallback: T) {
   const { siteKey, campaignTag } = useSiteContext();
   const location = useLocation();
@@ -155,8 +165,8 @@ export function useLandingSection<T>(sectionKey: string, fallback: T) {
       // Nếu là admin, ta để fetchLandingPage tự quyết định qua localStorage/URL
       // Nếu là guest, ta ép siteKey từ context
       const landingPage = await fetchLandingPage(
-        siteKey, 
-        undefined, 
+        siteKey,
+        undefined,
         isAdmin ? undefined : campaignTag
       );
       const section = landingPage[sectionKey];

@@ -17,6 +17,7 @@ import RequireAdmin from './pages/admin/RequireAdmin';
 import WelcomePage from './pages/WelcomePage';
 import { ProjectProvider } from './pages/admin/context/ProjectContext';
 import { LandingSiteProvider } from './context/LandingSiteContext';
+import { ToastContainer } from 'react-toastify';
 
 export default function App() {
 
@@ -26,6 +27,20 @@ export default function App() {
     <ProjectProvider defaultProject="tieng-trung">
       <LandingSiteProvider siteKey="tieng-trung">
         <BrowserRouter>
+          {/* ĐẶT TOAST CONTAINER Ở ĐÂY LÀ CHUẨN NHẤT */}
+          <ToastContainer
+            position="top-right"
+            autoClose={3000}
+            hideProgressBar={false}
+            newestOnTop={false}
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            theme="light"
+          />
+
           <Routes>
             <Route path="/" element={<WelcomePage />} />
             <Route path="/chinese" element={<LandingPage />} />

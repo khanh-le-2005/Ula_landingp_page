@@ -14,11 +14,6 @@ import {
   Gift,
   AlertTriangle,
   Trash2,
-  CheckCircle,
-  Clock,
-  XCircle,
-  Check,
-  Search,
   Filter,
 } from "lucide-react";
 import { fetchLeads, updateLeadStatus, deleteLead, fetchMarketingMetaOptions, type LeadRecord, type MarketingMetaOptions } from "../adminApi";
@@ -51,7 +46,7 @@ const getStatusConfig = (status?: string) => {
     case 'ENROLLED': 
       return { label: 'ĐÃ NHẬP HỌC', color: 'text-emerald-600 bg-emerald-50 border-emerald-200', dot: 'bg-emerald-500' };
     case 'CANCELLED': 
-      return { label: 'HỦY', color: 'text-rose-600 bg-rose-50 border-rose-200', dot: 'bg-rose-500' };
+      return { label: 'HỦY / RÁC', color: 'text-rose-600 bg-rose-50 border-rose-200', dot: 'bg-rose-500' };
     default: 
       return { label: 'MỚI', color: 'text-indigo-600 bg-indigo-50 border-indigo-200', dot: 'bg-indigo-500' };
   }
@@ -65,7 +60,18 @@ export default function Leads() {
   const [error, setError] = useState("");
   const [selectedLead, setSelectedLead] = useState<LeadRecord | null>(null);
   const [isActionLoading, setIsActionLoading] = useState(false);
-  const [filters, setFilters] = useState({ ref: '', tag: '', status: '' });
+  
+  // CẬP NHẬT: Thêm source, medium, startDate, endDate vào state lọc
+  const [filters, setFilters] = useState({ 
+    ref: '', 
+    tag: '', 
+    status: '',
+    source: '',
+    medium: '',
+    startDate: '',
+    endDate: ''
+  });
+  
   const [metaOptions, setMetaOptions] = useState<MarketingMetaOptions | null>(null);
 
   const loadMetaOptions = async () => {
@@ -118,7 +124,13 @@ export default function Leads() {
     setError("");
 
     try {
-      const data = await fetchLeads(siteKey, filters);
+      // Build query object, bỏ đi những key rỗng để URL sạch sẽ
+      const activeFilters: Record<string, string> = {};
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) activeFilters[key] = value;
+      });
+
+      const data = await fetchLeads(siteKey, activeFilters);
       setLeads(data);
     } catch (loadError) {
       const message =
@@ -132,14 +144,19 @@ export default function Leads() {
     }
   };
 
+  // Gọi API mỗi khi bất kỳ filter nào thay đổi
   useEffect(() => {
     void loadLeads();
-  }, [siteKey, filters.ref, filters.tag, filters.status]);
+  }, [siteKey, filters]);
+
+  const clearFilters = () => {
+    setFilters({ ref: '', tag: '', status: '', source: '', medium: '', startDate: '', endDate: '' });
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
       <section className={adminCard}>
-        <div className="flex flex-wrap items-start justify-between gap-6 mb-10">
+        <div className="flex flex-wrap items-start justify-between gap-6 mb-8">
           <div>
             <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.4em] font-black text-slate-500 mb-2">
               <Database className="w-3 h-3" />
@@ -161,61 +178,116 @@ export default function Leads() {
           </button>
         </div>
 
-        {/* Filter Bar */}
-        <div className="flex flex-wrap items-center gap-4 mb-8 p-6 bg-slate-50/50 rounded-3xl border border-slate-100">
-          <div className="flex items-center gap-2 text-slate-400 mr-2">
-            <Filter className="w-4 h-4" />
-            <span className="text-[10px] font-black uppercase tracking-widest">Bộ lọc</span>
+        {/* --- BỘ LỌC ĐA NĂNG MỚI (GRID LAYOUT) --- */}
+        <div className="mb-8 p-6 bg-slate-50/80 rounded-[24px] border border-slate-100">
+          <div className="flex items-center gap-2 text-slate-500 mb-4">
+            <Filter className="w-4 h-4 text-indigo-500" />
+            <span className="text-xs font-black uppercase tracking-widest text-slate-800">Bộ lọc tìm kiếm</span>
+            {Object.values(filters).some(Boolean) && (
+              <span className="ml-2 px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-600 text-[9px] font-bold">ĐANG LỌC</span>
+            )}
           </div>
 
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 z-10" />
-            <select
-              value={filters.ref}
-              onChange={(e) => setFilters(prev => ({ ...prev, ref: e.target.value }))}
-              className="w-full pl-9 pr-4 py-2 text-xs font-bold bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all appearance-none cursor-pointer relative"
-            >
-              <option value="">Tất cả KOC (Ref)</option>
-              {metaOptions?.kocs.map(koc => (
-                <option key={koc.value} value={koc.value}>{koc.label}</option>
-              ))}
-            </select>
-          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 items-end">
+            {/* Lọc theo Ngày */}
+            <div className="col-span-2 md:col-span-2 lg:col-span-2 flex items-center gap-2">
+              <div className="flex-1">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Từ ngày</label>
+                <input 
+                  type="date" 
+                  value={filters.startDate}
+                  onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
+                  className="w-full px-3 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                />
+              </div>
+              <div className="flex-1">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Đến ngày</label>
+                <input 
+                  type="date" 
+                  value={filters.endDate}
+                  onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
+                  className="w-full px-3 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                />
+              </div>
+            </div>
 
-          <div className="relative flex-1 min-w-[200px]">
-            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 z-10" />
-            <select
-              value={filters.tag}
-              onChange={(e) => setFilters(prev => ({ ...prev, tag: e.target.value }))}
-              className="w-full pl-9 pr-4 py-2 text-xs font-bold bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all appearance-none cursor-pointer relative"
-            >
-              <option value="">Tất cả Campaign (Tag)</option>
-              {metaOptions?.campaigns.map(camp => (
-                <option key={camp.value} value={camp.value}>{camp.label}</option>
-              ))}
-            </select>
-          </div>
+            {/* Lọc Source */}
+            <div className="col-span-1">
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Nguồn (Source)</label>
+              <select
+                value={filters.source}
+                onChange={(e) => setFilters(prev => ({ ...prev, source: e.target.value }))}
+                className="w-full px-3 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 appearance-none cursor-pointer"
+              >
+                <option value="">Tất cả</option>
+                {metaOptions?.utmSources.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
 
-          <div className="min-w-[150px]">
-            <select
-              value={filters.status}
-              onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-              className="w-full px-4 py-2 text-xs font-bold bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all appearance-none cursor-pointer"
-            >
-              <option value="">Tất cả trạng thái</option>
-              <option value="NEW">MỚI</option>
-              <option value="CONTACTED">ĐÃ LIÊN HỆ</option>
-              <option value="ENROLLED">ĐÃ NHẬP HỌC</option>
-              <option value="CANCELLED">HỦY / RÁC</option>
-            </select>
-          </div>
+            {/* Lọc Medium */}
+            <div className="col-span-1">
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Phương thức</label>
+              <select
+                value={filters.medium}
+                onChange={(e) => setFilters(prev => ({ ...prev, medium: e.target.value }))}
+                className="w-full px-3 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 appearance-none cursor-pointer"
+              >
+                <option value="">Tất cả</option>
+                {metaOptions?.utmMediums.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </div>
 
-          <button
-            onClick={() => setFilters({ ref: '', tag: '', status: '' })}
-            className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-rose-500 transition-all"
-          >
-            Xóa lọc
-          </button>
+            {/* Lọc KOC */}
+            <div className="col-span-1">
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Đối tác (Ref)</label>
+              <select
+                value={filters.ref}
+                onChange={(e) => setFilters(prev => ({ ...prev, ref: e.target.value }))}
+                className="w-full px-3 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 appearance-none cursor-pointer truncate"
+              >
+                <option value="">Tất cả</option>
+                {metaOptions?.kocs.map(koc => <option key={koc.value} value={koc.value}>{koc.label}</option>)}
+              </select>
+            </div>
+
+            {/* Lọc Chiến dịch */}
+            <div className="col-span-1">
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Chiến dịch</label>
+              <select
+                value={filters.tag}
+                onChange={(e) => setFilters(prev => ({ ...prev, tag: e.target.value }))}
+                className="w-full px-3 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 appearance-none cursor-pointer truncate"
+              >
+                <option value="">Tất cả</option>
+                {metaOptions?.campaigns.map(camp => <option key={camp.value} value={camp.value}>{camp.label}</option>)}
+              </select>
+            </div>
+
+            {/* Lọc Trạng thái & Nút Clear */}
+            <div className="col-span-1 flex items-end gap-2">
+              <div className="flex-1">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Trạng thái</label>
+                <select
+                  value={filters.status}
+                  onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+                  className="w-full px-3 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 appearance-none cursor-pointer"
+                >
+                  <option value="">Tất cả</option>
+                  <option value="NEW">MỚI</option>
+                  <option value="CONTACTED">ĐÃ LIÊN HỆ</option>
+                  <option value="ENROLLED">ĐÃ NHẬP HỌC</option>
+                  <option value="CANCELLED">HỦY / RÁC</option>
+                </select>
+              </div>
+              <button
+                title="Xóa bộ lọc"
+                onClick={clearFilters}
+                className="h-[34px] px-3 flex items-center justify-center rounded-xl bg-slate-200/50 text-slate-500 hover:bg-rose-100 hover:text-rose-600 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
         </div>
 
         {!isAuthenticated ? (
@@ -265,7 +337,7 @@ export default function Leads() {
                     <td className="px-6 py-12 text-center" colSpan={6}>
                       <div className="flex flex-col items-center gap-4 text-slate-400 font-bold italic">
                         <Users className="h-10 w-10 opacity-20" />
-                        <span>Danh sách trống: Không tìm thấy lead nào.</span>
+                        <span>Danh sách trống: Không tìm thấy lead nào phù hợp bộ lọc.</span>
                       </div>
                     </td>
                   </tr>
@@ -507,7 +579,6 @@ export default function Leads() {
                         Khóa học quan tâm
                       </div>
                       <div className="text-xs font-black text-indigo-600 uppercase tracking-widest leading-relaxed">
-                        {/* SỬA: Thêm formData.course */}
                         {formatValue(
                           selectedLead.formData?.course ??
                             selectedLead.formData?.course_name ??
@@ -517,7 +588,6 @@ export default function Leads() {
                       </div>
                     </div>
 
-                    {/* CẬP NHẬT: Đọc quà tặng ở cả cấp ngoài và bên trong formData (tương thích ngược lead cũ) */}
                     {(selectedLead.prizeName || selectedLead.prizeCode || selectedLead.formData?.prize_option) && (
                       <div className="pt-2 border-t border-slate-200">
                         <div className="text-[10px] font-bold text-slate-500 uppercase mb-1">
@@ -578,7 +648,7 @@ export default function Leads() {
                     {
                       label: "Mã giới thiệu",
                       value:
-                        selectedLead.referralCode || selectedLead.referralId,
+                        selectedLead.referralCode || selectedLead.referralId || selectedLead.affiliateId,
                     },
                     {
                       label: "Ngày tạo",
@@ -618,7 +688,7 @@ export default function Leads() {
                 </div>
               </div>
 
-              {/* SỬA: Technical Footprint - Bổ sung IP và User Agent */}
+              {/* SỬA: Technical Footprint */}
               <div className="space-y-3">
                 <div className="text-[9px] font-black uppercase tracking-[0.3em] text-indigo-600 flex items-center gap-2">
                   <Info className="w-3 h-3" />

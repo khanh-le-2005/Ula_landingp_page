@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { toast } from 'react-toastify';
 import {
   Plus,
   Hash,
@@ -15,26 +16,32 @@ import {
   Copy,
   Save,
   Zap,
-  Gift,
   LayoutGrid,
   Box,
   Sparkles,
+  Gift,
   Globe
 } from 'lucide-react';
 import { fetchCampaigns, createCampaign, updateCampaign, deleteCampaign, fetchLandingPage, fetchPrizes, type Campaign, type LuckyWheelPrize } from '../adminApi';
 import { adminCard, adminInput, adminLabel, adminPrimaryButton, adminSecondaryButton, adminAccentText } from '../adminTheme';
+
+// LƯU Ý ĐƯỜNG DẪN IMPORT NÀY: Nếu bên Đức thư mục khác, hãy tự chỉnh lại cho đúng nhé
 import { useSiteContext, type SiteKey } from '../../../../ula-chinese/context/LandingSiteContext';
 import { ImageUploadField } from '../components/ImageUploadField';
 import { flattenToFormData } from '../utils/formDataUtil';
 
-
 export default function Campaigns() {
   const { siteKey } = useSiteContext();
+
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Biến UI động
+  const isGerman = siteKey === 'tieng-duc';
+  const siteName = isGerman ? 'Đức (DE)' : 'Trung (CN)';
 
   // Editor state
   const [isEditing, setIsEditing] = useState(false);
@@ -43,48 +50,30 @@ export default function Campaigns() {
     tag: '',
     name: '',
     isActive: true,
-    discountText: '', // CẬP NHẬT: Thêm trường mới
-    promoCode: '',     // CẬP NHẬT: Thêm trường mới
-    siteKey: siteKey   // Mặc định từ Context
+    discountText: '', 
+    promoCode: '',     
+    siteKey: siteKey   
   });
 
   // Structured data for ALL sections
   const [hero, setHero] = useState<any>({
-    badge: '',
-    headlineTop: '',
-    headlineHighlight: '',
-    headlineBottom: '',
-    description: '',
-    heroImageUrl: ''
+    badge: '', headlineTop: '', headlineHighlight: '', headlineBottom: '', description: '', heroImageUrl: ''
   });
 
   const [painpoints, setPainpoints] = useState<any>({
-    sectionTitle: '',
-    sectionSubtitle: '',
-    mainTitleTop: '',
-    mainTitleHighlight: '',
-    mascotImageUrl: '',
-    bubbles: [] // Max 7
+    sectionTitle: '', sectionSubtitle: '', mainTitleTop: '', mainTitleHighlight: '', mascotImageUrl: '', bubbles: []
   });
 
   const [solution, setSolution] = useState<any>({
-    titlePart1: '',
-    titleHighlight: '',
-    titlePart2: '',
-    cards: [] // Max 3 cards
+    titlePart1: '', titleHighlight: '', titlePart2: '', cards: []
   });
 
   const [methodology, setMethodology] = useState<any>({
-    mainCard: { number: '', title: '', subTitle: '', imgSrc: '' },
-    cards: [] // Max 4 cards
+    mainCard: { number: '', title: '', subTitle: '', imgSrc: '' }, cards: []
   });
 
   const [luckyWheel, setLuckyWheel] = useState<any>({
-    headline: '',
-    subHeadline: '',
-    description: '',
-    timerLabel: '',
-    prizes: []
+    headline: '', subHeadline: '', description: '', timerLabel: '', prizes: []
   });
 
   const [lastSavedUrl, setLastSavedUrl] = useState<string | null>(null);
@@ -106,7 +95,6 @@ export default function Campaigns() {
     void loadCampaigns();
   }, [siteKey]);
 
-  // Hàm Helper để trích xuất content từ mảng Sections (Hỗ trợ tương thích ngược dữ liệu cũ)
   const getSectionContent = (sectionsData: any, primaryKey: string, fallbackKey: string) => {
     if (Array.isArray(sectionsData)) {
       const found = sectionsData.find(s => s.sectionKey === primaryKey || s.sectionKey === fallbackKey);
@@ -130,23 +118,21 @@ export default function Campaigns() {
           tag: campaign.tag || '',
           name: campaign.name || '',
           isActive: campaign.isActive !== false,
-          discountText: campaign.discountText || '', // Map data
-          promoCode: campaign.promoCode || '',        // Map data
+          discountText: campaign.discountText || '',
+          promoCode: campaign.promoCode || '',
           siteKey: (campaign.siteKey || siteKey) as SiteKey
         });
         currentSections = campaign.sections || [];
         currentPrizes = campaign.prizes || [];
       } else {
-        // Lấy dữ liệu từ trang gốc theo Site hiện tại
         const baseData = await fetchLandingPage(siteKey);
         const basePrizes = await fetchPrizes(siteKey);
         setEditingCampaign(null);
         setFormData({ tag: '', name: '', isActive: true, discountText: '', promoCode: '', siteKey: siteKey });
-        currentSections = baseData; // baseData có thể là object
+        currentSections = baseData;
         currentPrizes = basePrizes;
       }
 
-      // Ô 1: Hero
       const h = getSectionContent(currentSections, 'hero', 'section_1_hero');
       setHero({
         badge: h.badge || '',
@@ -157,7 +143,6 @@ export default function Campaigns() {
         heroImageUrl: h.heroImageUrl || ''
       });
 
-      // Ô 2: Nỗi đau (Painpoints)
       const p = getSectionContent(currentSections, 'section_2_painpoints', 'painpoints');
       setPainpoints({
         sectionTitle: p.sectionTitle || '',
@@ -168,14 +153,10 @@ export default function Campaigns() {
         bubbles: (Array.isArray(p.bubbles) ? p.bubbles : []).slice(0, 7)
       });
 
-      // Ô 3: Giải pháp (Solution)
       const sol = getSectionContent(currentSections, 'section_3_solution', 'solution');
-      // Xử lý linh hoạt vì Cấu trúc mới Content của solution là 1 Array trực tiếp, cấu trúc cũ là object có chứa cards
       const solArray = Array.isArray(sol) ? sol : (Array.isArray(sol.cards) ? sol.cards : []);
       setSolution({
-        titlePart1: sol.titlePart1 || '',
-        titleHighlight: sol.titleHighlight || '',
-        titlePart2: sol.titlePart2 || '',
+        titlePart1: sol.titlePart1 || '', titleHighlight: sol.titleHighlight || '', titlePart2: sol.titlePart2 || '',
         cards: solArray.slice(0, 3).map((c: any) => ({
           category: c.category || '',
           title: c.title || '',
@@ -186,7 +167,6 @@ export default function Campaigns() {
         }))
       });
 
-      // Ô 4: Phương pháp (Methodology)
       const meth = getSectionContent(currentSections, 'section_4_methodology', 'methodology');
       setMethodology({
         mainCard: {
@@ -203,7 +183,6 @@ export default function Campaigns() {
         }))
       });
 
-      // Ô 5: LuckySpin
       const lw = getSectionContent(currentSections, 'luckyspin', 'section_5_lucky_wheel');
       setLuckyWheel({
         headline: lw.headline || '',
@@ -224,7 +203,13 @@ export default function Campaigns() {
   const addPrize = () => {
     setLuckyWheel((prev: any) => ({
       ...prev,
-      prizes: [...prev.prizes, { option: 'Phần thưởng mới', backgroundColor: '#6366f1', textColor: '#ffffff', code: 'NEW-CODE', probability: 1 }]
+      prizes: [...prev.prizes, { 
+        option: 'Phần thưởng mới', 
+        backgroundColor: '#2563eb', 
+        textColor: '#ffffff', 
+        code: 'NEW-CODE', 
+        probability: 1 
+      }]
     }));
   };
 
@@ -246,11 +231,26 @@ export default function Campaigns() {
     setError('');
 
     try {
-      // CẬP NHẬT: Build Object Sections (Logical Keys) thay vì Mảng
+      // BƯỚC 1: LỌC MÁU - RỬA SẠCH ẢNH LỖI TRONG SOLUTION
+      const cleanSolutionCards = (Array.isArray(solution.cards) ? solution.cards : []).map(card => {
+        const newCard = { ...card };
+        const isNewFile = newCard.mediaUrl instanceof File;
+        const isOldValidUrl = typeof newCard.mediaUrl === 'string' &&
+          newCard.mediaUrl.trim() !== '' &&
+          newCard.mediaUrl !== 'null' &&
+          !newCard.mediaUrl.includes('[object Object]');
+
+        if (!isNewFile && !isOldValidUrl) {
+          delete newCard.mediaUrl;
+        }
+        return newCard;
+      });
+
+      // BƯỚC 2: Ráp thành Object như bình thường
       const sectionsObject = {
         hero: hero,
         painpoints: painpoints,
-        solution: solution,
+        solution: cleanSolutionCards, 
         methodology: methodology,
         luckyspin: luckyWheel
       };
@@ -272,11 +272,15 @@ export default function Campaigns() {
 
       setLastSavedUrl(response.data?.fullUrl || null);
       if (editingCampaign) setEditingCampaign(response.data);
+
+      toast.success(editingCampaign ? 'Cập nhật chiến dịch thành công' : 'Tạo chiến dịch mới thành công');
       await loadCampaigns();
 
-      alert('Đã lưu thành công!'); // Có thể bỏ nếu ko thích popup
+      setIsEditing(false); // Lưu xong tự thoát
+
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Lỗi khi lưu chiến dịch');
+      toast.error('Lỗi khi lưu chiến dịch');
     } finally {
       setIsSaving(false);
     }
@@ -286,18 +290,20 @@ export default function Campaigns() {
     if (!window.confirm('Bạn có chắc chắn muốn xóa chiến dịch này?')) return;
     try {
       await deleteCampaign(id);
+      toast.success('Đã xóa chiến dịch');
       await loadCampaigns();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Lỗi khi xóa chiến dịch');
+      toast.error(err instanceof Error ? err.message : 'Lỗi khi xóa chiến dịch');
     }
   };
 
   const toggleStatus = async (campaign: Campaign) => {
     try {
       await updateCampaign(campaign._id, { isActive: !campaign.isActive });
+      toast.success('Cập nhật trạng thái thành công');
       await loadCampaigns();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Lỗi khi cập nhật trạng thái');
+      toast.error(err instanceof Error ? err.message : 'Lỗi khi cập nhật trạng thái');
     }
   };
 
@@ -308,9 +314,11 @@ export default function Campaigns() {
 
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const handleCopyLink = (url: string, id: string) => {
-    navigator.clipboard.writeText(url);
+    const fixedUrl = url.replace('/china', '/chinese');
+    navigator.clipboard.writeText(fixedUrl);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
+    toast.success('Đã copy link!'); 
   };
 
   // --- RENDERING LIST MODE ---
@@ -322,7 +330,7 @@ export default function Campaigns() {
             <div>
               <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.4em] font-black text-slate-500 mb-2">
                 <Target className="w-3 h-3 text-rose-500" />
-                Campaign Overlays (DE)
+                Campaign Overlays ({siteName})
               </div>
               <h2 className="text-3xl font-black text-black tracking-tight">Quản lý <span className={adminAccentText}>Chiến dịch & Tag</span></h2>
               <p className="mt-2 text-slate-500 text-sm font-medium">Tạo link Landing Page riêng biệt cho quảng cáo, KOLs hoặc sự kiện.</p>
@@ -391,8 +399,8 @@ export default function Campaigns() {
                           <button
                             onClick={() => toggleStatus(campaign)}
                             className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all ${campaign.isActive
-                              ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                              : 'bg-slate-100 text-slate-400 border-slate-200'
+                                ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                                : 'bg-slate-100 text-slate-400 border-slate-200'
                               }`}
                           >
                             {campaign.isActive ? 'Đang chạy' : 'Đã tắt'}
@@ -408,8 +416,8 @@ export default function Campaigns() {
                             <button
                               onClick={() => handleCopyLink(campaign.fullUrl || '', campaign._id)}
                               className={`h-9 w-9 flex items-center justify-center rounded-xl border transition-all ${copiedId === campaign._id
-                                ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
-                                : 'border-slate-200 bg-white text-slate-400 hover:bg-slate-100 hover:text-slate-900 shadow-sm'
+                                  ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
+                                  : 'border-slate-200 bg-white text-slate-400 hover:bg-slate-100 hover:text-slate-900 shadow-sm'
                                 }`}
                               title="Sao chép link chiến dịch"
                             >
@@ -469,7 +477,7 @@ export default function Campaigns() {
           <section className={adminCard}>
             <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.4em] font-black text-slate-500 mb-6">
               <Zap className="w-3 h-3 text-amber-500" />
-              Cấu hình Tag (DE)
+              Cấu hình Tag ({siteName})
             </div>
 
             <div className="space-y-6">
@@ -510,9 +518,8 @@ export default function Campaigns() {
                 />
               </div>
 
-              {/* CẬP NHẬT UI: Thêm 2 input cho discountText và promoCode */}
               <div className="space-y-2">
-                <div className={adminLabel}>Text Ưu đãi (Nổi bật)</div>
+                <div className={adminLabel}>Text Ưu đãi (Nổi bật góc trên)</div>
                 <input
                   className={adminInput}
                   placeholder="Ưu đãi Khóa học 5.0 Giảm 80%..."
@@ -551,25 +558,6 @@ export default function Campaigns() {
             </div>
           )}
 
-          {lastSavedUrl && (
-            <section className="bg-emerald-50 border border-emerald-200 rounded-[32px] p-6 animate-in zoom-in-95">
-              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-4">
-                <CheckCircle2 className="w-3 h-3" />
-                Link đã sẵn sàng
-              </div>
-              <div className="relative group">
-                <div className="bg-white border border-emerald-100 rounded-2xl p-4 pr-12 text-[11px] font-mono text-slate-600 break-all leading-relaxed shadow-inner">
-                  {lastSavedUrl}
-                </div>
-                <button
-                  onClick={() => handleCopyLink(lastSavedUrl, 'saved')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-500/20"
-                >
-                  {copiedId === 'saved' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                </button>
-              </div>
-            </section>
-          )}
         </div>
 
         {/* MAIN EDITOR: 5 BLOCKS */}
@@ -602,8 +590,8 @@ export default function Campaigns() {
                 <div className={adminLabel}>Mô tả chính</div>
                 <textarea className={`${adminInput} min-h-[100px] text-sm`} value={hero.description} onChange={(e) => setHero({ ...hero, description: e.target.value })} />
               </div>
-              <ImageUploadField 
-                label="Ảnh Hero (Quảng bá)"
+              <ImageUploadField
+                label="Ảnh Hero"
                 value={hero.heroImageUrl}
                 onChange={(val) => setHero({ ...hero, heroImageUrl: val })}
               />
@@ -651,8 +639,8 @@ export default function Campaigns() {
                 </div>
               </div>
 
-              <ImageUploadField 
-                label="Ảnh Mascot (Vấn đề)"
+              <ImageUploadField
+                label="Ảnh Mascot (Linh vật)"
                 value={painpoints.mascotImageUrl}
                 onChange={(val) => setPainpoints({ ...painpoints, mascotImageUrl: val })}
               />
@@ -724,16 +712,16 @@ export default function Campaigns() {
                       }} />
                     </div>
                   </div>
+                  <ImageUploadField
+                    label="Ảnh/Video Thẻ"
+                    value={card.mediaUrl}
+                    onChange={(val) => {
+                      const newCards = [...solution.cards];
+                      newCards[idx].mediaUrl = val;
+                      setSolution({ ...solution, cards: newCards });
+                    }}
+                  />
                   <div className="grid md:grid-cols-2 gap-4">
-                    <ImageUploadField 
-                      label="Ảnh/Video Thẻ"
-                      value={card.mediaUrl}
-                      onChange={(val) => {
-                        const newCards = [...solution.cards];
-                        newCards[idx].mediaUrl = val;
-                        setSolution({ ...solution, cards: newCards });
-                      }}
-                    />
                     <div className="space-y-2">
                       <div className={adminLabel}>Màu nền (Gradient CSS)</div>
                       <input className={adminInput} value={card.gradient} onChange={(e) => {
@@ -779,7 +767,7 @@ export default function Campaigns() {
                   <input className={adminInput} value={methodology.mainCard.title} onChange={(e) => setMethodology((prev: any) => ({ ...prev, mainCard: { ...prev.mainCard, title: e.target.value } }))} placeholder="Tiêu đề chính" />
                   <input className={adminInput} value={methodology.mainCard.subTitle} onChange={(e) => setMethodology((prev: any) => ({ ...prev, mainCard: { ...prev.mainCard, subTitle: e.target.value } }))} placeholder="Tiêu đề phụ" />
                 </div>
-                <ImageUploadField 
+                <ImageUploadField
                   label="Ảnh thẻ chính"
                   value={methodology.mainCard.imgSrc}
                   onChange={(val) => setMethodology((prev: any) => ({ ...prev, mainCard: { ...prev.mainCard, imgSrc: val } }))}
@@ -806,7 +794,7 @@ export default function Campaigns() {
                       newCards[idx].subTitle = e.target.value;
                       setMethodology({ ...methodology, cards: newCards });
                     }} placeholder="Tiêu đề phụ" />
-                    <ImageUploadField 
+                    <ImageUploadField
                       label={`Ảnh Card ${idx + 1}`}
                       value={card.imgSrc}
                       onChange={(val) => {
@@ -879,8 +867,10 @@ export default function Campaigns() {
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <div className="space-y-1">
+                      
+                      {/* KHÔI PHỤC LẠI CHỌN MÀU CHO VÒNG QUAY */}
+                      <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
+                        <div className="space-y-1 lg:col-span-1">
                           <div className="text-[9px] font-black text-slate-400 uppercase">Tên phần quà</div>
                           <input
                             className={`${adminInput} !py-2 !text-xs`}
@@ -892,7 +882,7 @@ export default function Campaigns() {
                             }}
                           />
                         </div>
-                        <div className="space-y-1">
+                        <div className="space-y-1 lg:col-span-1">
                           <div className="text-[9px] font-black text-slate-400 uppercase">Mã trúng thưởng</div>
                           <input
                             className={`${adminInput} !py-2 !text-xs !font-mono`}
@@ -904,7 +894,7 @@ export default function Campaigns() {
                             }}
                           />
                         </div>
-                        <div className="space-y-1">
+                        <div className="space-y-1 lg:col-span-1">
                           <div className="text-[9px] font-black text-slate-400 uppercase">Tỉ lệ (%)</div>
                           <input
                             className={`${adminInput} !py-2 !text-xs !font-mono`}
@@ -917,6 +907,59 @@ export default function Campaigns() {
                             }}
                           />
                         </div>
+                        
+                        {/* MÀU NỀN */}
+                        <div className="space-y-1 lg:col-span-1">
+                          <div className="text-[9px] font-black text-slate-400 uppercase">Màu Nền</div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="color"
+                              className="h-8 w-10 p-0 border-0 rounded cursor-pointer"
+                              value={prize.backgroundColor || '#2563eb'}
+                              onChange={(e) => {
+                                const newPrizes = [...luckyWheel.prizes];
+                                newPrizes[idx].backgroundColor = e.target.value;
+                                setLuckyWheel({ ...luckyWheel, prizes: newPrizes });
+                              }}
+                            />
+                            <input
+                              className={`${adminInput} !py-2 !text-xs !font-mono`}
+                              value={prize.backgroundColor || '#2563eb'}
+                              onChange={(e) => {
+                                const newPrizes = [...luckyWheel.prizes];
+                                newPrizes[idx].backgroundColor = e.target.value;
+                                setLuckyWheel({ ...luckyWheel, prizes: newPrizes });
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* MÀU CHỮ */}
+                        <div className="space-y-1 lg:col-span-1">
+                          <div className="text-[9px] font-black text-slate-400 uppercase">Màu Chữ</div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="color"
+                              className="h-8 w-10 p-0 border-0 rounded cursor-pointer"
+                              value={prize.textColor || '#ffffff'}
+                              onChange={(e) => {
+                                const newPrizes = [...luckyWheel.prizes];
+                                newPrizes[idx].textColor = e.target.value;
+                                setLuckyWheel({ ...luckyWheel, prizes: newPrizes });
+                              }}
+                            />
+                            <input
+                              className={`${adminInput} !py-2 !text-xs !font-mono`}
+                              value={prize.textColor || '#ffffff'}
+                              onChange={(e) => {
+                                const newPrizes = [...luckyWheel.prizes];
+                                newPrizes[idx].textColor = e.target.value;
+                                setLuckyWheel({ ...luckyWheel, prizes: newPrizes });
+                              }}
+                            />
+                          </div>
+                        </div>
+
                       </div>
                     </div>
                   ))}

@@ -24,4 +24,14 @@ const unflatten = (data) => {
   return result;
 };
 
-module.exports = { unflatten };
+/**
+ * Lấy giá trị từ một object lồng nhau dựa trên đường dẫn chuỗi (vd: "cards[0].imgSrc" hoặc "cards[0][imgSrc]")
+ */
+const getNestedValue = (obj, path) => {
+  if (!obj || !path) return null;
+  // Chuyển "cards[0][imgSrc]" thành "cards.0.imgSrc"
+  const cleanPath = path.replace(/\[(\w+)\]/g, ".$1").replace(/^\./, "");
+  return cleanPath.split(".").reduce((acc, part) => acc && acc[part], obj);
+};
+
+module.exports = { unflatten, getNestedValue };
