@@ -24,6 +24,8 @@ import {
 import { fetchCampaigns, createCampaign, updateCampaign, deleteCampaign, fetchLandingPage, fetchPrizes, type Campaign, type LuckyWheelPrize } from '../adminApi';
 import { adminCard, adminInput, adminLabel, adminPrimaryButton, adminSecondaryButton, adminAccentText } from '../adminTheme';
 import { useSiteContext, type SiteKey } from '../../../../ula-chinese/context/LandingSiteContext';
+import { ImageUploadField } from '../components/ImageUploadField';
+import { flattenToFormData } from '../utils/formDataUtil';
 
 
 export default function Campaigns() {
@@ -248,23 +250,24 @@ export default function Campaigns() {
       const sectionsObject = {
         hero: hero,
         painpoints: painpoints,
-        solution: solution.cards, // Solution truyền mảng cards
+        solution: solution,
         methodology: methodology,
         luckyspin: luckyWheel
       };
 
-      // Gói Payload chuẩn chỉnh
       const finalData = {
-        ...formData,      // Đã chứa tag, name, isActive, discountText, promoCode, siteKey
+        ...formData,
         sections: sectionsObject,
         prizes: luckyWheel.prizes
       };
 
+      const formDataPayload = flattenToFormData(finalData);
+
       let response;
       if (editingCampaign) {
-        response = await updateCampaign(editingCampaign._id, finalData);
+        response = await updateCampaign(editingCampaign._id, formDataPayload);
       } else {
-        response = await createCampaign(finalData);
+        response = await createCampaign(formDataPayload);
       }
 
       setLastSavedUrl(response.data?.fullUrl || null);
@@ -599,10 +602,11 @@ export default function Campaigns() {
                 <div className={adminLabel}>Mô tả chính</div>
                 <textarea className={`${adminInput} min-h-[100px] text-sm`} value={hero.description} onChange={(e) => setHero({ ...hero, description: e.target.value })} />
               </div>
-              <div className="space-y-2">
-                <div className={adminLabel}>URL Ảnh Hero</div>
-                <input className={adminInput} value={hero.heroImageUrl} onChange={(e) => setHero({ ...hero, heroImageUrl: e.target.value })} placeholder="https://images.unsplash.com/..." />
-              </div>
+              <ImageUploadField 
+                label="Ảnh Hero (Quảng bá)"
+                value={hero.heroImageUrl}
+                onChange={(val) => setHero({ ...hero, heroImageUrl: val })}
+              />
             </div>
           </section>
 
@@ -647,10 +651,11 @@ export default function Campaigns() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <div className={adminLabel}>URL Ảnh Mascot</div>
-                <input className={adminInput} value={painpoints.mascotImageUrl} onChange={(e) => setPainpoints({ ...painpoints, mascotImageUrl: e.target.value })} placeholder="https://..." />
-              </div>
+              <ImageUploadField 
+                label="Ảnh Mascot (Vấn đề)"
+                value={painpoints.mascotImageUrl}
+                onChange={(val) => setPainpoints({ ...painpoints, mascotImageUrl: val })}
+              />
               <div className="space-y-4">
                 <div className={adminLabel}>Nội dung 7 bong bóng (Bubbles)</div>
                 <div className="grid gap-3 md:grid-cols-2">
@@ -720,14 +725,15 @@ export default function Campaigns() {
                     </div>
                   </div>
                   <div className="grid md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <div className={adminLabel}>URL Media (Ảnh)</div>
-                      <input className={adminInput} value={card.mediaUrl} onChange={(e) => {
+                    <ImageUploadField 
+                      label="Ảnh/Video Thẻ"
+                      value={card.mediaUrl}
+                      onChange={(val) => {
                         const newCards = [...solution.cards];
-                        newCards[idx].mediaUrl = e.target.value;
+                        newCards[idx].mediaUrl = val;
                         setSolution({ ...solution, cards: newCards });
-                      }} placeholder="https://..." />
-                    </div>
+                      }}
+                    />
                     <div className="space-y-2">
                       <div className={adminLabel}>Màu nền (Gradient CSS)</div>
                       <input className={adminInput} value={card.gradient} onChange={(e) => {
@@ -773,10 +779,11 @@ export default function Campaigns() {
                   <input className={adminInput} value={methodology.mainCard.title} onChange={(e) => setMethodology((prev: any) => ({ ...prev, mainCard: { ...prev.mainCard, title: e.target.value } }))} placeholder="Tiêu đề chính" />
                   <input className={adminInput} value={methodology.mainCard.subTitle} onChange={(e) => setMethodology((prev: any) => ({ ...prev, mainCard: { ...prev.mainCard, subTitle: e.target.value } }))} placeholder="Tiêu đề phụ" />
                 </div>
-                <div className="mt-4">
-                  <div className={adminLabel}>URL Ảnh thẻ chính</div>
-                  <input className={adminInput} value={methodology.mainCard.imgSrc} onChange={(e) => setMethodology((prev: any) => ({ ...prev, mainCard: { ...prev.mainCard, imgSrc: e.target.value } }))} placeholder="https://..." />
-                </div>
+                <ImageUploadField 
+                  label="Ảnh thẻ chính"
+                  value={methodology.mainCard.imgSrc}
+                  onChange={(val) => setMethodology((prev: any) => ({ ...prev, mainCard: { ...prev.mainCard, imgSrc: val } }))}
+                />
               </div>
 
               {/* Cards 1-4 */}
@@ -799,11 +806,15 @@ export default function Campaigns() {
                       newCards[idx].subTitle = e.target.value;
                       setMethodology({ ...methodology, cards: newCards });
                     }} placeholder="Tiêu đề phụ" />
-                    <input className={`${adminInput} !py-2 !text-xs`} value={card.imgSrc} onChange={(e) => {
-                      const newCards = [...methodology.cards];
-                      newCards[idx].imgSrc = e.target.value;
-                      setMethodology({ ...methodology, cards: newCards });
-                    }} placeholder="URL Ảnh" />
+                    <ImageUploadField 
+                      label={`Ảnh Card ${idx + 1}`}
+                      value={card.imgSrc}
+                      onChange={(val) => {
+                        const newCards = [...methodology.cards];
+                        newCards[idx].imgSrc = val;
+                        setMethodology({ ...methodology, cards: newCards });
+                      }}
+                    />
                   </div>
                 ))}
               </div>

@@ -78,7 +78,7 @@ export default function MethodologyEditor() {
                     <input className={adminInput} value={content.mainCard.subTitle} onChange={(e) => updateMainCard({ subTitle: e.target.value })} />
                   </div>
                 </div>
-                <ImageUploadField 
+                <ImageUploadField
                   label="Tài sản Trưng bày"
                   value={content.mainCard.imgSrc}
                   onChange={(val) => updateMainCard({ imgSrc: val as any })}
@@ -97,18 +97,18 @@ export default function MethodologyEditor() {
                   </div>
                   <div className="space-y-4">
                     <div className="space-y-2">
-                       <div className={adminLabel}>ID / Số thứ tự</div>
-                       <input className={adminInput} value={card.number || ''} onChange={(e) => updateCard(index, { number: e.target.value })} placeholder="Vd: Ô 2: VIDEO" />
+                      <div className={adminLabel}>ID / Số thứ tự</div>
+                      <input className={adminInput} value={card.number || ''} onChange={(e) => updateCard(index, { number: e.target.value })} placeholder="Vd: Ô 2: VIDEO" />
                     </div>
                     <div className="space-y-2">
-                       <div className={adminLabel}>Tiêu đề Nút</div>
-                       <input className={adminInput} value={card.title} onChange={(e) => updateCard(index, { title: e.target.value })} />
+                      <div className={adminLabel}>Tiêu đề Nút</div>
+                      <input className={adminInput} value={card.title} onChange={(e) => updateCard(index, { title: e.target.value })} />
                     </div>
                     <div className="space-y-2">
-                       <div className={adminLabel}>Mô tả</div>
-                       <input className={adminInput} value={card.subTitle} onChange={(e) => updateCard(index, { subTitle: e.target.value })} />
+                      <div className={adminLabel}>Mô tả</div>
+                      <input className={adminInput} value={card.subTitle} onChange={(e) => updateCard(index, { subTitle: e.target.value })} />
                     </div>
-                    <ImageUploadField 
+                    <ImageUploadField
                       label="Biểu tượng/Ảnh Nút"
                       value={card.imgSrc}
                       onChange={(val) => updateCard(index, { imgSrc: val as any })}

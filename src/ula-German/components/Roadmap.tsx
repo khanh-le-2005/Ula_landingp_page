@@ -126,11 +126,12 @@ const MASTER_STEPS_CONTENT: Record<string, CourseRoadmapStep> = {
     title: "A2 - Củng cố",
     desc: "Mở rộng ngữ pháp • Giao tiếp sinh hoạt • Bật phản xạ nói"
   },
-  b1_breakthrough: {
-    id: "b1_breakthrough",
+  b1: {
+    id: "b1",
     title: "B1 - Bứt phá",
     desc: "Giao tiếp tự nhiên • Thuyết trình chủ đề • Nền tảng thi B1"
   },
+
   b1_exam: {
     id: "b1_exam",
     title: "B1 - Luyện thi",

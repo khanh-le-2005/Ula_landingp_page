@@ -634,7 +634,7 @@ export const createMarketingLink = async (data: Partial<MarketingLink>) => {
   const token = getStoredAdminToken();
   return requestJson<{ message: string; data: MarketingLink }>(
     "/api/marketing-links",
-    { 
+    {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data)
@@ -648,7 +648,7 @@ export const updateMarketingLink = async (id: string, data: Partial<MarketingLin
   const token = getStoredAdminToken();
   return requestJson<{ message: string; data: MarketingLink }>(
     `/api/marketing-links/${id}`,
-    { 
+    {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data)

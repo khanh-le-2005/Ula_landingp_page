@@ -1,5 +1,4 @@
 import React, { useRef, useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import { ChevronRight, Play, Star, Volume2 } from "lucide-react";
 import { heroDefault } from "../pages/admin/adminData";
 import { ADMIN_SECTION_KEYS } from "../pages/admin/adminSections";
@@ -13,9 +12,6 @@ const TRUSTED_VIETNAMESE_AVATARS = [
   "https://i.pravatar.cc/120?img=56",
   "https://i.pravatar.cc/120?img=68",
 ];
-
-const heroStartPath = "/#lead-form";
-const heroStartState = undefined;
 
 type SlimVimeoPlayerProps = {
   videoUrl: string;
@@ -233,6 +229,14 @@ export default function Hero() {
     });
   };
 
+  const scrollToLeadForm = (e: React.MouseEvent) => {
+    e.preventDefault();
+    document.getElementById("lead-form")?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+  };
+
   return (
     <section
       ref={heroSectionRef}
@@ -262,14 +266,13 @@ export default function Hero() {
               {hero.description}
             </p>
             <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-4 pt-4 md:pt-5 animate-fade-in-up [animation-delay:600ms]">
-              <Link
-                to={heroStartPath}
-                state={heroStartState}
+              <button
+                onClick={scrollToLeadForm}
                 className="w-full text-center sm:w-auto justify-center bg-gradient-to-r from-[#ef4444] to-[#b91c1c] text-white px-8 md:px-10 py-4 md:py-5 rounded-full font-black text-base md:text-lg hover:shadow-[0_20px_40px_rgba(239,68,68,0.4)] transition-all flex items-center group shadow-md active:scale-95"
               >
                 {hero.primaryCta}{" "}
                 <ChevronRight className="ml-2 w-5 h-5 md:w-6 md:h-6 group-hover:translate-x-1 transition-transform" />
-              </Link>
+              </button>
               <button
                 onClick={scrollToRoadmapSection}
                 className="hidden sm:flex sm:w-auto justify-center bg-white/80 text-[#1a2b48] border-2 border-slate-100 px-8 md:px-10 py-4 md:py-5 rounded-full font-bold text-base md:text-lg hover:bg-white transition-all shadow-sm active:scale-95 backdrop-blur-sm"

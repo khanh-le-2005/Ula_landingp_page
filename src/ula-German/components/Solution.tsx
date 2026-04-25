@@ -4,7 +4,7 @@ import { ADMIN_SECTION_KEYS } from '../pages/admin/adminSections';
 import { useLandingSection } from '../pages/admin/hooks/useLandingSection';
 import { resolveAssetUrl } from '../utils/assetUtil';
 
-const GlassFeatureCard = ({ category, title, bulletPoints, mediaUrl, isVideo = false, gradient }: any) => (
+const GlassFeatureCard = ({ category, title, bulletPoints, mediaUrl, isVideo = false, gradient, index }: any) => (
   // h-full kết hợp với min-h giúp thẻ luôn cao đồng đều và không bị vỡ khi nội dung dài
   <div className="relative group overflow-hidden rounded-[35px] p-[1px] bg-gradient-to-b from-white/30 to-transparent shadow-xl min-h-[520px] h-full w-full flex flex-col max-w-[340px] mx-auto [transform:translateZ(0)]">
     <div className="bg-white/10 backdrop-blur-lg rounded-[34px] p-6 h-full flex flex-col border border-white/20 transition-all duration-500 hover:bg-white/25">
@@ -26,7 +26,11 @@ const GlassFeatureCard = ({ category, title, bulletPoints, mediaUrl, isVideo = f
             <img src={resolveAssetUrl(mediaUrl)} alt={title} className="w-full h-full object-cover opacity-90 group-hover:scale-110 transition-transform duration-700" />
           )
         ) : (
-          <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
+          <img 
+            src={solutionDefault.cards[index]?.mediaUrl} 
+            alt="Fallback" 
+            className="w-full h-full object-cover opacity-40 mix-blend-overlay"
+          />
         )}
       </figure>
 
@@ -98,6 +102,7 @@ const UlaLandingSection = () => {
                 mediaUrl={feature.mediaUrl}
                 isVideo={feature.isVideo}
                 gradient={feature.gradient}
+                index={index}
               />
             </div>
           ))}

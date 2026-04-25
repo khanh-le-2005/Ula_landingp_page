@@ -18,14 +18,18 @@ export const resolveAssetUrl = (pathOrId: any): string | undefined => {
   }
 
   // 2. Các đường dẫn tương đối hoặc tuyệt đối tới file tĩnh trong project
+  // CẢI TIẾN: Nếu bắt đầu bằng /api/ thì vẫn cần gắn API_BASE_URL nếu đang ở production
+  const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '').replace(/\/$/, '') || (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:3002' : '');
+
+  if (trimmed.startsWith('/api/')) {
+    return `${API_BASE_URL}${trimmed}`;
+  }
+
   if (trimmed.startsWith('/') || trimmed.startsWith('./') || trimmed.startsWith('../')) {
     return trimmed;
   }
 
   // 3. Phân biệt MongoDB ObjectID (thường là 24 ký tự hex)
-  // Nếu là ID, ta chuyển hướng về API images
-  const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '').replace(/\/$/, '') || (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:3002' : '');
-  
   // Regex kiểm tra 24 ký tự hex
   const isMongoId = /^[0-9a-fA-F]{24}$/.test(trimmed);
   
@@ -33,6 +37,6 @@ export const resolveAssetUrl = (pathOrId: any): string | undefined => {
     return `${API_BASE_URL}/api/images/${trimmed}`;
   }
 
-  // Nếu không khớp gì, trả về nguyên bản (tránh làm hỏng các trường hợp đặc biệt khác)
+  // Nếu không khớp gì, trả về nguyên bản
   return trimmed || undefined;
 };

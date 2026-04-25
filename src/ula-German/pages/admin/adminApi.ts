@@ -61,7 +61,7 @@ export const createMarketingLink = async (data: Partial<MarketingLink>) => {
   const token = getStoredAdminToken();
   return requestJson<{ message: string; data: MarketingLink }>(
     "/api/marketing-links",
-    { 
+    {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data)
@@ -510,7 +510,7 @@ export const fetchLeads = async (siteOverride?: string, filters: { ref?: string;
     {
       method: "GET",
     },
-    { 
+    {
       siteKey: site,
       ...filters
     },
@@ -651,15 +651,17 @@ export const fetchCampaigns = async () => {
   );
 };
 
-export const createCampaign = async (data: Partial<Campaign>) => {
+export const createCampaign = async (data: Partial<Campaign> | FormData) => {
   const token = getStoredAdminToken();
   const { site } = getSiteContext();
+  const isFormData = data instanceof FormData;
+
   return requestJson<{ message: string; data: Campaign }>(
     "/api/campaigns",
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
+      headers: isFormData ? {} : { "Content-Type": "application/json" },
+      body: isFormData ? data : JSON.stringify(data),
     },
     { siteKey: site },
     token,
@@ -669,9 +671,9 @@ export const createCampaign = async (data: Partial<Campaign>) => {
 export const updateCampaign = async (id: string, data: Partial<Campaign> | FormData) => {
   const token = getStoredAdminToken();
   const { site } = getSiteContext();
-  
+
   const isFormData = data instanceof FormData;
-  
+
   return requestJson<{ message: string; data: Campaign }>(
     `/api/campaigns/${id}`,
     {

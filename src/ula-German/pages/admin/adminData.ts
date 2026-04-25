@@ -212,7 +212,7 @@ export const experienceDefault: ExperienceContent = {
         { id: 'B', text: 'Chúc ngủ ngon' },
         { id: 'C', text: 'Cảm ơn bạn' },
       ],
-      imageUrl: 'https://images.unsplash.com/photo-1454165833767-1390e72611da?q=80&w=800',
+      imageUrl: "https://media.istockphoto.com/id/1225960444/photo/friends-clinking-glasses-of-beer.jpg?s=612x612&w=0&k=20&c=F5y3l0C0b2N5_hS0Y7sP6YJ5_Q9ZcR0V_u8tP6_pL4k="
     },
     {
       id: 3,

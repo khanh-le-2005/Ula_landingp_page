@@ -170,7 +170,7 @@ export default function LuckyWheel({ onWin }: { onWin: (prize: { option: string;
             {content.headline}
           </h2>
           {content.subHeadline && (
-            <div className="inline-block mt-2 text-4xl sm:text-5xl md:text-5xl font-extrabold bg-clip-text text-[#e0a31d] drop-shadow-[0_6px_16px_rgba(197,160,89,0.14)] [-webkit-text-stroke:0.5px_#ffffcc] drop-shadow-sm filter brightness-110 ">
+            <div className="inline-block mt-2 text-4xl sm:text-5xl md:text-7xl font-extrabold bg-clip-text text-[#e0a31d] drop-shadow-[0_6px_16px_rgba(197,160,89,0.14)] [-webkit-text-stroke:0.5px_#ffffcc] drop-shadow-sm filter brightness-110 ">
               {content.subHeadline}
             </div>
           )}

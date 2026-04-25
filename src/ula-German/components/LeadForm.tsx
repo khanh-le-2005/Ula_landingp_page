@@ -43,7 +43,7 @@ const INITIAL_FORM: ConsultationFormState = {
   phone: "",
   email: "",
   courseInterest: "",
-  note: "Nhận ưu đãi 40% và quà tặng đặc biệt cho khóa Tiếng Đức",
+  note: "",
 };
 
 const GERMAN_THEME: ConsultationTheme = {

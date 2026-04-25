@@ -141,8 +141,8 @@ const LeadForm: React.FC<ConsultationModalProps> = ({
   useEffect(() => {
     const defaultNote =
       options?.variant === "chinese"
-        ? "Nhận ưu đãi 45% và quà tặng đặc biệt cho khóa Tiếng Trung"
-        : "Nhận ưu đãi 45% và quà tặng đặc biệt cho khóa Tiếng Đức";
+        ? ""
+        : "";
 
     setForm((prev) => ({
       ...prev,
