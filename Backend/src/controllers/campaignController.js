@@ -49,9 +49,9 @@ const getCampaignByTag = async (req, res, next) => {
 const createCampaign = async (req, res, next) => {
   try {
     const siteKey = req.siteKey;
-    let rawData = req.body || {};
+    let rawBody = req.body || {};
 
-    // Xử lý upload ảnh nếu có
+    // --- Xử lý file ảnh được upload lên (nếu có) ---
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
         const newImage = new Image({
@@ -62,14 +62,43 @@ const createCampaign = async (req, res, next) => {
           path: file.path
         });
         await newImage.save();
-        rawData[file.fieldname] = `/api/images/${newImage._id}`;
+        // Lưu đường dẫn ảnh tương đối vào body
+        rawBody[file.fieldname] = `/api/images/${newImage._id.toString()}`;
       }
     }
 
-    const finalData = { ...unflatten(rawData), siteKey };
-    const campaign = new Campaign(finalData);
-    await campaign.save();
+    const body = unflatten(rawBody); // Xử lý lồng ghép JSON/FormData
 
+    // Chuẩn hóa: Nếu Frontend gửi mảng [{sectionKey, content}] thay vì Object
+    if (Array.isArray(body.sections)) {
+      const normalizedSections = {};
+      body.sections.forEach(s => {
+        if (s.sectionKey) normalizedSections[s.sectionKey] = s.content || {};
+      });
+      body.sections = normalizedSections;
+    }
+
+    // --- Tự động đồng bộ Prizes từ section luckyspin ra ngoài bảng chính ---
+    const luckyspin = body.sections?.luckyspin || body.sections?.section_5_lucky_wheel;
+    if (luckyspin && luckyspin.prizes) {
+      body.prizes = luckyspin.prizes.map((p, index) => ({
+        ...p,
+        order: p.order || index
+      }));
+    }
+
+    // --- Kiểm tra trùng Tag trước khi tạo ---
+    const existingCampaign = await Campaign.findOne({ tag: body.tag, siteKey });
+    if (existingCampaign) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Mã Tag "${body.tag}" đã tồn tại trên trang này. Vui lòng dùng mã khác hoặc cập nhật Tag cũ.` 
+      });
+    }
+
+    const data = { ...body, siteKey };
+    const campaign = new Campaign(data);
+    await campaign.save();
     res.status(201).json({
       message: "Tạo chiến dịch thành công",
       data: { ...campaign.toObject(), fullUrl: getFullUrl(req, siteKey, campaign.tag) }
@@ -83,28 +112,31 @@ const createCampaign = async (req, res, next) => {
 const updateCampaign = async (req, res, next) => {
   try {
     const siteKey = req.siteKey;
-    const campaignId = req.params.id;
-    let rawData = req.body || {};
+    let rawBody = req.body || {};
 
-    // Tìm chiến dịch hiện tại để lấy dữ liệu cũ (phục vụ việc xóa ảnh cũ)
-    const existingCampaign = await Campaign.findOne({ _id: campaignId, siteKey });
-    if (!existingCampaign) return res.status(404).json({ message: "Không tìm thấy chiến dịch" });
+    const existingCampaign = await Campaign.findOne({ _id: req.params.id, siteKey });
+    if (!existingCampaign) {
+      return res.status(404).json({ message: "Không tìm thấy chiến dịch hoặc bạn không có quyền sửa" });
+    }
 
-    // Xử lý upload ảnh nếu có
+    // --- Xử lý file ảnh được upload lên + Cleanup ảnh cũ ---
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
-        // 1. Tìm URL ảnh cũ từ data hiện tại
-        const oldImageUrl = getNestedValue(existingCampaign.toObject(), file.fieldname);
-        
-        // 2. Xóa ảnh cũ khỏi disk/DB nếu có
+        // 1. Lấy URL ảnh cũ (Vd: sections.hero.heroImageUrl -> bóc tách từ existingCampaign.sections)
+        // Lưu ý: fieldname từ multer có thể là 'sections.hero.heroImageUrl' hoặc 'sections[0][content][heroImageUrl]'
+        // Ta cần normalize path để dùng với getNestedValue
+        const normalizedPath = file.fieldname.replace(/\[(\d+)\]/g, '.$1').replace(/^sections\./, '');
+        const oldImageUrl = getNestedValue(existingCampaign.sections, normalizedPath);
+
         if (oldImageUrl && typeof oldImageUrl === 'string' && oldImageUrl.includes('/api/images/')) {
           const oldImageId = oldImageUrl.split('/').pop();
           if (oldImageId && oldImageId.length === 24) {
+            console.log(`[CAMPAIGN CLEANUP] Deleting legacy image: ${oldImageId} from path: ${normalizedPath}`);
             await imageService.handleDeleteImage(oldImageId);
           }
         }
 
-        // 3. Lưu ảnh mới
+        // 2. Lưu ảnh mới
         const newImage = new Image({
           filename: file.filename,
           originalName: file.originalname,
@@ -113,20 +145,39 @@ const updateCampaign = async (req, res, next) => {
           path: file.path
         });
         await newImage.save();
-        rawData[file.fieldname] = `/api/images/${newImage._id}`;
+        rawBody[file.fieldname] = `/api/images/${newImage._id.toString()}`;
       }
     }
 
-    const finalData = unflatten(rawData);
-    const updatedCampaign = await Campaign.findOneAndUpdate(
-      { _id: campaignId, siteKey },
-      { $set: finalData },
+    const body = unflatten(rawBody);
+
+    // Chuẩn hóa tương tự như Create (nếu chuyển từ Array sang Object)
+    if (Array.isArray(body.sections)) {
+      const normalizedSections = {};
+      body.sections.forEach(s => {
+        if (s.sectionKey) normalizedSections[s.sectionKey] = s.content || {};
+      });
+      body.sections = normalizedSections;
+    }
+
+    // --- Tự động đồng bộ Prizes tương tự Create ---
+    const luckyspin = body.sections?.luckyspin || body.sections?.section_5_lucky_wheel;
+    if (luckyspin && luckyspin.prizes) {
+      body.prizes = luckyspin.prizes.map((p, index) => ({
+        ...p,
+        order: p.order || index
+      }));
+    }
+
+    const campaign = await Campaign.findOneAndUpdate(
+      { _id: req.params.id, siteKey },
+      body,
       { new: true, runValidators: true }
     );
-
+    if (!campaign) return res.status(404).json({ message: "Không tìm thấy chiến dịch hoặc bạn không có quyền sửa" });
     res.status(200).json({
       message: "Cập nhật thành công",
-      data: { ...updatedCampaign.toObject(), fullUrl: getFullUrl(req, siteKey, updatedCampaign.tag) }
+      data: { ...campaign.toObject(), fullUrl: getFullUrl(req, siteKey, campaign.tag) }
     });
   } catch (err) {
     next(err);

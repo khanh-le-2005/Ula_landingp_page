@@ -14,6 +14,11 @@ import {
   Gift,
   AlertTriangle,
   Trash2,
+  CheckCircle,
+  Clock,
+  XCircle,
+  Check,
+  Search,
   Filter,
 } from "lucide-react";
 import { fetchLeads, updateLeadStatus, deleteLead, fetchMarketingMetaOptions, type LeadRecord, type MarketingMetaOptions } from "../adminApi";
@@ -25,16 +30,10 @@ import {
   adminSecondaryButton,
 } from "../adminTheme";
 
-const formatValue = (value: unknown) => {
-  if (value == null || value === "") {
-    return "—";
-  }
-  if (Array.isArray(value)) {
-    return value.join(", ");
-  }
-  if (typeof value === "object") {
-    return JSON.stringify(value);
-  }
+const formatValue = (value: unknown): string => {
+  if (value == null || value === "") return "—";
+  if (Array.isArray(value)) return value.join(", ");
+  if (typeof value === "object") return JSON.stringify(value);
   return String(value);
 };
 
@@ -61,29 +60,28 @@ export default function Leads() {
   const [selectedLead, setSelectedLead] = useState<LeadRecord | null>(null);
   const [isActionLoading, setIsActionLoading] = useState(false);
   
-  // CẬP NHẬT: Thêm source, medium, startDate, endDate vào state lọc
+  // SỬA CHUẨN THEO API DOCUMENTS: Thay startDate/endDate bằng from/to
   const [filters, setFilters] = useState({ 
     ref: '', 
     tag: '', 
     status: '',
-    source: '',
-    medium: '',
-    startDate: '',
-    endDate: ''
+    utm_source: '',
+    utm_medium: '',
+    from: '',
+    to: ''
   });
   
   const [metaOptions, setMetaOptions] = useState<MarketingMetaOptions | null>(null);
 
-  const loadMetaOptions = async () => {
-    try {
-      const data = await fetchMarketingMetaOptions(siteKey);
-      setMetaOptions(data);
-    } catch (err) {
-      console.error('Lỗi khi tải meta options:', err);
-    }
-  };
-
   useEffect(() => {
+    const loadMetaOptions = async () => {
+      try {
+        const data = await fetchMarketingMetaOptions(siteKey);
+        setMetaOptions(data);
+      } catch (err) {
+        console.error('Lỗi khi tải meta options:', err);
+      }
+    };
     void loadMetaOptions();
   }, [siteKey]);
 
@@ -104,7 +102,7 @@ export default function Leads() {
   };
 
   const handleDeleteLead = async (id: string) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa Lead này? Hành động này không thể hoàn tác.')) return;
+    if (!window.confirm('Bạn có chắc chắn muốn xóa Lead này?')) return;
     if (isActionLoading) return;
     
     setIsActionLoading(true);
@@ -122,9 +120,8 @@ export default function Leads() {
   const loadLeads = async () => {
     setIsLoading(true);
     setError("");
-
     try {
-      // Build query object, bỏ đi những key rỗng để URL sạch sẽ
+      // Build query object
       const activeFilters: Record<string, string> = {};
       Object.entries(filters).forEach(([key, value]) => {
         if (value) activeFilters[key] = value;
@@ -133,24 +130,19 @@ export default function Leads() {
       const data = await fetchLeads(siteKey, activeFilters);
       setLeads(data);
     } catch (loadError) {
-      const message =
-        loadError instanceof Error
-          ? loadError.message
-          : "Không thể tải danh sách leads";
-      setError(message);
+      setError(loadError instanceof Error ? loadError.message : "Không thể tải danh sách leads");
       setLeads([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Gọi API mỗi khi bất kỳ filter nào thay đổi
   useEffect(() => {
     void loadLeads();
   }, [siteKey, filters]);
 
   const clearFilters = () => {
-    setFilters({ ref: '', tag: '', status: '', source: '', medium: '', startDate: '', endDate: '' });
+    setFilters({ ref: '', tag: '', status: '', utm_source: '', utm_medium: '', from: '', to: '' });
   };
 
   return (
@@ -166,15 +158,8 @@ export default function Leads() {
               Danh sách <span className={adminAccentText}>Đăng ký</span>
             </h2>
           </div>
-          <button
-            type="button"
-            onClick={() => void loadLeads()}
-            className={adminSecondaryButton}
-          >
-            <RefreshCw
-              className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
-            />
-            Đồng bộ ngay
+          <button type="button" onClick={() => void loadLeads()} className={adminSecondaryButton}>
+            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} /> Đồng bộ ngay
           </button>
         </div>
 
@@ -189,14 +174,13 @@ export default function Leads() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 items-end">
-            {/* Lọc theo Ngày */}
             <div className="col-span-2 md:col-span-2 lg:col-span-2 flex items-center gap-2">
               <div className="flex-1">
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Từ ngày</label>
                 <input 
                   type="date" 
-                  value={filters.startDate}
-                  onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
+                  value={filters.from}
+                  onChange={(e) => setFilters(prev => ({ ...prev, from: e.target.value }))}
                   className="w-full px-3 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                 />
               </div>
@@ -204,19 +188,18 @@ export default function Leads() {
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Đến ngày</label>
                 <input 
                   type="date" 
-                  value={filters.endDate}
-                  onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
+                  value={filters.to}
+                  onChange={(e) => setFilters(prev => ({ ...prev, to: e.target.value }))}
                   className="w-full px-3 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                 />
               </div>
             </div>
 
-            {/* Lọc Source */}
             <div className="col-span-1">
               <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Nguồn (Source)</label>
               <select
-                value={filters.source}
-                onChange={(e) => setFilters(prev => ({ ...prev, source: e.target.value }))}
+                value={filters.utm_source}
+                onChange={(e) => setFilters(prev => ({ ...prev, utm_source: e.target.value }))}
                 className="w-full px-3 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 appearance-none cursor-pointer"
               >
                 <option value="">Tất cả</option>
@@ -224,12 +207,11 @@ export default function Leads() {
               </select>
             </div>
 
-            {/* Lọc Medium */}
             <div className="col-span-1">
               <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Phương thức</label>
               <select
-                value={filters.medium}
-                onChange={(e) => setFilters(prev => ({ ...prev, medium: e.target.value }))}
+                value={filters.utm_medium}
+                onChange={(e) => setFilters(prev => ({ ...prev, utm_medium: e.target.value }))}
                 className="w-full px-3 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 appearance-none cursor-pointer"
               >
                 <option value="">Tất cả</option>
@@ -237,7 +219,6 @@ export default function Leads() {
               </select>
             </div>
 
-            {/* Lọc KOC */}
             <div className="col-span-1">
               <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Đối tác (Ref)</label>
               <select
@@ -250,9 +231,8 @@ export default function Leads() {
               </select>
             </div>
 
-            {/* Lọc Chiến dịch */}
             <div className="col-span-1">
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Chiến dịch</label>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Chiến dịch (Tag)</label>
               <select
                 value={filters.tag}
                 onChange={(e) => setFilters(prev => ({ ...prev, tag: e.target.value }))}
@@ -263,7 +243,6 @@ export default function Leads() {
               </select>
             </div>
 
-            {/* Lọc Trạng thái & Nút Clear */}
             <div className="col-span-1 flex items-end gap-2">
               <div className="flex-1">
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Trạng thái</label>
@@ -290,22 +269,12 @@ export default function Leads() {
           </div>
         </div>
 
-        {!isAuthenticated ? (
+        {!isAuthenticated && (
           <div className="mb-8 rounded-2xl border border-rose-500/20 bg-rose-500/10 p-5 flex items-center gap-4">
             <ShieldAlert className="h-6 w-6 text-rose-400" />
-            <div className="text-sm font-bold text-rose-400">
-              Truy cập chưa xác thực: Cần có mã phiên làm việc để giải mã dữ
-              liệu Lead.
-            </div>
+            <div className="text-sm font-bold text-rose-400">Truy cập chưa xác thực!</div>
           </div>
-        ) : null}
-
-        {error ? (
-          <div className="mb-8 rounded-2xl border border-rose-500/20 bg-rose-500/10 p-5 flex items-center gap-4 text-rose-400 font-bold text-sm">
-            <AlertCircle className="h-5 w-5" />
-            {error}
-          </div>
-        ) : null}
+        )}
 
         <div className="relative overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-xl">
           <div className="overflow-x-auto no-scrollbar">
@@ -322,130 +291,35 @@ export default function Leads() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {isLoading ? (
-                  <tr>
-                    <td className="px-6 py-12 text-center" colSpan={6}>
-                      <div className="flex flex-col items-center gap-3">
-                        <RefreshCw className="h-6 w-6 text-indigo-500 animate-spin" />
-                        <span className="text-xs font-black uppercase tracking-widest text-slate-400">
-                          Đang lấy dữ liệu...
-                        </span>
-                      </div>
-                    </td>
-                  </tr>
+                  <tr><td className="px-6 py-12 text-center" colSpan={6}><RefreshCw className="h-6 w-6 text-indigo-500 animate-spin mx-auto" /></td></tr>
                 ) : leads.length === 0 ? (
-                  <tr>
-                    <td className="px-6 py-12 text-center" colSpan={6}>
-                      <div className="flex flex-col items-center gap-4 text-slate-400 font-bold italic">
-                        <Users className="h-10 w-10 opacity-20" />
-                        <span>Danh sách trống: Không tìm thấy lead nào phù hợp bộ lọc.</span>
-                      </div>
-                    </td>
-                  </tr>
+                  <tr><td className="px-6 py-12 text-center" colSpan={6}><Users className="h-10 w-10 opacity-20 mx-auto" /><p className="text-slate-400 font-bold mt-4">Không tìm thấy lead nào phù hợp bộ lọc.</p></td></tr>
                 ) : (
-                  leads.map((lead) => {
+                  (Array.isArray(leads) ? leads : []).map((lead) => {
                     const formData = lead.formData || {};
                     const contactName = formatValue(formData.fullname ?? formData.name ?? formData.fullName);
                     const contactPhone = formatValue(formData.phone ?? formData.sdt ?? formData.phoneNumber);
-                    
-                    const interest = formatValue(
-                      formData.course ?? 
-                      formData.course_name ?? 
-                      formData.courseInterest ?? 
-                      'Chưa xác định'
-                    );
-
-                    const source =
-                      [lead.utm_source, lead.utm_medium, lead.utm_campaign]
-                        .filter(Boolean)
-                        .join(" / ") || "Tự nhiên";
+                    const interest = formatValue(formData.course ?? formData.course_name ?? formData.courseInterest ?? 'Chưa xác định');
+                    const source = [lead.utm_source, lead.utm_medium, lead.utm_campaign].filter(Boolean).join(" / ") || "Tự nhiên";
 
                     return (
-                      <tr
-                        key={lead._id}
-                        onClick={() => setSelectedLead(lead)}
-                        className={`group hover:bg-slate-50 transition-all cursor-pointer border-b border-slate-100 last:border-0 ${lead.is_suspicious ? "bg-rose-50/50" : ""}`}
-                      >
+                      <tr key={lead._id} onClick={() => setSelectedLead(lead)} className={`group hover:bg-slate-50 transition-all cursor-pointer border-b border-slate-100 last:border-0 ${lead.is_suspicious ? "bg-rose-50/50" : ""}`}>
                         <td className="px-6 py-6 whitespace-nowrap">
-                          <div className="flex flex-col gap-1">
-                            <div className="flex items-center gap-1.5 text-xs font-black text-slate-600">
-                              <Calendar className="w-3 h-3 text-indigo-500" />
-                              {lead.createdAt
-                                ? new Date(lead.createdAt).toLocaleDateString('vi-VN')
-                                : "—"}
-                            </div>
-                            <div className="text-[10px] text-slate-400 font-mono">
-                              {lead.createdAt
-                                ? new Date(lead.createdAt).toLocaleTimeString('vi-VN',
-                                    { hour: "2-digit", minute: "2-digit" },
-                                  )
-                                : "—"}
-                            </div>
-                          </div>
+                          <div className="flex items-center gap-1.5 text-xs font-black text-slate-600 mb-1"><Calendar className="w-3 h-3 text-indigo-500" />{lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('vi-VN') : "—"}</div>
+                          <div className="text-[10px] text-slate-400 font-mono">{lead.createdAt ? new Date(lead.createdAt).toLocaleTimeString('vi-VN', { hour: "2-digit", minute: "2-digit" }) : "—"}</div>
                         </td>
                         <td className="px-6 py-6">
-                          <div className="space-y-1.5">
-                            <div className="font-black text-slate-900 text-base tracking-tight flex items-center gap-2">
-                              {contactName}
-                            </div>
-                            {lead.is_suspicious && (
-                              <div title="Phát hiện đáng ngờ">
-                                <AlertTriangle className="w-4 h-4 text-rose-500" />
-                              </div>
-                            )}
-
-                            <div className="flex items-center flex-wrap gap-x-4 gap-y-1">
-                              <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-bold uppercase tracking-widest">
-                                <Phone className="w-3 h-3 text-indigo-500/60" />
-                                {contactPhone}
-                              </div>
-                              <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-bold uppercase tracking-widest">
-                                <Mail className="w-3 h-3 text-violet-500/60" />
-                                {formatValue(formData.email)}
-                              </div>
-                            </div>
-                          </div>
+                          <div className="font-black text-slate-900 text-base tracking-tight flex items-center gap-2 mb-1.5">{contactName} {lead.is_suspicious && <AlertTriangle className="w-4 h-4 text-rose-500" />}</div>
+                          <div className="flex items-center flex-wrap gap-x-4 gap-y-1"><div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-bold uppercase tracking-widest"><Phone className="w-3 h-3 text-indigo-500/60" />{contactPhone}</div><div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-bold uppercase tracking-widest"><Mail className="w-3 h-3 text-violet-500/60" />{formatValue(formData.email)}</div></div>
                         </td>
-                        <td className="px-6 py-6">
-                          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-indigo-50 border border-indigo-100 text-[11px] font-black text-indigo-600 uppercase tracking-widest">
-                            {interest}
-                          </div>
-                        </td>
-                        <td className="px-6 py-6">
-                          <div className="space-y-1.5">
-                            <div className="text-[11px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100 inline-block">
-                              {lead.campaignTag || "—"}
-                            </div>
-                            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-                              {lead.referralCode ||
-                                lead.referralId ||
-                                lead.affiliateId ||
-                                "Tự nhiên"}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-6 max-w-[200px]">
-                          <div className="flex items-start gap-2">
-                            <ExternalLink className="w-3 h-3 text-slate-400 mt-1 shrink-0" />
-                            <div
-                              className="text-xs font-medium text-slate-500 leading-relaxed truncate group-hover:block group-hover:whitespace-normal transition-all"
-                              title={source}
-                            >
-                              {source}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-6">
-                          <div className="flex justify-center">
-                            {(() => {
-                              const config = getStatusConfig(lead.status);
-                              return (
-                                <span className={`relative flex items-center gap-2 overflow-hidden rounded-full border ${config.color} px-4 py-1.5 text-[10px] font-black uppercase tracking-widest`}>
-                                  <div className={`h-1.5 w-1.5 rounded-full ${config.dot} animate-pulse`} />
-                                  {config.label}
-                                </span>
-                              );
-                            })()}
-                          </div>
+                        <td className="px-6 py-6"><span className="inline-flex px-3 py-1 rounded-lg bg-indigo-50 border border-indigo-100 text-[11px] font-black text-indigo-600 uppercase tracking-widest">{interest}</span></td>
+                        <td className="px-6 py-6"><div className="text-[11px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100 inline-block mb-1">{lead.campaignTag || "—"}</div><div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">{lead.referralCode || lead.referralId || lead.affiliateId || "Tự nhiên"}</div></td>
+                        <td className="px-6 py-6 max-w-[200px]"><div className="flex items-start gap-2"><ExternalLink className="w-3 h-3 text-slate-400 mt-1 shrink-0" /><div className="text-xs font-medium text-slate-500 leading-relaxed truncate group-hover:block group-hover:whitespace-normal transition-all" title={source}>{source}</div></div></td>
+                        <td className="px-6 py-6 text-center">
+                          {(() => {
+                            const config = getStatusConfig(lead.status);
+                            return <span className={`inline-flex items-center gap-2 rounded-full border ${config.color} px-4 py-1.5 text-[10px] font-black uppercase tracking-widest`}><div className={`h-1.5 w-1.5 rounded-full ${config.dot} animate-pulse`} />{config.label}</span>;
+                          })()}
                         </td>
                       </tr>
                     );
@@ -454,158 +328,66 @@ export default function Leads() {
               </tbody>
             </table>
           </div>
-
           <div className="bg-slate-50/50 border-t border-slate-100 px-6 py-4 flex items-center justify-between">
-            <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-              Đang hiển thị {leads.length} bản ghi
-            </div>
-            <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-              Bảo mật [TLS 1.3]
-            </div>
+            <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Đang hiển thị {leads.length} bản ghi</div>
+            <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Bảo mật [TLS 1.3]</div>
           </div>
         </div>
       </section>
 
-      {/* Lead Detail Modal */}
+      {/* Modal */}
       {selectedLead && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="relative w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-2xl flex flex-col animate-in zoom-in-95 duration-300">
-            {/* Header */}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="relative w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-2xl flex flex-col animate-in zoom-in-95">
             <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50/30">
               <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-2xl bg-slate-900 flex items-center justify-center text-white">
-                  <Users className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-black text-slate-900 tracking-tight">
-                    Chi tiết <span className={adminAccentText}>Khách hàng</span>
-                  </h3>
-                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">
-                    ID Bản ghi: {selectedLead._id}
-                  </div>
-                </div>
+                <div className="h-12 w-12 rounded-2xl bg-slate-900 flex items-center justify-center text-white"><Users className="w-6 h-6" /></div>
+                <div><h3 className="text-xl font-black text-slate-900 tracking-tight">Chi tiết <span className={adminAccentText}>Khách hàng</span></h3><div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">ID Bản ghi: {selectedLead._id}</div></div>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleDeleteLead(selectedLead._id)}
-                  disabled={isActionLoading}
-                  className="h-10 px-4 flex items-center justify-center gap-2 rounded-full bg-rose-50 text-rose-600 hover:bg-rose-100 transition-all border border-rose-100 text-[10px] font-black uppercase tracking-widest disabled:opacity-50"
-                  title="Xóa Lead này"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  Xóa
-                </button>
-                <button
-                  onClick={() => setSelectedLead(null)}
-                  className="h-10 w-10 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition-all border border-slate-200"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+              <div className="flex gap-2">
+                <button onClick={() => handleDeleteLead(selectedLead._id)} disabled={isActionLoading} className="h-10 px-4 flex items-center gap-2 rounded-full bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-100 text-[10px] font-black uppercase tracking-widest"><Trash2 className="w-3.5 h-3.5" /> Xóa</button>
+                <button onClick={() => setSelectedLead(null)} className="h-10 w-10 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-200"><X className="w-5 h-5" /></button>
               </div>
             </div>
-
-            {/* Content */}
+            
             <div className="flex-grow overflow-y-auto p-8 space-y-8 no-scrollbar">
-              {/* Core Identity */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-4">
-                  <div className="text-[9px] font-black uppercase tracking-[0.3em] text-indigo-600">
-                    Hồ sơ khách hàng
-                  </div>
+                  <div className="text-[9px] font-black uppercase tracking-[0.3em] text-indigo-600">Hồ sơ khách hàng</div>
                   <div className="space-y-3">
                     <div>
-                      <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">
-                        Họ và tên
-                      </div>
+                      <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">Họ và tên</div>
                       <div className="text-lg font-black text-slate-900 flex items-center gap-2">
-                        {formatValue(
-                          selectedLead.formData?.fullname ??
-                            selectedLead.formData?.name ??
-                            selectedLead.formData?.fullName,
-                        )}
-                        {selectedLead.is_suspicious && (
-                          <span className="bg-rose-100 text-rose-600 text-[9px] px-2 py-0.5 rounded-full uppercase tracking-widest">
-                            Spam/Trùng lặp
-                          </span>
-                        )}
+                        {formatValue(selectedLead.formData?.fullname ?? selectedLead.formData?.name ?? selectedLead.formData?.fullName)}
+                        {selectedLead.is_suspicious && <span className="bg-rose-100 text-rose-600 text-[9px] px-2 py-0.5 rounded-full uppercase tracking-widest">Spam/Trùng lặp</span>}
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 pt-2">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div><div className="text-[10px] font-bold text-slate-400 uppercase mb-1">Số điện thoại</div><div className="text-sm font-bold text-slate-800 font-mono tracking-wider">{formatValue(selectedLead.formData?.phone ?? selectedLead.formData?.sdt ?? selectedLead.formData?.phoneNumber)}</div></div>
                       <div>
-                        <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">
-                          Số điện thoại
-                        </div>
-                        <div className="text-sm font-bold text-slate-800 font-mono tracking-wider">
-                          {formatValue(
-                            selectedLead.formData?.phone ??
-                              selectedLead.formData?.sdt ??
-                              selectedLead.formData?.phoneNumber,
-                          )}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-[10px] font-bold text-slate-400 uppercase mb-1.5">Trạng thái</div>
-                        <select 
-                          value={selectedLead.status || 'NEW'}
-                          disabled={isActionLoading}
-                          onChange={(e) => handleUpdateStatus(selectedLead._id, e.target.value)}
-                          className={`w-full text-[10px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border appearance-none cursor-pointer focus:outline-none transition-all ${getStatusConfig(selectedLead.status).color}`}
-                        >
-                          <option value="NEW">MỚI</option>
-                          <option value="CONTACTED">ĐÃ LIÊN HỆ</option>
-                          <option value="ENROLLED">ĐÃ NHẬP HỌC</option>
-                          <option value="CANCELLED">HỦY / RÁC</option>
+                        <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">Trạng thái</div>
+                        <select value={selectedLead.status || 'NEW'} disabled={isActionLoading} onChange={(e) => handleUpdateStatus(selectedLead._id, e.target.value)} className={`w-full text-[10px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border appearance-none cursor-pointer focus:outline-none ${getStatusConfig(selectedLead.status).color}`}>
+                          <option value="NEW">MỚI</option><option value="CONTACTED">ĐÃ LIÊN HỆ</option><option value="ENROLLED">ĐÃ NHẬP HỌC</option><option value="CANCELLED">HỦY / RÁC</option>
                         </select>
                       </div>
                     </div>
-                    <div className="pt-2">
-                      <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">
-                        Địa chỉ Email
-                      </div>
-                      <div className="text-sm font-medium text-slate-700">
-                        {formatValue(selectedLead.formData?.email)}
-                      </div>
-                    </div>
+                    <div><div className="text-[10px] font-bold text-slate-400 uppercase mb-1">Email</div><div className="text-sm font-medium text-slate-700">{formatValue(selectedLead.formData?.email)}</div></div>
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  <div className="text-[9px] font-black uppercase tracking-[0.3em] text-indigo-600">
-                    Bối cảnh chiến dịch
-                  </div>
+                  <div className="text-[9px] font-black uppercase tracking-[0.3em] text-indigo-600">Bối cảnh chiến dịch</div>
                   <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4 space-y-4">
                     <div>
-                      <div className="text-[10px] font-bold text-slate-500 uppercase mb-1">
-                        Khóa học quan tâm
-                      </div>
-                      <div className="text-xs font-black text-indigo-600 uppercase tracking-widest leading-relaxed">
-                        {formatValue(
-                          selectedLead.formData?.course ??
-                            selectedLead.formData?.course_name ??
-                            selectedLead.formData?.courseInterest ??
-                            "Landing Tự nhiên",
-                        )}
-                      </div>
+                      <div className="text-[10px] font-bold text-slate-500 uppercase mb-1">Khóa học quan tâm</div>
+                      <div className="text-xs font-black text-indigo-600 uppercase tracking-widest">{formatValue(selectedLead.formData?.course ?? selectedLead.formData?.course_name ?? selectedLead.formData?.courseInterest ?? "Landing Tự nhiên")}</div>
                     </div>
-
                     {(selectedLead.prizeName || selectedLead.prizeCode || selectedLead.formData?.prize_option) && (
                       <div className="pt-2 border-t border-slate-200">
-                        <div className="text-[10px] font-bold text-slate-500 uppercase mb-1">
-                          Quà tặng / Voucher
-                        </div>
+                        <div className="text-[10px] font-bold text-slate-500 uppercase mb-1">Quà tặng / Voucher</div>
                         <div className="flex flex-col gap-1 text-xs font-black text-amber-600 uppercase tracking-widest">
-                          <div className="inline-flex items-center gap-2">
-                            <Gift className="w-3 h-3" />
-                            {formatValue(selectedLead.prizeName ?? selectedLead.formData?.prize_option)}
-                          </div>
-                          {(selectedLead.prizeCode || selectedLead.formData?.prize_code) && (
-                            <div className="text-[10px] text-amber-500/80 tracking-widest">
-                              Code:{" "}
-                              <span className="font-mono">
-                                {selectedLead.prizeCode ?? selectedLead.formData?.prize_code}
-                              </span>
-                            </div>
-                          )}
+                          <div className="inline-flex items-center gap-2"><Gift className="w-3 h-3" /> {formatValue(selectedLead.prizeName ?? selectedLead.formData?.prize_option)}</div>
+                          {(selectedLead.prizeCode || selectedLead.formData?.prize_code) && <div className="text-[10px] text-amber-500/80 tracking-widest">Code: <span className="font-mono">{selectedLead.prizeCode ?? selectedLead.formData?.prize_code}</span></div>}
                         </div>
                       </div>
                     )}
@@ -613,126 +395,49 @@ export default function Leads() {
                 </div>
               </div>
 
-              {/* Note / Message */}
-              {(selectedLead.formData?.note ||
-                selectedLead.formData?.loi_nhan) && (
+              {(selectedLead.formData?.note || selectedLead.formData?.loi_nhan) && (
                 <div className="space-y-3">
-                  <div className="text-[9px] font-black uppercase tracking-[0.3em] text-indigo-600 flex items-center gap-2">
-                    <Mail className="w-3 h-3" />
-                    Lời nhắn từ khách hàng
-                  </div>
-                  <div className="text-sm text-slate-600 font-medium leading-relaxed bg-slate-50 border border-slate-200 rounded-2xl p-5 italic">
-                    "
-                    {formatValue(
-                      selectedLead.formData.note ??
-                        selectedLead.formData.loi_nhan,
-                    )}
-                    "
-                  </div>
+                  <div className="text-[9px] font-black uppercase tracking-[0.3em] text-indigo-600 flex items-center gap-2"><Mail className="w-3 h-3" />Lời nhắn từ khách hàng</div>
+                  <div className="text-sm text-slate-600 font-medium leading-relaxed bg-slate-50 border border-slate-200 rounded-2xl p-5 italic">"{formatValue(selectedLead.formData.note ?? selectedLead.formData.loi_nhan)}"</div>
                 </div>
               )}
 
-              {/* Attribution Data */}
               <div className="space-y-4">
-                <div className="text-[9px] font-black uppercase tracking-[0.3em] text-indigo-600 flex items-center gap-2">
-                  <ExternalLink className="w-3 h-3" />
-                  Dữ liệu nguồn truy cập
-                </div>
+                <div className="text-[9px] font-black uppercase tracking-[0.3em] text-indigo-600 flex items-center gap-2"><ExternalLink className="w-3 h-3" />Dữ liệu nguồn truy cập</div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   {[
                     { label: "Nguồn (Source)", value: selectedLead.utm_source },
-                    { label: "Phương thức", value: selectedLead.utm_medium },
-                    { label: "Chiến dịch", value: selectedLead.utm_campaign },
-                    { label: "Nội dung", value: selectedLead.utm_content },
-                    { label: "Mã chiến dịch", value: selectedLead.campaignTag },
-                    {
-                      label: "Mã giới thiệu",
-                      value:
-                        selectedLead.referralCode || selectedLead.referralId || selectedLead.affiliateId,
-                    },
-                    {
-                      label: "Ngày tạo",
-                      value: selectedLead.createdAt
-                        ? new Date(selectedLead.createdAt).toLocaleString('vi-VN')
-                        : null,
-                    },
-                    {
-                      label: "Thời điểm Click",
-                      value: selectedLead.click_timestamp
-                        ? new Date(
-                            selectedLead.click_timestamp,
-                          ).toLocaleString('vi-VN')
-                        : null,
-                    },
-                    {
-                      label: "Thời điểm Gửi form",
-                      value: selectedLead.conversion_timestamp
-                        ? new Date(
-                            selectedLead.conversion_timestamp,
-                          ).toLocaleString('vi-VN')
-                        : null,
-                    },
+                    { label: "Phương thức (Medium)", value: selectedLead.utm_medium },
+                    { label: "Chiến dịch (Campaign)", value: selectedLead.utm_campaign },
+                    { label: "Nội dung (Content)", value: selectedLead.utm_content },
+                    { label: "Mã chiến dịch (Tag)", value: selectedLead.campaignTag },
+                    { label: "Mã giới thiệu (Ref)", value: selectedLead.referralCode || selectedLead.referralId || selectedLead.affiliateId },
+                    { label: "Ngày tạo", value: selectedLead.createdAt ? new Date(selectedLead.createdAt).toLocaleString('vi-VN') : null },
+                    { label: "Thời điểm Click", value: selectedLead.click_timestamp ? new Date(selectedLead.click_timestamp).toLocaleString('vi-VN') : null },
+                    { label: "Thời điểm Gửi form", value: selectedLead.conversion_timestamp ? new Date(selectedLead.conversion_timestamp).toLocaleString('vi-VN') : null },
                   ].map((attr, idx) => (
-                    <div
-                      key={idx}
-                      className="p-4 rounded-xl bg-slate-50 border border-slate-200"
-                    >
-                      <div className="text-[9px] font-bold text-slate-500 uppercase mb-1">
-                        {attr.label}
-                      </div>
-                      <div className="text-[11px] font-black text-slate-600 break-words font-mono uppercase tracking-tighter">
-                        {attr.value || "N/A"}
-                      </div>
+                    <div key={idx} className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                      <div className="text-[9px] font-bold text-slate-500 uppercase mb-1">{attr.label}</div>
+                      <div className="text-[11px] font-black text-slate-600 break-words font-mono uppercase tracking-tighter">{attr.value || "N/A"}</div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* SỬA: Technical Footprint */}
               <div className="space-y-3">
-                <div className="text-[9px] font-black uppercase tracking-[0.3em] text-indigo-600 flex items-center gap-2">
-                  <Info className="w-3 h-3" />
-                  Thông tin kỹ thuật (Log/Trình duyệt)
-                </div>
+                <div className="text-[9px] font-black uppercase tracking-[0.3em] text-indigo-600 flex items-center gap-2"><Info className="w-3 h-3" />Thông tin kỹ thuật (Log)</div>
                 <div className="flex flex-wrap gap-2 text-[10px] font-mono text-slate-500">
-                  <span className="bg-slate-100 px-3 py-1 rounded-md border border-slate-200">
-                    ID: {selectedLead._id}
-                  </span>
-                  {selectedLead.ip_address && (
-                    <span className="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-md border border-indigo-100">
-                      IP: {selectedLead.ip_address}
-                    </span>
-                  )}
-                  {(selectedLead as any).fbp && (
-                    <span className="bg-slate-100 px-3 py-1 rounded-md border border-slate-200">
-                      FBP: {(selectedLead as any).fbp}
-                    </span>
-                  )}
-                  {(selectedLead as any).fbc && (
-                    <span className="bg-slate-100 px-3 py-1 rounded-md border border-slate-200">
-                      FBC: {(selectedLead as any).fbc}
-                    </span>
-                  )}
-                  {selectedLead.user_agent && (
-                    <span
-                      className="bg-slate-100 px-3 py-1 rounded-md border border-slate-200 truncate max-w-full block mt-1"
-                      title={selectedLead.user_agent}
-                    >
-                      UA: {selectedLead.user_agent}
-                    </span>
-                  )}
+                  <span className="bg-slate-100 px-3 py-1 rounded-md border border-slate-200">ID: {selectedLead._id}</span>
+                  {selectedLead.ip_address && <span className="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-md border border-indigo-100">IP: {selectedLead.ip_address}</span>}
+                  {(selectedLead as any).fbp && <span className="bg-slate-100 px-3 py-1 rounded-md border border-slate-200">FBP: {(selectedLead as any).fbp}</span>}
+                  {(selectedLead as any).fbc && <span className="bg-slate-100 px-3 py-1 rounded-md border border-slate-200">FBC: {(selectedLead as any).fbc}</span>}
+                  {selectedLead.user_agent && <span className="bg-slate-100 px-3 py-1 rounded-md border border-slate-200 truncate max-w-full block mt-1" title={selectedLead.user_agent}>UA: {selectedLead.user_agent}</span>}
                 </div>
               </div>
             </div>
 
-            {/* Footer */}
             <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex justify-end">
-              <button
-                onClick={() => setSelectedLead(null)}
-                className={adminSecondaryButton}
-              >
-                Đóng
-              </button>
+              <button onClick={() => setSelectedLead(null)} className={adminSecondaryButton}>Đóng</button>
             </div>
           </div>
         </div>

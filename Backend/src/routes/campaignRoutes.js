@@ -2,8 +2,7 @@ const express = require("express");
 const router = express.Router();
 const campaignController = require("../controllers/campaignController");
 const { verifyToken, checkRole } = require("../utils/authUtil");
-const multer = require("multer");
-const upload = multer({ dest: "uploads/" }); // Hoặc dùng cấu hình multer chung nếu có
+const upload = require("../utils/multerConfig");
 
 // --- Public ---
 // Frontend dùng để kiểm tra chiến dịch có tồn tại không (tùy chọn)

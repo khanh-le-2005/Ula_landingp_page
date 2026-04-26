@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { toast } from 'react-toastify'; 
+import { toast } from 'react-toastify';
 import {
   Plus,
   Hash,
@@ -27,6 +27,19 @@ import { adminCard, adminInput, adminLabel, adminPrimaryButton, adminSecondaryBu
 import { useSiteContext, type SiteKey } from '../../../context/LandingSiteContext';
 import ImageUploadField from '../components/ImageUploadField';
 import { flattenToFormData } from '../utils/formDataUtil';
+
+
+export interface LuckyWheelPrize {
+  _id?: string;
+  option: string;
+  code?: string;
+  probability?: number;
+  backgroundColor?: string;
+  textColor?: string;
+  order?: number;
+}
+
+// Đã loại bỏ flattenToFormData vì API backend mong muốn nhận JSON tĩnh
 
 export default function Campaigns() {
   const { siteKey } = useSiteContext();
@@ -77,6 +90,7 @@ export default function Campaigns() {
     setIsLoading(true);
     setError('');
     try {
+      // Gọi fetchCampaigns truyền param siteKey (để BE get theo ?siteKey=...)
       const data = await fetchCampaigns(siteKey);
       setCampaigns(data);
     } catch (err) {
@@ -90,12 +104,24 @@ export default function Campaigns() {
     void loadCampaigns();
   }, [siteKey]);
 
+  // Hàm này xử lý được cả data lúc lưu (Array) và lúc get (Object) của Backend
   const getSectionContent = (sectionsData: any, primaryKey: string, fallbackKey: string) => {
+    if (!sectionsData) return {};
+
+    // Trường hợp 1: Nếu data là một Mảng (Cấu trúc cũ / Postman)
     if (Array.isArray(sectionsData)) {
       const found = sectionsData.find(s => s.sectionKey === primaryKey || s.sectionKey === fallbackKey);
-      return found ? found.content : {};
+      return found ? (found.content || found) : {};
     }
-    return sectionsData[primaryKey] || sectionsData[fallbackKey] || {};
+
+    // Trường hợp 2: Nếu data là một Object (Cấu trúc mới backend tự convert)
+    const targetSection = sectionsData[primaryKey] || sectionsData[fallbackKey];
+    if (targetSection) {
+      // Backend có thể để dữ liệu thẳng trong object, hoặc bọc trong chữ 'content'
+      return targetSection.content ? targetSection.content : targetSection;
+    }
+
+    return {};
   };
 
   const handleOpenEditor = async (campaign?: Campaign) => {
@@ -198,12 +224,12 @@ export default function Campaigns() {
   const addPrize = () => {
     setLuckyWheel((prev: any) => ({
       ...prev,
-      prizes: [...prev.prizes, { 
-        option: 'Phần thưởng mới', 
+      prizes: [...prev.prizes, {
+        option: 'Phần thưởng mới',
         backgroundColor: '#2563eb', // Default blue
         textColor: '#ffffff',       // Default white
-        code: 'NEW-CODE', 
-        probability: 1 
+        code: 'NEW-CODE',
+        probability: 1
       }]
     }));
   };
@@ -226,8 +252,11 @@ export default function Campaigns() {
     setError('');
 
     try {
+      // 1. Xử lý ảnh và video cho Cards
       const cleanSolutionCards = (Array.isArray(solution.cards) ? solution.cards : []).map(card => {
         const newCard = { ...card };
+        newCard.isVideo = !!newCard.isVideo;
+
         const isNewFile = newCard.mediaUrl instanceof File;
         const isOldValidUrl = typeof newCard.mediaUrl === 'string' &&
           newCard.mediaUrl.trim() !== '' &&
@@ -240,44 +269,78 @@ export default function Campaigns() {
         return newCard;
       });
 
-      const sectionsObject = {
-        hero: hero,
-        painpoints: painpoints,
-        solution: cleanSolutionCards, 
-        methodology: methodology,
-        luckyspin: luckyWheel
-      };
+      // 2. Gom dữ liệu sections thành MẢNG (ARRAY) - GIỐNG Y HỆT JSON POSTMAN CỦA BẠN
+      const formattedSections = [
+        { sectionKey: "hero", content: hero },
+        { sectionKey: "section_2_painpoints", content: painpoints },
+        {
+          sectionKey: "section_3_solution",
+          content: {
+            titlePart1: solution.titlePart1,
+            titleHighlight: solution.titleHighlight,
+            titlePart2: solution.titlePart2,
+            cards: cleanSolutionCards
+          }
+        },
+        { sectionKey: "section_4_methodology", content: methodology },
+        { sectionKey: "luckyspin", content: luckyWheel }
+      ];
 
+      // 3. Gom toàn bộ payload
       const finalData = {
-        ...formData,
-        sections: sectionsObject,
+        ...(editingCampaign ? { _id: editingCampaign._id } : {}),
+        siteKey: formData.siteKey,
+        tag: formData.tag,
+        name: formData.name,
+        isActive: formData.isActive,
+        discountText: formData.discountText,
+        promoCode: formData.promoCode,
+        sections: formattedSections, // Đã đổi lại thành Mảng
         prizes: luckyWheel.prizes
       };
 
-      const formDataPayload = flattenToFormData(finalData);
+      // 4. HÀM QUÉT THÔNG MINH: Kiểm tra xem có File ảnh nào cần tải lên không
+      const checkHasFiles = (obj: any): boolean => {
+        if (!obj) return false;
+        if (obj instanceof File) return true;
+        if (Array.isArray(obj)) return obj.some(checkHasFiles);
+        if (typeof obj === 'object') return Object.values(obj).some(checkHasFiles);
+        return false;
+      };
+
+      const hasFiles = checkHasFiles(finalData);
+
+      // QUYẾT ĐỊNH PHƯƠNG THỨC GỬI DỮ LIỆU
+      // - KHÔNG CÓ ẢNH: Gửi thẳng JSON Object (100% lưu text mượt mà)
+      // - CÓ ẢNH MỚI: Bọc qua flattenToFormData để mang File đi
+      const payload = hasFiles ? flattenToFormData(finalData) : finalData;
+
+      console.log(`🚀 [API SUBMIT] Đang gửi dạng: ${hasFiles ? 'FormData (CÓ ẢNH)' : 'JSON Thuần (CHỈ CÓ TEXT)'}`);
 
       let response;
       if (editingCampaign) {
-        response = await updateCampaign(editingCampaign._id, formDataPayload);
+        response = await updateCampaign(editingCampaign._id, payload, formData.siteKey);
       } else {
-        response = await createCampaign(formDataPayload);
+        response = await createCampaign(payload, formData.siteKey);
       }
 
-      setLastSavedUrl(response.data?.fullUrl || null);
+      setLastSavedUrl(response?.data?.fullUrl || null);
       if (editingCampaign) setEditingCampaign(response.data);
 
       toast.success(editingCampaign ? 'Cập nhật chiến dịch thành công' : 'Tạo chiến dịch mới thành công');
       await loadCampaigns();
 
-      setIsEditing(false); 
+      setIsEditing(false);
 
     } catch (err) {
+      console.error("❌ Lỗi khi lưu:", err);
       setError(err instanceof Error ? err.message : 'Lỗi khi lưu chiến dịch');
       toast.error('Lỗi khi lưu chiến dịch');
     } finally {
       setIsSaving(false);
     }
-  };  
+  };
+
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('Bạn có chắc chắn muốn xóa chiến dịch này?')) return;
@@ -292,7 +355,8 @@ export default function Campaigns() {
 
   const toggleStatus = async (campaign: Campaign) => {
     try {
-      await updateCampaign(campaign._id, { isActive: !campaign.isActive });
+      // Truyền đúng thứ tự: 1. ID | 2. Data (JSON) | 3. siteKey
+      await updateCampaign(campaign._id, { isActive: !campaign.isActive }, siteKey);
       toast.success('Cập nhật trạng thái thành công');
       await loadCampaigns();
     } catch (err) {
@@ -392,8 +456,8 @@ export default function Campaigns() {
                           <button
                             onClick={() => toggleStatus(campaign)}
                             className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all ${campaign.isActive
-                                ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                                : 'bg-slate-100 text-slate-400 border-slate-200'
+                              ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                              : 'bg-slate-100 text-slate-400 border-slate-200'
                               }`}
                           >
                             {campaign.isActive ? 'Đang chạy' : 'Đã tắt'}
@@ -409,8 +473,8 @@ export default function Campaigns() {
                             <button
                               onClick={() => handleCopyLink(campaign.fullUrl || '', campaign._id)}
                               className={`h-9 w-9 flex items-center justify-center rounded-xl border transition-all ${copiedId === campaign._id
-                                  ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
-                                  : 'border-slate-200 bg-white text-slate-400 hover:bg-slate-100 hover:text-slate-900 shadow-sm'
+                                ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
+                                : 'border-slate-200 bg-white text-slate-400 hover:bg-slate-100 hover:text-slate-900 shadow-sm'
                                 }`}
                               title="Sao chép link chiến dịch"
                             >
@@ -705,15 +769,42 @@ export default function Campaigns() {
                       }} />
                     </div>
                   </div>
-                  <ImageUploadField
-                    label="Ảnh/Video Thẻ"
-                    value={card.mediaUrl}
-                    onChange={(val) => {
-                      const newCards = [...solution.cards];
-                      newCards[idx].mediaUrl = val;
-                      setSolution({ ...solution, cards: newCards });
-                    }}
-                  />
+                  <div className="space-y-3">
+                    <ImageUploadField
+                      label="Ảnh/Video Thẻ"
+                      value={card.mediaUrl}
+                      onChange={(val) => {
+                        const newCards = [...solution.cards];
+                        newCards[idx].mediaUrl = val;
+
+                        // Tự động nhận diện (nếu bạn dán URL)
+                        if (typeof val === 'string') {
+                          if (val.match(/\.(mp4|webm|ogg)(\?.*)?$/i)) {
+                            newCards[idx].isVideo = true;
+                          } else if (val.match(/\.(jpeg|jpg|gif|png|webp|svg)(\?.*)?$/i)) {
+                            newCards[idx].isVideo = false;
+                          }
+                        }
+
+                        setSolution({ ...solution, cards: newCards });
+                      }}
+                    />
+
+                    {/* NÚT CHECKBOX NÀY SẼ CỨU BẠN */}
+                    <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg bg-slate-100/50 border border-slate-200 hover:bg-slate-100 transition-colors w-fit mt-2">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer"
+                        checked={!!card.isVideo} // Ép kiểu boolean
+                        onChange={(e) => {
+                          const newCards = [...solution.cards];
+                          newCards[idx].isVideo = e.target.checked;
+                          setSolution({ ...solution, cards: newCards });
+                        }}
+                      />
+                      <span className="text-xs font-bold text-slate-700">Đây là Video (Bỏ tick nếu là Ảnh)</span>
+                    </label>
+                  </div>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <div className={adminLabel}>Màu nền (Gradient CSS)</div>
@@ -860,7 +951,7 @@ export default function Campaigns() {
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                      
+
                       {/* CẬP NHẬT: Thêm form chọn 2 màu cho Vòng Quay */}
                       <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
                         <div className="space-y-1 lg:col-span-1">
@@ -900,7 +991,7 @@ export default function Campaigns() {
                             }}
                           />
                         </div>
-                        
+
                         <div className="space-y-1 lg:col-span-1">
                           <div className="text-[9px] font-black text-slate-400 uppercase">Màu Nền</div>
                           <div className="flex items-center gap-2">

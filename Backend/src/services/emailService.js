@@ -39,11 +39,13 @@ const sendRewardEmail = async (toEmail, prizeInfo) => {
           <p style="font-size: 14px; margin-bottom: 0; color: #374151;">Dùng mã này khi đăng ký để được áp dụng ngay lập tức.</p>
         </div>
 
+        ${prizeCode ? `
         <div style="background: #fff7ed; padding: 20px; border-radius: 8px; border-left: 5px solid #f97316;">
           <h3 style="margin-top: 0; color: #9a3412;">🎡 2. Quà Tặng Từ Vòng Quay:</h3>
-          <p style="margin: 5px 0;"><strong>${prizeName}</strong></p>
+          <p style="margin: 5px 0;"><strong>${prizeName || 'Quà tặng may mắn'}</strong></p>
           <p style="font-size: 20px; font-weight: bold; margin: 10px 0; color: #c2410c;">Mã trúng thưởng: ${prizeCode}</p>
         </div>
+        ` : ''}
 
         <div style="margin-top: 30px; padding: 15px; background: #f8fafc; border-radius: 8px; font-size: 14px;">
           <p style="margin-top: 0;"><strong>Cách thức nhận quà:</strong> Hãy chụp màn hình email này và gửi cho bộ phận tư vấn của Ula hoặc đem trực tiếp đến cơ sở gần nhất.</p>

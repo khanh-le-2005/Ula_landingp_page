@@ -163,8 +163,8 @@ const processLeadSubmission = async (req, res, next, overrideSiteKey = null) => 
 
       sendRewardEmail(formData.email, {
         customerName: formData.fullname || formData.name || "Khách hàng",
-        prizeName: req.body.prizeName || "Quà tặng may mắn",
-        prizeCode: req.body.prizeCode || "ULA-LUCKY",
+        prizeName: req.body.prizeName, // Để null nếu không có
+        prizeCode: req.body.prizeCode, // Để null nếu không có
         sitePromoCode: sitePromoCode,
         discountText: discountText
       });
@@ -193,18 +193,48 @@ const submitForward = async (req, res, next) => {
 
 const getLeads = async (req, res, next) => {
   try {
-    const { ref, tag, status } = req.query;
+    const { 
+      ref, tag, status, 
+      utm_source, utm_medium, utm_campaign,
+      from, to,
+      is_suspicious 
+    } = req.query;
     
-    // Luôn luôn lọc theo trang hiện tại để đảm bảo bảo mật (Tenant-isolation)
+    // Luôn luôn lọc theo trang hiện tại (Tenant-isolation)
     const filter = { siteKey: req.siteKey };
 
-    // Thêm các bộ lọc nếu Client có truyền lên
+    // 1. Lọc theo mã giới thiệu & chiến dịch
     if (ref) filter.referralCode = ref;
     if (tag) filter.campaignTag = tag;
     if (status) filter.status = status;
 
+    // 2. Lọc theo UTM Parameters (CRM Readiness)
+    if (utm_source) filter.utm_source = utm_source;
+    if (utm_medium) filter.utm_medium = utm_medium;
+    if (utm_campaign) filter.utm_campaign = utm_campaign;
+
+    // 3. Lọc theo trạng thái nghi ngờ
+    if (is_suspicious !== undefined) {
+      filter.is_suspicious = is_suspicious === 'true';
+    }
+
+    // 4. Lọc theo khoảng thời gian (createdAt)
+    if (from || to) {
+      filter.createdAt = {};
+      if (from) filter.createdAt.$gte = new Date(from);
+      if (to) filter.createdAt.$lte = new Date(to);
+    }
+
     const leads = await Lead.find(filter).sort({ createdAt: -1 });
-    res.status(200).json(leads);
+    
+    // Đếm tổng số lượng trả về cho Dashboard
+    const summary = {
+      count: leads.length,
+      siteKey: req.siteKey,
+      query: req.query
+    };
+
+    res.status(200).json({ summary, data: leads });
   } catch (error) {
     next(error);
   }

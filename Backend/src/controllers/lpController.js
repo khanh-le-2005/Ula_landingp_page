@@ -75,10 +75,17 @@ const getLP = async (req, res, next) => {
             const physicalKey = keyMap[sectionKey] || sectionKey;
 
             if (Array.isArray(sectionData)) {
+              // Nếu override là mảng (Vd: danh sách cards mới), thay thế hoàn toàn
               data[physicalKey] = sectionData;
             } else if (sectionData && typeof sectionData === "object") {
-              // Merge nội dung nếu là object, ghi đè nếu là key mới
-              data[physicalKey] = { ...(data[physicalKey] || {}), ...sectionData };
+              const originalData = data[physicalKey];
+              if (originalData && typeof originalData === "object" && !Array.isArray(originalData)) {
+                // Chỉ merge nếu cả 2 cùng là Object thật thụ
+                data[physicalKey] = { ...originalData, ...sectionData };
+              } else {
+                // Nếu gốc là mảng hoặc null, còn override là object (Vd: Solution có thêm title), thay thế hoàn toàn
+                data[physicalKey] = sectionData;
+              }
             }
           }
         }

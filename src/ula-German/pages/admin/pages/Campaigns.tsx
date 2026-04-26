@@ -25,8 +25,9 @@ import {
 import { fetchCampaigns, createCampaign, updateCampaign, deleteCampaign, fetchLandingPage, fetchPrizes, type Campaign, type LuckyWheelPrize } from '../adminApi';
 import { adminCard, adminInput, adminLabel, adminPrimaryButton, adminSecondaryButton, adminAccentText } from '../adminTheme';
 
-// LƯU Ý ĐƯỜNG DẪN IMPORT NÀY: Nếu bên Đức thư mục khác, hãy tự chỉnh lại cho đúng nhé
+// SỬA: Lấy từ Context (Nhớ check đường dẫn import này cho chuẩn thư mục Tiếng Đức của bạn)
 import { useSiteContext, type SiteKey } from '../../../../ula-chinese/context/LandingSiteContext';
+
 import { ImageUploadField } from '../components/ImageUploadField';
 import { flattenToFormData } from '../utils/formDataUtil';
 
@@ -39,23 +40,20 @@ export default function Campaigns() {
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Biến UI động
   const isGerman = siteKey === 'tieng-duc';
   const siteName = isGerman ? 'Đức (DE)' : 'Trung (CN)';
 
-  // Editor state
   const [isEditing, setIsEditing] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
   const [formData, setFormData] = useState({
     tag: '',
     name: '',
     isActive: true,
-    discountText: '', 
-    promoCode: '',     
-    siteKey: siteKey   
+    discountText: '',
+    promoCode: '',
+    siteKey: siteKey
   });
 
-  // Structured data for ALL sections
   const [hero, setHero] = useState<any>({
     badge: '', headlineTop: '', headlineHighlight: '', headlineBottom: '', description: '', heroImageUrl: ''
   });
@@ -96,11 +94,14 @@ export default function Campaigns() {
   }, [siteKey]);
 
   const getSectionContent = (sectionsData: any, primaryKey: string, fallbackKey: string) => {
+    if (!sectionsData) return {};
     if (Array.isArray(sectionsData)) {
       const found = sectionsData.find(s => s.sectionKey === primaryKey || s.sectionKey === fallbackKey);
-      return found ? found.content : {};
+      return found ? (found.content || found) : {};
     }
-    return sectionsData[primaryKey] || sectionsData[fallbackKey] || {};
+    const targetSection = sectionsData[primaryKey] || sectionsData[fallbackKey];
+    if (targetSection) return targetSection.content ? targetSection.content : targetSection;
+    return {};
   };
 
   const handleOpenEditor = async (campaign?: Campaign) => {
@@ -156,7 +157,9 @@ export default function Campaigns() {
       const sol = getSectionContent(currentSections, 'section_3_solution', 'solution');
       const solArray = Array.isArray(sol) ? sol : (Array.isArray(sol.cards) ? sol.cards : []);
       setSolution({
-        titlePart1: sol.titlePart1 || '', titleHighlight: sol.titleHighlight || '', titlePart2: sol.titlePart2 || '',
+        titlePart1: sol.titlePart1 || '', 
+        titleHighlight: sol.titleHighlight || '', 
+        titlePart2: sol.titlePart2 || '',
         cards: solArray.slice(0, 3).map((c: any) => ({
           category: c.category || '',
           title: c.title || '',
@@ -203,12 +206,12 @@ export default function Campaigns() {
   const addPrize = () => {
     setLuckyWheel((prev: any) => ({
       ...prev,
-      prizes: [...prev.prizes, { 
-        option: 'Phần thưởng mới', 
-        backgroundColor: '#2563eb', 
-        textColor: '#ffffff', 
-        code: 'NEW-CODE', 
-        probability: 1 
+      prizes: [...prev.prizes, {
+        option: 'Phần thưởng mới',
+        backgroundColor: '#2563eb', // Default blue
+        textColor: '#ffffff',       // Default white
+        code: 'NEW-CODE',
+        probability: 1
       }]
     }));
   };
@@ -231,9 +234,10 @@ export default function Campaigns() {
     setError('');
 
     try {
-      // BƯỚC 1: LỌC MÁU - RỬA SẠCH ẢNH LỖI TRONG SOLUTION
       const cleanSolutionCards = (Array.isArray(solution.cards) ? solution.cards : []).map(card => {
         const newCard = { ...card };
+        newCard.isVideo = !!newCard.isVideo;
+
         const isNewFile = newCard.mediaUrl instanceof File;
         const isOldValidUrl = typeof newCard.mediaUrl === 'string' &&
           newCard.mediaUrl.trim() !== '' &&
@@ -246,37 +250,60 @@ export default function Campaigns() {
         return newCard;
       });
 
-      // BƯỚC 2: Ráp thành Object như bình thường
-      const sectionsObject = {
-        hero: hero,
-        painpoints: painpoints,
-        solution: cleanSolutionCards, 
-        methodology: methodology,
-        luckyspin: luckyWheel
-      };
+      // CẬP NHẬT: Định dạng Sections chuẩn ARRAY
+      const formattedSections = [
+        { sectionKey: "hero", content: hero },
+        { sectionKey: "section_2_painpoints", content: painpoints },
+        {
+          sectionKey: "section_3_solution",
+          content: {
+            titlePart1: solution.titlePart1,
+            titleHighlight: solution.titleHighlight,
+            titlePart2: solution.titlePart2,
+            cards: cleanSolutionCards
+          }
+        },
+        { sectionKey: "section_4_methodology", content: methodology },
+        { sectionKey: "luckyspin", content: luckyWheel }
+      ];
 
       const finalData = {
-        ...formData,
-        sections: sectionsObject,
+        ...(editingCampaign ? { _id: editingCampaign._id } : {}),
+        siteKey: formData.siteKey,
+        tag: formData.tag,
+        name: formData.name,
+        isActive: formData.isActive,
+        discountText: formData.discountText,
+        promoCode: formData.promoCode,
+        sections: formattedSections, 
         prizes: luckyWheel.prizes
       };
 
-      const formDataPayload = flattenToFormData(finalData);
+      const checkHasFiles = (obj: any): boolean => {
+        if (!obj) return false;
+        if (obj instanceof File) return true;
+        if (Array.isArray(obj)) return obj.some(checkHasFiles);
+        if (typeof obj === 'object') return Object.values(obj).some(checkHasFiles);
+        return false;
+      };
+
+      const hasFiles = checkHasFiles(finalData);
+      const payload = hasFiles ? flattenToFormData(finalData) : finalData;
 
       let response;
       if (editingCampaign) {
-        response = await updateCampaign(editingCampaign._id, formDataPayload);
+        response = await updateCampaign(editingCampaign._id, payload, formData.siteKey);
       } else {
-        response = await createCampaign(formDataPayload);
+        response = await createCampaign(payload, formData.siteKey);
       }
 
-      setLastSavedUrl(response.data?.fullUrl || null);
+      setLastSavedUrl(response?.data?.fullUrl || null);
       if (editingCampaign) setEditingCampaign(response.data);
 
       toast.success(editingCampaign ? 'Cập nhật chiến dịch thành công' : 'Tạo chiến dịch mới thành công');
       await loadCampaigns();
 
-      setIsEditing(false); // Lưu xong tự thoát
+      setIsEditing(false);
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Lỗi khi lưu chiến dịch');
@@ -299,7 +326,7 @@ export default function Campaigns() {
 
   const toggleStatus = async (campaign: Campaign) => {
     try {
-      await updateCampaign(campaign._id, { isActive: !campaign.isActive });
+      await updateCampaign(campaign._id, { isActive: !campaign.isActive }, siteKey);
       toast.success('Cập nhật trạng thái thành công');
       await loadCampaigns();
     } catch (err) {
@@ -314,11 +341,11 @@ export default function Campaigns() {
 
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const handleCopyLink = (url: string, id: string) => {
-    const fixedUrl = url.replace('/china', '/chinese');
+    const fixedUrl = isGerman ? url.replace('/chinese', '/german') : url.replace('/german', '/chinese');
     navigator.clipboard.writeText(fixedUrl);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
-    toast.success('Đã copy link!'); 
+    toast.success('Đã copy link!');
   };
 
   // --- RENDERING LIST MODE ---
@@ -380,7 +407,7 @@ export default function Campaigns() {
                   ) : filteredCampaigns.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="px-8 py-20 text-center">
-                        <div className="text-sm font-bold text-slate-400">Chưa có chiến dịch nào được tạo</div>
+                        <div className="text-sm font-bold text-slate-400">Chưa có chiến dịch nào được tạo cho {siteName}</div>
                       </td>
                     </tr>
                   ) : (
@@ -399,8 +426,8 @@ export default function Campaigns() {
                           <button
                             onClick={() => toggleStatus(campaign)}
                             className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all ${campaign.isActive
-                                ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                                : 'bg-slate-100 text-slate-400 border-slate-200'
+                              ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                              : 'bg-slate-100 text-slate-400 border-slate-200'
                               }`}
                           >
                             {campaign.isActive ? 'Đang chạy' : 'Đã tắt'}
@@ -416,8 +443,8 @@ export default function Campaigns() {
                             <button
                               onClick={() => handleCopyLink(campaign.fullUrl || '', campaign._id)}
                               className={`h-9 w-9 flex items-center justify-center rounded-xl border transition-all ${copiedId === campaign._id
-                                  ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
-                                  : 'border-slate-200 bg-white text-slate-400 hover:bg-slate-100 hover:text-slate-900 shadow-sm'
+                                ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
+                                : 'border-slate-200 bg-white text-slate-400 hover:bg-slate-100 hover:text-slate-900 shadow-sm'
                                 }`}
                               title="Sao chép link chiến dịch"
                             >
@@ -712,15 +739,39 @@ export default function Campaigns() {
                       }} />
                     </div>
                   </div>
-                  <ImageUploadField
-                    label="Ảnh/Video Thẻ"
-                    value={card.mediaUrl}
-                    onChange={(val) => {
-                      const newCards = [...solution.cards];
-                      newCards[idx].mediaUrl = val;
-                      setSolution({ ...solution, cards: newCards });
-                    }}
-                  />
+                  <div className="space-y-3">
+                    <ImageUploadField
+                      label="Ảnh/Video Thẻ"
+                      value={card.mediaUrl}
+                      onChange={(val) => {
+                        const newCards = [...solution.cards];
+                        newCards[idx].mediaUrl = val;
+
+                        if (typeof val === 'string') {
+                          if (val.match(/\.(mp4|webm|ogg)(\?.*)?$/i)) {
+                            newCards[idx].isVideo = true;
+                          } else if (val.match(/\.(jpeg|jpg|gif|png|webp|svg)(\?.*)?$/i)) {
+                            newCards[idx].isVideo = false;
+                          }
+                        }
+                        setSolution({ ...solution, cards: newCards });
+                      }}
+                    />
+
+                    <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg bg-slate-100/50 border border-slate-200 hover:bg-slate-100 transition-colors w-fit mt-2">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer"
+                        checked={!!card.isVideo} 
+                        onChange={(e) => {
+                          const newCards = [...solution.cards];
+                          newCards[idx].isVideo = e.target.checked;
+                          setSolution({ ...solution, cards: newCards });
+                        }}
+                      />
+                      <span className="text-xs font-bold text-slate-700">Đây là Video (Bỏ tick nếu là Ảnh)</span>
+                    </label>
+                  </div>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <div className={adminLabel}>Màu nền (Gradient CSS)</div>
@@ -732,16 +783,16 @@ export default function Campaigns() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <div className={adminLabel}>Các điểm chính (Bullet points - Mỗi dòng 1 điểm)</div>
-                    <textarea
-                      className={`${adminInput} min-h-[100px] text-xs`}
-                      value={card.bullets.join('\n')}
-                      onChange={(e) => {
-                        const newCards = [...solution.cards];
-                        newCards[idx].bullets = e.target.value.split('\n');
-                        setSolution({ ...solution, cards: newCards });
-                      }}
-                    />
+                    <div className={adminLabel}>Các điểm chính (Bullet points)</div>
+                    <div className="space-y-2">
+                      {card.bullets.map((bullet: string, bIdx: number) => (
+                        <input key={bIdx} className={`${adminInput} !py-2 !text-xs`} value={bullet} onChange={(e) => {
+                          const newCards = [...solution.cards];
+                          newCards[idx].bullets[bIdx] = e.target.value;
+                          setSolution({ ...solution, cards: newCards });
+                        }} />
+                      ))}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -867,8 +918,7 @@ export default function Campaigns() {
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                      
-                      {/* KHÔI PHỤC LẠI CHỌN MÀU CHO VÒNG QUAY */}
+
                       <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
                         <div className="space-y-1 lg:col-span-1">
                           <div className="text-[9px] font-black text-slate-400 uppercase">Tên phần quà</div>
@@ -907,8 +957,7 @@ export default function Campaigns() {
                             }}
                           />
                         </div>
-                        
-                        {/* MÀU NỀN */}
+
                         <div className="space-y-1 lg:col-span-1">
                           <div className="text-[9px] font-black text-slate-400 uppercase">Màu Nền</div>
                           <div className="flex items-center gap-2">
@@ -934,7 +983,6 @@ export default function Campaigns() {
                           </div>
                         </div>
 
-                        {/* MÀU CHỮ */}
                         <div className="space-y-1 lg:col-span-1">
                           <div className="text-[9px] font-black text-slate-400 uppercase">Màu Chữ</div>
                           <div className="flex items-center gap-2">

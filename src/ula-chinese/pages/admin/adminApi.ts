@@ -748,6 +748,7 @@ export type Affiliate = {
   createdAt?: string;
   commissionRate?: number;
   notes?: string;
+  siteKey?: string;
 };
 
 export type AffiliateStats = {
@@ -782,6 +783,7 @@ export type LeadRecord = {
   ip_address?: string;
   user_agent?: string;
   is_suspicious?: boolean;
+  affiliateId?: string;
 };
 
 // --- CORE UTILS ---
@@ -1072,18 +1074,31 @@ export const submitLeadRegistration = async (payload: LeadSubmissionPayload) => 
 //   const { site } = getSiteContext(siteKey);
 //   return requestJson<LeadRecord[]>("/api/leads", { method: "GET" }, { siteKey: site, ...filters }, token);
 // };
-export const fetchLeads = async (siteOverride?: string, filters: Record<string, string> = {}) => {
-  const token = getStoredAdminToken();
-  const { site } = getSiteContext(siteOverride);
+// Thêm Interface này để định nghĩa cấu trúc mới trả về
+export interface LeadsResponse {
+  summary: {
+    count: number;
+    siteKey: string;
+    query: Record<string, string>;
+  };
+  data: LeadRecord[];
+}
 
-  return requestJson<LeadRecord[]>(
+export const fetchLeads = async (siteKey?: string, filters: Record<string, string> = {}) => {
+  const token = getStoredAdminToken();
+  const { site } = getSiteContext(siteKey);
+
+  // SỬA Ở ĐÂY: Dùng LeadsResponse thay vì LeadRecord[]
+  const response = await requestJson<LeadsResponse>(
     "/api/leads",
     { method: "GET" },
-    { siteKey: site, ...filters }, // Pass tất cả filter vào query params
+    { siteKey: site, ...filters },
     token,
   );
-};
 
+  // Vì adminApi.ts đang được gọi ở nhiều nơi, nên tiện nhất là ta bóc luôn mảng data ra trả về.
+  return response.data || [];
+};
 
 export const updateLeadStatus = async (id: string, status: string) => {
   const token = getStoredAdminToken();
