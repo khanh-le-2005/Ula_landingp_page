@@ -937,6 +937,20 @@ export const loginAdmin = async (username: string, password: string) => {
 
 // --- LANDING PAGE ---
 
+// Thêm cache để các component con không phải gọi lại API nếu đã gọi ở LandingPage (tránh giật lag, flicker)
+const landingPageCache: Record<string, Promise<any>> = {};
+const landingPageDataCache: Record<string, any> = {};
+
+export const getCachedLandingPage = (siteKey?: string, variant?: string, campaignTag?: string) => {
+  const { site: finalSite, variant: finalVariant, campaign: finalCampaign } = getSiteContext(siteKey, variant);
+  const params: Record<string, string | undefined> = {
+    siteKey: finalSite,
+    variant: finalVariant,
+    campaign: campaignTag || finalCampaign,
+  };
+  return landingPageDataCache[JSON.stringify(params)];
+};
+
 export const fetchLandingPage = async (siteKey?: string, variant?: string, campaignTag?: string) => {
   const token = getStoredAdminToken();
   const { site: finalSite, variant: finalVariant, campaign: finalCampaign } = getSiteContext(siteKey, variant);
@@ -947,7 +961,29 @@ export const fetchLandingPage = async (siteKey?: string, variant?: string, campa
     campaign: campaignTag || finalCampaign,
   };
 
-  return requestJson<any>("/api/landing-page", { method: "GET" }, params, token);
+  const cacheKey = JSON.stringify(params);
+
+  // Nếu đang gọi dở hoặc vừa gọi xong (trong vòng 2s), trả về luôn kết quả cũ
+  if (landingPageCache[cacheKey]) {
+    return landingPageCache[cacheKey];
+  }
+
+  const promise = requestJson<any>("/api/landing-page", { method: "GET" }, params, token)
+    .then((data) => {
+      // Lưu lại kết quả thực tế để dùng đồng bộ (synchronous)
+      landingPageDataCache[cacheKey] = data;
+      return data;
+    })
+    .finally(() => {
+       // Xóa cache sau 2 giây để Admin luôn kéo được dữ liệu mới khi nhấn F5
+       setTimeout(() => {
+         delete landingPageCache[cacheKey];
+         delete landingPageDataCache[cacheKey];
+       }, 2000);
+    });
+
+  landingPageCache[cacheKey] = promise;
+  return promise;
 };
 
 export type SiteConfig = {

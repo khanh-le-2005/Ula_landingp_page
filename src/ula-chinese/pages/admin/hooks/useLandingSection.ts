@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, createContext } from 'react';
-import { fetchLandingPage, updateLandingSection } from '../adminApi';
+import { fetchLandingPage, updateLandingSection, getCachedLandingPage } from '../adminApi';
 import { ADMIN_SECTION_KEYS } from '../adminSections';
 import { PAINPOINTS_DEFAULT_COUNT, type PainpointsContent } from '../adminData';
 import { useSiteContext } from '../../../context/LandingSiteContext';
@@ -129,7 +129,18 @@ export function useLandingSection<T>(sectionKey: string, fallback: T) {
   const fallbackRef = useRef(fallback);
   fallbackRef.current = fallback;
 
-  const [content, setContent] = useState<T>(fallback);
+  const [content, setContent] = useState<T>(() => {
+    // Lấy dữ liệu đã fetch sẵn ở LandingPage ra xài luôn (tránh render fallback 1 nhịp)
+    const cachedPage = getCachedLandingPage(siteKey, undefined, isAdmin ? undefined : campaignTag);
+    if (cachedPage && cachedPage[sectionKey]) {
+      const section = cachedPage[sectionKey];
+      if (sectionKey === ADMIN_SECTION_KEYS.painpoints && !Array.isArray(fallback)) {
+        return normalizePainpointsSection(section, fallback as PainpointsContent) as unknown as T;
+      }
+      return mergeWithFallback(fallback, section);
+    }
+    return fallback;
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
