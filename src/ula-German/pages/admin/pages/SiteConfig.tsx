@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Settings, Save, RefreshCw, AlertCircle, CheckCircle2, ShieldCheck, Tag, Info } from 'lucide-react';
+import { Settings, Save, RefreshCw, AlertCircle, CheckCircle2, ShieldCheck, Tag, Info, Globe } from 'lucide-react';
 import { fetchSiteConfig, updateSiteConfig, type SiteConfig } from '../adminApi';
 import { useSiteContext } from '../../../../ula-chinese/context/LandingSiteContext';
 import { 
@@ -21,6 +21,23 @@ export default function SiteConfig() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [allConfigs, setAllConfigs] = useState<{ german: any; chinese: any } | null>(null);
+
+  const fetchAllConfigs = async () => {
+    const token = localStorage.getItem('ula_admin_token') || '';
+    const headers = { 'Authorization': `Bearer ${token}` };
+    try {
+      const [deRes, cnRes] = await Promise.all([
+        fetch('/api/landing-page/site-config?siteKey=tieng-duc', { headers }),
+        fetch('/api/landing-page/site-config?siteKey=tieng-trung', { headers })
+      ]);
+      const deData = await deRes.json();
+      const cnData = await cnRes.json();
+      setAllConfigs({ german: deData, chinese: cnData });
+    } catch (err) {
+      console.error('Failed to fetch all configs', err);
+    }
+  };
 
   const loadConfig = async () => {
     setIsLoading(true);
@@ -37,6 +54,7 @@ export default function SiteConfig() {
 
   useEffect(() => {
     void loadConfig();
+    void fetchAllConfigs();
   }, [siteKey]);
 
   const handleSave = async () => {
@@ -46,6 +64,7 @@ export default function SiteConfig() {
     try {
       await updateSiteConfig(config, siteKey);
       setSuccess(true);
+      void fetchAllConfigs();
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Lỗi khi lưu cấu hình');
@@ -65,6 +84,33 @@ export default function SiteConfig() {
 
   return (
     <div className="max-w-4xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+
+      {/* Preview Info */}
+      <div className="rounded-[2.5rem] bg-indigo-900 p-8 text-white shadow-2xl relative overflow-hidden group">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl group-hover:bg-white/10 transition-all duration-1000" />
+        <div className="relative z-10">
+          <h4 className="text-xs font-black uppercase tracking-[0.3em] text-indigo-300 mb-6 flex items-center gap-2">
+            <span className="w-8 h-[1px] bg-indigo-500"></span>
+            Hướng dẫn sử dụng
+          </h4>
+          <div className="grid md:grid-cols-2 gap-8">
+            <div className="space-y-3">
+              <p className="text-lg font-bold">Cấu hình Gốc (Site Config) là gì?</p>
+              <p className="text-sm text-indigo-100/70 leading-relaxed">
+                Đây là các thông số "mặc định" của trang web. Nếu một khách hàng truy cập vào trang web thông thường (không qua link Tag chiến dịch), họ sẽ thấy các thông tin này.
+              </p>
+            </div>
+            <div className="space-y-3">
+              <p className="text-lg font-bold">Quan trọng:</p>
+              <p className="text-sm text-indigo-100/70 leading-relaxed">
+                Khi bạn tạo một <strong>Tag Chiến dịch</strong>, bạn có thể ghi đè (Override) các thông số này để dành riêng cho KOL hoặc sự kiện đó. Cấu hình ở đây đóng vai trò là "điểm tựa" khi không có Tag nào được áp dụng.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
       {/* Header Section */}
       <section className={adminCard}>
         <div className="flex flex-wrap items-start justify-between gap-6 mb-8">
@@ -74,7 +120,7 @@ export default function SiteConfig() {
               Hệ thống (DE)
             </div>
             <h2 className="text-3xl font-black text-slate-900 tracking-tight">
-              Cấu hình <span className={adminAccentText}>Chung</span>
+              Cấu hình <span className={adminAccentText}>Mã giảm giá</span>
             </h2>
             <p className="mt-2 text-slate-500 text-sm font-medium">
               Quản lý các thông số cốt lõi áp dụng cho toàn bộ trang web (Tiếng {siteKey === 'tieng-duc' ? 'Đức' : 'Trung'}).
@@ -177,30 +223,76 @@ export default function SiteConfig() {
         </div>
       </section>
 
-      {/* Preview Info */}
-      <div className="rounded-[2.5rem] bg-indigo-900 p-8 text-white shadow-2xl relative overflow-hidden group">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl group-hover:bg-white/10 transition-all duration-1000" />
-        <div className="relative z-10">
-          <h4 className="text-xs font-black uppercase tracking-[0.3em] text-indigo-300 mb-6 flex items-center gap-2">
-            <span className="w-8 h-[1px] bg-indigo-500"></span>
-            Hướng dẫn sử dụng
-          </h4>
-          <div className="grid md:grid-cols-2 gap-8">
-            <div className="space-y-3">
-              <p className="text-lg font-bold">Cấu hình Gốc (Site Config) là gì?</p>
-              <p className="text-sm text-indigo-100/70 leading-relaxed">
-                Đây là các thông số "mặc định" của trang web. Nếu một khách hàng truy cập vào trang web thông thường (không qua link Tag chiến dịch), họ sẽ thấy các thông tin này.
-              </p>
-            </div>
-            <div className="space-y-3">
-              <p className="text-lg font-bold">Quan trọng:</p>
-              <p className="text-sm text-indigo-100/70 leading-relaxed">
-                Khi bạn tạo một <strong>Tag Chiến dịch</strong>, bạn có thể ghi đè (Override) các thông số này để dành riêng cho KOL hoặc sự kiện đó. Cấu hình ở đây đóng vai trò là "điểm tựa" khi không có Tag nào được áp dụng.
-              </p>
-            </div>
-          </div>
+      
+
+      {/* Table showing all configs */}
+      <section className={`${adminCard} overflow-hidden`}>
+        <h3 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-2">
+          <Globe className="w-5 h-5 text-indigo-500" />
+          Bảng cấu hình mã giảm giá
+        </h3>
+        
+        <div className="overflow-x-auto no-scrollbar rounded-xl border border-slate-100">
+          <table className="min-w-full text-left text-sm border-collapse">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-100 text-[10px] uppercase font-black text-slate-500 tracking-[0.2em]">
+                <th className="px-6 py-5">Dự án</th>
+                <th className="px-6 py-5">Thông điệp Ưu đãi</th>
+                <th className="px-6 py-5">Mã giảm giá (Promo Code)</th>
+                <th className="px-6 py-5">Trạng thái (Message)</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {siteKey === 'tieng-trung' && (
+                <tr className="hover:bg-slate-50/80 transition-colors">
+                  <td className="px-6 py-5 font-black text-slate-800">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-1 rounded bg-rose-100 text-rose-600 text-[10px] uppercase tracking-wider">CN</span>
+                      Tiếng Trung
+                    </div>
+                  </td>
+                  <td className="px-6 py-5 text-slate-600">{allConfigs?.chinese?.content?.discountText || '-'}</td>
+                  <td className="px-6 py-5 font-mono font-bold text-amber-600">{allConfigs?.chinese?.content?.sitePromoCode || '-'}</td>
+                  <td className="px-6 py-5">
+                    {allConfigs?.chinese?.content?.message ? (
+                      <span className="text-amber-600 text-[11px] font-medium italic bg-amber-50 px-2 py-1 rounded border border-amber-100/50">
+                        {allConfigs.chinese.content.message}
+                      </span>
+                    ) : (
+                      <span className="text-emerald-600 text-[11px] font-medium bg-emerald-50 px-2 py-1 rounded border border-emerald-100/50">
+                        Đã có cấu hình riêng
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              )}
+              {siteKey === 'tieng-duc' && (
+                <tr className="hover:bg-slate-50/80 transition-colors">
+                  <td className="px-6 py-5 font-black text-slate-800">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-1 rounded bg-blue-100 text-blue-600 text-[10px] uppercase tracking-wider">DE</span>
+                      Tiếng Đức
+                    </div>
+                  </td>
+                  <td className="px-6 py-5 text-slate-600">{allConfigs?.german?.content?.discountText || '-'}</td>
+                  <td className="px-6 py-5 font-mono font-bold text-amber-600">{allConfigs?.german?.content?.sitePromoCode || '-'}</td>
+                  <td className="px-6 py-5">
+                    {allConfigs?.german?.content?.message ? (
+                      <span className="text-amber-600 text-[11px] font-medium italic bg-amber-50 px-2 py-1 rounded border border-amber-100/50">
+                        {allConfigs.german.content.message}
+                      </span>
+                    ) : (
+                      <span className="text-emerald-600 text-[11px] font-medium bg-emerald-50 px-2 py-1 rounded border border-emerald-100/50">
+                        Đã có cấu hình riêng
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
-      </div>
+      </section>
     </div>
   );
 }

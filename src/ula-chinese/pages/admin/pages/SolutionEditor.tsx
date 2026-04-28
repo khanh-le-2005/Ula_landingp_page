@@ -1,5 +1,5 @@
 import React from 'react';
-import { RefreshCw, Save, Layout, Sparkles, Box, Type, MousePointer2 } from 'lucide-react';
+import { RefreshCw, Save, Layout, Sparkles, Box, Type, MousePointer2, Plus, Trash2 } from 'lucide-react';
 import { solutionDefault, type SolutionFeature, type SolutionContent } from '../adminData';
 import { ADMIN_SECTION_KEYS } from '../adminSections';
 import { useLandingSection } from '../hooks/useLandingSection';
@@ -42,6 +42,35 @@ export default function SolutionEditor() {
       )
     }));
   };
+
+  const addBullet = (fIndex: number) => {
+    setContent((prev) => ({
+      ...prev,
+      cards: (Array.isArray(prev.cards) ? prev.cards : []).map((f, i) =>
+        i === fIndex
+          ? {
+            ...f,
+            bullets: [...(Array.isArray(f.bullets) ? f.bullets : []), '']
+          }
+          : f
+      )
+    }));
+  };
+
+  const removeBullet = (fIndex: number, bIndex: number) => {
+    setContent((prev) => ({
+      ...prev,
+      cards: (Array.isArray(prev.cards) ? prev.cards : []).map((f, i) =>
+        i === fIndex
+          ? {
+            ...f,
+            bullets: (Array.isArray(f.bullets) ? f.bullets : []).filter((_, j) => j !== bIndex)
+          }
+          : f
+      )
+    }));
+  };
+
   const handleSave = async () => {
     try {
       const cleanContent = { ...content };
@@ -155,11 +184,16 @@ export default function SolutionEditor() {
                     <div className={adminLabel}>Các điểm chính (Bullet points)</div>
                     <div className="space-y-3">
                       {(Array.isArray(feature.bullets) ? feature.bullets : []).map((bullet, bIndex) => (
-                        <div key={bIndex} className="relative group/bullet">
+                        <div key={bIndex} className="relative group/bullet flex items-center gap-2">
                           <input className={adminInput} value={bullet} onChange={(e) => updateBullet(fIndex, bIndex, e.target.value)} />
-                          <div className="absolute left-[-15px] top-1/2 -translate-y-1/2 h-1 w-1 rounded-full bg-indigo-500 opacity-0 group-hover/bullet:opacity-100 transition-opacity" />
+                          <button onClick={() => removeBullet(fIndex, bIndex)} className="p-2 text-slate-400 hover:text-rose-500 transition-colors" title="Xóa">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
                       ))}
+                      <button onClick={() => addBullet(fIndex)} className="mt-2 flex items-center gap-1 text-xs font-bold text-indigo-500 hover:text-indigo-600 transition-colors">
+                        <Plus className="w-3 h-3" /> Thêm điểm chính
+                      </button>
                     </div>
                   </div>
                 </div>

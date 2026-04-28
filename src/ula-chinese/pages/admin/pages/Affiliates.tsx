@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { toast } from 'react-toastify';
 import {
   Users,
   Link as LinkIcon,
@@ -51,15 +52,14 @@ export default function Affiliates() {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAffiliate, setEditingAffiliate] = useState<Affiliate | null>(null);
-  
-  // CẬP NHẬT: Thêm commissionRate và notes
+
   const [formData, setFormData] = useState<Partial<Affiliate>>({
     name: '',
     code: '',
     phone: '',
     email: '',
     isActive: true,
-    commissionRate: 0.15, // Giá trị mặc định 15%
+    commissionRate: 0.15,
     notes: ''
   });
 
@@ -72,12 +72,9 @@ export default function Affiliates() {
     setIsLoading(true);
     setError('');
     try {
-      // CHỈ GỌI DUY NHẤT 1 API LẤY DANH SÁCH (GET /api/affiliates)
       const affData = await fetchAffiliates(activeProject);
-      
       setAffiliates(Array.isArray(affData) ? affData : []);
-      
-      // Gán Stats mặc định bằng 0 để giữ giao diện (vì BE chưa trả về thống kê)
+
       setStats({
         totalLeads: 0,
         totalSuspicious: 0,
@@ -105,7 +102,7 @@ export default function Affiliates() {
 
   const getActiveSitePath = () => {
     if (activeProject === 'tieng-trung') return '/chinese';
-    return '/chinese'; // Mặc định là Chinese
+    return '/chinese';
   };
 
   const getTrackingLink = (aff: Affiliate) => {
@@ -113,10 +110,12 @@ export default function Affiliates() {
     const path = getActiveSitePath();
     const url = new URL(`${baseUrl}${path}`);
 
-    url.searchParams.set('utm_source', 'koc'); 
+    url.searchParams.set('utm_source', 'koc');
     url.searchParams.set('utm_medium', 'affiliate');
-    url.searchParams.set('utm_campaign', activeCampaign || 'default_campaign');
-    url.searchParams.set('utm_content', aff.code);
+    if (activeCampaign) {
+      url.searchParams.set('utm_campaign', activeCampaign);
+    }
+    url.searchParams.set('ref', aff.code); // Gắn đúng mã KOC vào biến ref
 
     return decodeURIComponent(url.toString());
   };
@@ -125,6 +124,7 @@ export default function Affiliates() {
     const link = getTrackingLink(aff);
     navigator.clipboard.writeText(link);
     setCopiedCode(aff.code);
+    toast.success('Đã copy link tracking!');
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
@@ -137,8 +137,8 @@ export default function Affiliates() {
         phone: aff.phone || '',
         email: aff.email || '',
         isActive: aff.isActive !== false,
-        commissionRate: aff.commissionRate || 0.15, // Cập nhật rate
-        notes: aff.notes || '' // Cập nhật notes
+        commissionRate: aff.commissionRate || 0.15,
+        notes: aff.notes || ''
       });
     } else {
       setEditingAffiliate(null);
@@ -155,7 +155,6 @@ export default function Affiliates() {
     setIsModalOpen(true);
   };
 
-  // CẬP NHẬT Payload gửi đi có chứa commissionRate và notes
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -163,36 +162,41 @@ export default function Affiliates() {
       const payload = {
         siteKey: activeProject,
         name: formData.name?.trim(),
-        code: formData.code?.trim().toUpperCase().replace(/\s+/g, ''), 
+        code: formData.code?.trim().toUpperCase().replace(/\s+/g, ''),
         email: formData.email?.trim(),
         phone: formData.phone?.trim(),
         isActive: formData.isActive,
-        commissionRate: Number(formData.commissionRate), // Đảm bảo là kiểu số
+        commissionRate: Number(formData.commissionRate),
         notes: formData.notes?.trim()
       };
 
       if (editingAffiliate) {
         await updateAffiliate(editingAffiliate._id, payload);
+        toast.success('Cập nhật thông tin đối tác thành công!');
       } else {
         await createAffiliate(payload);
+        toast.success('Thêm đối tác thành công!');
       }
       setIsModalOpen(false);
       loadData();
     } catch (err: any) {
       setError(err.message || 'Lỗi khi lưu thông tin');
+      toast.error('Lỗi khi lưu thông tin!');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa KOC này?')) return;
+    if (!window.confirm('Bạn có chắc chắn muốn xóa đối tác này? Toàn bộ link của họ sẽ ngưng hoạt động!')) return;
     setIsLoading(true);
     try {
       await deleteAffiliate(id);
+      toast.success('Đã xóa đối tác thành công!');
       loadData();
     } catch (err: any) {
       setError(err.message || 'Lỗi khi xóa');
+      toast.error('Xóa đối tác thất bại!');
     } finally {
       setIsLoading(false);
     }
@@ -207,6 +211,7 @@ export default function Affiliates() {
       setUtmLinksData(data);
     } catch (err: any) {
       setError(err.message || 'Lỗi lấy link UTM');
+      toast.error('Lỗi lấy link UTM');
     } finally {
       setIsLoadingUtm(false);
     }
@@ -215,6 +220,7 @@ export default function Affiliates() {
   const handleCopyAnyLink = (url: string, index: number | string) => {
     navigator.clipboard.writeText(url);
     setCopiedCode('link-' + index);
+    toast.success('Đã chép link!');
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
@@ -364,9 +370,9 @@ export default function Affiliates() {
                             </div>
                             {/* Hiển thị Rate nhỏ dưới tên */}
                             {aff.commissionRate && (
-                               <div className="text-[10px] text-emerald-600 font-bold font-mono tracking-widest mt-1">
-                                 RATE: {(aff.commissionRate * 100).toFixed(0)}%
-                               </div>
+                              <div className="text-[10px] text-emerald-600 font-bold font-mono tracking-widest mt-1">
+                                RATE: {(aff.commissionRate * 100).toFixed(0)}%
+                              </div>
                             )}
                           </div>
                         </td>
@@ -386,14 +392,16 @@ export default function Affiliates() {
                             <button
                               onClick={() => handleCopyLink(aff)}
                               className="h-10 w-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 transition-all shadow-sm shrink-0"
-                              title="Sao chép link tracking UTM"
+                              title="Sao chép link tracking chung"
                             >
                               {copiedCode === aff.code ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
                             </button>
+
+                            {/* NÚT TẠO LINK TỰ ĐỘNG ĐÃ ĐƯỢC MỞ KHÓA VÀ KẾT NỐI API */}
                             {/* <button
                               onClick={() => handleOpenUtmModal(aff)}
-                              className="h-10 w-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-indigo-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 transition-all shadow-sm shrink-0"
-                              title="Tạo link UTM đa nền tảng"
+                              className="h-10 w-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-indigo-500 hover:text-indigo-700 hover:border-indigo-300 hover:bg-indigo-50 transition-all shadow-sm shrink-0"
+                              title="Tạo bộ link phân loại (FB, Tiktok, YT)"
                             >
                               <Share2 className="w-4 h-4" />
                             </button> */}
@@ -432,173 +440,187 @@ export default function Affiliates() {
       </section>
 
       {/* Management Modal */}
+      {/* Management Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="relative w-full max-w-lg overflow-hidden rounded-[40px] border border-slate-200 bg-white shadow-2xl animate-in zoom-in-95 duration-300">
-            <div className="p-8 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="relative w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-2xl animate-in zoom-in-95 duration-300">
+
+            {/* Header (Ghim cố định) */}
+            <div className="p-5 sm:p-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-2xl bg-slate-900 flex items-center justify-center text-white shadow-lg shadow-slate-900/20">
-                  <Plus className="w-6 h-6" />
+                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl bg-slate-900 flex items-center justify-center text-white shadow-lg shadow-slate-900/20">
+                  <Plus className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-slate-900 tracking-tight">{editingAffiliate ? 'Chỉnh sửa' : 'Tạo mới'} <span className={adminAccentText}>KOC</span></h3>
+                  <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">{editingAffiliate ? 'Chỉnh sửa' : 'Tạo mới'} <span className={adminAccentText}>KOC</span></h3>
                   <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Thông tin đối tác tiếp thị</p>
                 </div>
               </div>
-              <button onClick={() => setIsModalOpen(false)} className="h-10 w-10 flex items-center justify-center rounded-full bg-white text-slate-400 hover:text-rose-500 transition-all border border-slate-200 shadow-sm">
-                <X size={20} />
+              <button onClick={() => setIsModalOpen(false)} className="h-9 w-9 flex items-center justify-center rounded-full bg-white text-slate-400 hover:text-rose-500 transition-all border border-slate-200 shadow-sm">
+                <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleSave} className="p-8 space-y-6">
-              <div className="grid grid-cols-2 gap-6">
-                <div className="col-span-2 space-y-2">
-                  <label className={adminLabel}>Tên hiển thị (KOC Name)</label>
-                  <input
-                    required
-                    className={adminInput}
-                    value={formData.name}
-                    onChange={e => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="v.d. Nguyễn Văn A"
-                  />
+            {/* Body (Phần cuộn được) */}
+            <div className="overflow-y-auto p-5 sm:p-6 no-scrollbar">
+              <form id="affiliate-form" onSubmit={handleSave} className="space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+                  <div className="sm:col-span-2 space-y-1.5">
+                    <label className={adminLabel}>Tên hiển thị (KOC Name)</label>
+                    <input
+                      required
+                      className={adminInput}
+                      value={formData.name}
+                      onChange={e => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="v.d. Nguyễn Văn A"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className={adminLabel}>Mã giới thiệu (Code)</label>
+                    <input
+                      required
+                      className={`${adminInput} font-mono`}
+                      value={formData.code}
+                      onChange={e => setFormData({ ...formData, code: e.target.value.toUpperCase().replace(/\s+/g, '') })}
+                      placeholder="v.d. KOC_01"
+                      disabled={!!editingAffiliate}
+                    />
+                    <p className="text-[9px] text-slate-400 italic">Viết liền, không dấu.</p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className={adminLabel}>Số điện thoại</label>
+                    <input
+                      className={adminInput}
+                      value={formData.phone}
+                      onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                      placeholder="09xx..."
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className={adminLabel}>Email</label>
+                    <input
+                      type="email"
+                      className={adminInput}
+                      value={formData.email}
+                      onChange={e => setFormData({ ...formData, email: e.target.value })}
+                      placeholder="koc@example.com"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className={adminLabel}>Tỷ lệ hoa hồng</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="1"
+                      className={adminInput}
+                      value={formData.commissionRate}
+                      onChange={e => setFormData({ ...formData, commissionRate: parseFloat(e.target.value) || 0 })}
+                      placeholder="0.15"
+                    />
+                    <p className="text-[9px] text-slate-400 italic">Dạng thập phân (0.15 = 15%)</p>
+                  </div>
+
+                  <div className="sm:col-span-2 space-y-1.5">
+                    <label className={adminLabel}>Trạng thái hoạt động</label>
+                    <select
+                      className={adminInput}
+                      value={formData.isActive ? "true" : "false"}
+                      onChange={e => setFormData({ ...formData, isActive: e.target.value === "true" })}
+                    >
+                      <option value="true">Đang hoạt động</option>
+                      <option value="false">Ngừng hoạt động</option>
+                    </select>
+                  </div>
+
+                  <div className="sm:col-span-2 space-y-1.5">
+                    <label className={adminLabel}>Ghi chú</label>
+                    <textarea
+                      className={`${adminInput} resize-none min-h-[80px] py-3`}
+                      value={formData.notes}
+                      onChange={e => setFormData({ ...formData, notes: e.target.value })}
+                      placeholder="Thông tin thêm về KOC..."
+                    />
+                  </div>
                 </div>
+              </form>
+            </div>
 
-                <div className="space-y-2">
-                  <label className={adminLabel}>Mã giới thiệu (Code)</label>
-                  <input
-                    required
-                    className={`${adminInput} font-mono`}
-                    value={formData.code}
-                    onChange={e => setFormData({ ...formData, code: e.target.value.toUpperCase().replace(/\s+/g, '') })}
-                    placeholder="v.d. KOC_01"
-                    disabled={!!editingAffiliate}
-                  />
-                  <p className="text-[9px] text-slate-400 italic">Dùng để tạo link, không chứa dấu cách.</p>
-                </div>
+            {/* Footer (Ghim cố định ở dưới cùng) */}
+            <div className="p-5 sm:p-6 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3 shrink-0">
+              <button type="button" onClick={() => setIsModalOpen(false)} className={adminSecondaryButton}>
+                Hủy bỏ
+              </button>
+              {/* Dùng thuộc tính form="affiliate-form" để gọi submit từ bên ngoài thẻ form */}
+              <button type="submit" form="affiliate-form" disabled={isLoading} className={adminPrimaryButton}>
+                {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : editingAffiliate ? 'Cập nhật ngay' : 'Tạo KOC'}
+              </button>
+            </div>
 
-                <div className="space-y-2">
-                  <label className={adminLabel}>Số điện thoại</label>
-                  <input
-                    className={adminInput}
-                    value={formData.phone}
-                    onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="09xx..."
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className={adminLabel}>Email</label>
-                  <input
-                    type="email"
-                    className={adminInput}
-                    value={formData.email}
-                    onChange={e => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="koc@example.com"
-                  />
-                </div>
-
-                {/* CẬP NHẬT: Thêm Tỷ lệ hoa hồng */}
-                <div className="space-y-2">
-                  <label className={adminLabel}>Tỷ lệ hoa hồng</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="1"
-                    className={adminInput}
-                    value={formData.commissionRate}
-                    onChange={e => setFormData({ ...formData, commissionRate: parseFloat(e.target.value) || 0 })}
-                    placeholder="Ví dụ: 0.15 (15%)"
-                  />
-                  <p className="text-[9px] text-slate-400 italic">Nhập dạng thập phân: 0.15 = 15%</p>
-                </div>
-
-                <div className="space-y-2">
-                  <label className={adminLabel}>Trạng thái hoạt động</label>
-                  <select
-                    className={adminInput}
-                    value={formData.isActive ? "true" : "false"}
-                    onChange={e => setFormData({ ...formData, isActive: e.target.value === "true" })}
-                  >
-                    <option value="true">Đang hoạt động</option>
-                    <option value="false">Ngừng hoạt động</option>
-                  </select>
-                </div>
-
-                {/* CẬP NHẬT: Thêm Ghi chú */}
-                <div className="col-span-2 space-y-2">
-                  <label className={adminLabel}>Ghi chú</label>
-                  <textarea
-                    className={`${adminInput} resize-none h-20 py-3`}
-                    value={formData.notes}
-                    onChange={e => setFormData({ ...formData, notes: e.target.value })}
-                    placeholder="Thông tin thêm về KOC..."
-                  />
-                </div>
-
-              </div>
-
-              <div className="pt-6 border-t border-slate-100 flex justify-end gap-3">
-                <button type="button" onClick={() => setIsModalOpen(false)} className={adminSecondaryButton}>Hủy bỏ</button>
-                <button type="submit" disabled={isLoading} className={adminPrimaryButton}>
-                  {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : editingAffiliate ? 'Cập nhật ngay' : 'Tạo KOC'}
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}
 
-      {/* UTM Links Modal */}
+      {/* UTM Links Modal - Tự động sinh link phân loại nền tảng */}
       {isUtmModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="relative w-full max-w-2xl overflow-hidden rounded-[40px] border border-slate-200 bg-white shadow-2xl animate-in zoom-in-95 duration-300">
-            <div className="p-8 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="relative w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-2xl animate-in zoom-in-95 duration-300">
+
+            {/* Header (Cố định) */}
+            <div className="p-5 sm:p-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-2xl bg-indigo-900 flex items-center justify-center text-white shadow-lg shadow-indigo-900/20">
-                  <Share2 className="w-6 h-6" />
+                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-600/20">
+                  <Share2 className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-slate-900 tracking-tight">UTM Tracking Links</h3>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Các liên kết có sẵn cho Campaign</p>
+                  <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">Cấp phát Link tự động</h3>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Các liên kết được thiết kế riêng cho KOC này</p>
                 </div>
               </div>
-              <button onClick={() => setIsUtmModalOpen(false)} className="h-10 w-10 flex items-center justify-center rounded-full bg-white text-slate-400 hover:text-rose-500 transition-all border border-slate-200 shadow-sm">
-                <X size={20} />
+              <button onClick={() => setIsUtmModalOpen(false)} className="h-9 w-9 flex items-center justify-center rounded-full bg-white text-slate-400 hover:text-rose-500 transition-all border border-slate-200 shadow-sm">
+                <X size={18} />
               </button>
             </div>
 
-            <div className="p-8 space-y-6">
+            {/* Body (Phần có thể cuộn) */}
+            <div className="overflow-y-auto p-5 sm:p-6 no-scrollbar flex-grow">
               {isLoadingUtm ? (
                 <div className="flex flex-col items-center justify-center py-10 gap-3">
                   <RefreshCw className="h-6 w-6 text-indigo-500 animate-spin" />
                   <span className="text-xs font-black uppercase tracking-widest text-slate-400">Đang khởi tạo links...</span>
                 </div>
               ) : utmLinksData ? (
-                <div className="space-y-4">
-                  <div className="mb-6 p-4 rounded-2xl bg-indigo-50/50 border border-indigo-100 flex gap-4 items-center">
+                <div className="space-y-5">
+                  <div className="p-4 rounded-2xl bg-indigo-50/50 border border-indigo-100 flex gap-4 items-center">
                     <div className="flex-1">
-                      <div className="text-[10px] font-black uppercase tracking-widest text-indigo-500 mb-1">Đối tác</div>
-                      <div className="font-bold text-slate-900">{utmLinksData.affiliateName}</div>
+                      <div className="text-[10px] font-black uppercase tracking-widest text-indigo-500 mb-1">Đối tác (KOC)</div>
+                      <div className="font-bold text-slate-900 text-base sm:text-lg truncate">{utmLinksData.affiliateName}</div>
                     </div>
                     <div className="flex-1">
-                      <div className="text-[10px] font-black uppercase tracking-widest text-indigo-500 mb-1">Mã tham chiếu</div>
-                      <div className="font-mono font-bold text-slate-900">{utmLinksData.referralCode}</div>
+                      <div className="text-[10px] font-black uppercase tracking-widest text-indigo-500 mb-1">Mã Tracking (Ref)</div>
+                      <div className="font-mono font-bold text-slate-900 text-base sm:text-lg">{utmLinksData.referralCode}</div>
                     </div>
                   </div>
 
                   <div className="space-y-3">
                     {utmLinksData.links.map((link, idx) => (
-                      <div key={idx} className="flex flex-col sm:flex-row gap-3 items-start sm:items-center p-4 rounded-2xl border border-slate-100 hover:border-indigo-100 hover:bg-slate-50 transition-colors">
-                        <div className="w-24 shrink-0 font-black text-xs uppercase tracking-wider text-slate-700">
+                      <div key={idx} className="flex flex-col sm:flex-row gap-3 items-start sm:items-center p-3 sm:p-4 rounded-2xl border border-slate-100 hover:border-indigo-100 hover:bg-slate-50 transition-colors">
+                        <div className="w-full sm:w-28 shrink-0 font-black text-xs uppercase tracking-widest text-indigo-600 bg-indigo-50 px-3 py-2 sm:py-1.5 rounded-lg text-center">
                           {link.platform}
                         </div>
-                        <div className="flex-1 w-full bg-slate-100 px-4 py-2 rounded-xl text-xs font-medium text-slate-500 truncate lowercase border border-slate-200">
+                        <div className="flex-1 w-full bg-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-medium text-slate-500 truncate lowercase border border-slate-200 shadow-sm">
                           {link.url}
                         </div>
                         <button
                           onClick={() => handleCopyAnyLink(link.url, idx)}
-                          className={copiedCode === 'link-' + idx ? adminSecondaryButton + " !bg-emerald-50 !text-emerald-600 !border-emerald-200" : adminSecondaryButton}
+                          className={`w-full sm:w-auto h-9 sm:h-10 px-5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${copiedCode === 'link-' + idx
+                              ? "bg-emerald-500 text-white shadow-lg"
+                              : "bg-slate-100 text-slate-600 hover:bg-indigo-600 hover:text-white"
+                            }`}
                         >
                           {copiedCode === 'link-' + idx ? (
                             <><Check className="w-4 h-4" /> Đã chép</>
@@ -610,8 +632,11 @@ export default function Affiliates() {
                     ))}
                   </div>
                 </div>
-              ) : null}
+              ) : (
+                <div className="text-center py-10 text-sm text-slate-400 font-medium">Không có dữ liệu Link.</div>
+              )}
             </div>
+
           </div>
         </div>
       )}

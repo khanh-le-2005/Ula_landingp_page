@@ -79,11 +79,11 @@ const CHINESE_THEME: ConsultationTheme = {
   shellGradient:
     "bg-[linear-gradient(135deg,#d9dcff_0%,#efedff_48%,#d4cbff_100%)]",
   courseOptions: [
-    "Lộ trình mất gốc đến HSK 1",
+    "Lộ trình mất gốc đến HSK 3",
     "Khóa tiếng Trung HSK 1",
     "Khóa tiếng Trung HSK 2",
     "Khóa tiếng Trung HSK 3",
-    "Luyện thi HSK / HSKK",
+    "Luyện thi HSK",
   ],
 };
 

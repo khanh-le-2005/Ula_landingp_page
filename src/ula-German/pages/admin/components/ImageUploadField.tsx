@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Upload, X, Link as LinkIcon, Image as ImageIcon } from 'lucide-react';
+import imageCompression from 'browser-image-compression';
 import { resolveAssetUrl } from '../../../utils/assetUtil';
 
 interface ImageUploadFieldProps {
@@ -20,10 +21,29 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const processFile = async (file: File) => {
+    if (type !== 'image' || !file.type.startsWith('image/')) {
+      onChange(file);
+      return;
+    }
+    try {
+      const options = {
+        maxSizeMB: 0.8, // Nén xuống dưới 1MB để vượt qua Nginx
+        maxWidthOrHeight: 1920,
+        useWebWorker: true
+      };
+      const compressedFile = await imageCompression(file, options);
+      onChange(compressedFile);
+    } catch (error) {
+      console.error('Image compression failed:', error);
+      onChange(file); // Fallback to original
+    }
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      onChange(file);
+      void processFile(file);
     }
   };
 
@@ -41,7 +61,7 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
     setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
     if (file) {
-      onChange(file);
+      void processFile(file);
     }
   };
 

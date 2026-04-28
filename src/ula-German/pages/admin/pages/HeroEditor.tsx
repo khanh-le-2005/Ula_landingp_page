@@ -81,7 +81,7 @@ export default function HeroEditor() {
               <div className="space-y-3">
                 <div className={adminLabel}>
                   <PlayCircle className="inline-block w-3 h-3 mr-2 text-indigo-500" />
-                  Đường dẫn Video (Vimeo/Youtube)
+                  Video Hero(dán link vimeo vào đây)
                 </div>
                 <input
                   className={adminInput}

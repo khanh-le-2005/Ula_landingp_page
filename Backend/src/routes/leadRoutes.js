@@ -25,6 +25,15 @@ router.get("/stats/summary", verifyToken, checkRole(["ADMIN", "EDITOR"]), leadCo
 // Admin/Editor: Xem thống kê UTM chi tiết (Source > Medium > Campaign)
 router.get("/stats/utm", verifyToken, checkRole(["ADMIN", "EDITOR"]), leadController.getUtmStats);
 
+// Admin/Editor: Thống kê xu hướng (Trends)
+router.get("/stats/trends", verifyToken, checkRole(["ADMIN", "EDITOR"]), leadController.getTrendsStats);
+
+// Admin/Editor: Thống kê tỷ lệ chuyển đổi (Conversion)
+router.get("/stats/conversion", verifyToken, checkRole(["ADMIN", "EDITOR"]), leadController.getConversionStats);
+
+// Admin/Editor: Thống kê hiệu suất KOC chi tiết
+router.get("/stats/kocs", verifyToken, checkRole(["ADMIN", "EDITOR"]), leadController.getKocPerformanceStats);
+
 // Admin/Editor: Cập nhật trạng thái Lead (CRM)
 router.put("/:id/status", verifyToken, checkRole(["ADMIN", "EDITOR"]), leadController.updateLeadStatus);
 

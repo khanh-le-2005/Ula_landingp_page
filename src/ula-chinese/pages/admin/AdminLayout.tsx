@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, Link, useNavigate } from 'react-router-dom';
-import { BadgeCheck, LayoutDashboard, Sparkles, Target, Waypoints, Gift, PanelsTopLeft, Eye, LogOut, LogIn, FileText, ChevronRight, Activity, ChevronDown, Globe, Hash, ChevronLeft, Menu, Settings } from 'lucide-react';
+import { BadgeCheck, LayoutDashboard, Sparkles, Target, Waypoints, Gift, PanelsTopLeft, Eye, LogOut, LogIn, FileText, ChevronRight, Activity, ChevronDown, Globe, Hash, ChevronLeft, Menu, Settings, PieChart } from 'lucide-react';
 import { useAdminAuth } from './hooks/useAdminAuth';
 import { ADMIN_SECTION_KEYS } from './adminSections';
 import { adminShell, adminSecondaryButton, adminPrimaryButton, adminAccentText } from './adminTheme';
@@ -19,6 +19,7 @@ import ChinaExperienceEditor from './pages/ExperienceEditor';
 import ChinaAffiliates from './pages/Affiliates';
 import ChinaCampaigns from './pages/Campaigns';
 import ChinaSiteConfig from './pages/SiteConfig';
+import ChinaLeadStatistics from './pages/LeadStatistics';
 import { fetchCampaigns, type Campaign } from './adminApi';
 import { LandingSiteProvider } from '../../context/LandingSiteContext';
 import { Toaster } from 'react-hot-toast';
@@ -36,6 +37,7 @@ import GermanAffiliates from '../../../ula-German/pages/admin/pages/Affiliates';
 import GermanCampaigns from '../../../ula-German/pages/admin/pages/Campaigns';
 import GermanMarketingLinks from '../../../ula-German/pages/admin/pages/MarketingLinks';
 import GermanSiteConfig from '../../../ula-German/pages/admin/pages/SiteConfig';
+import GermanLeadStatistics from '../../../ula-German/pages/admin/pages/LeadStatistics';
 
 const navItems = [
   { id: 'overview', label: 'Tổng quan', icon: LayoutDashboard },
@@ -50,6 +52,7 @@ const navItems = [
   { id: 'affiliates', label: 'quản lý KOC ', icon: BadgeCheck },
   { id: 'marketing-links', label: 'Link Marketing(UTM)', icon: Globe },
   { id: 'site-config', label: 'Mã giảm giá chung', icon: Settings },
+  { id: 'lead-statistics', label: 'Thống kê Lead', icon: PieChart },
 ];
 
 function AdminLayoutInner() {
@@ -128,6 +131,9 @@ function AdminLayoutInner() {
         return isGerman ? <GermanCampaigns key={contentKey} /> : <ChinaCampaigns key={contentKey} />;
       case 'site-config':
         return isGerman ? <GermanSiteConfig key={contentKey} /> : <ChinaSiteConfig key={contentKey} />;
+      case 'lead-statistics':
+        return isGerman ? <GermanLeadStatistics key={contentKey} /> : <ChinaLeadStatistics key={contentKey} />;
+        
       default: 
         return isGerman 
           ? <GermanOverview key={contentKey} onNavigate={(s) => selectModuleAndSection(activeProject, s)} />

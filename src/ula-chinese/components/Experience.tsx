@@ -328,7 +328,8 @@ const transformVimeoUrl = (url: string) => {
   return `${trimmed}${separator}autoplay=1&muted=0&controls=0&badge=0&autopause=0&vimeo_logo=0&dnt=1`;
 };
 
-function SlimVimeoPlayer({ videoUrl, title, onProgress, onDuration, isPaused, seekTo }: any) {
+// --- CẬP NHẬT COMPONENT VIDEO ĐỂ HỖ TRỢ TẮT ÂM THANH ---
+function SlimVimeoPlayer({ videoUrl, title, onProgress, onDuration, isPaused, seekTo, isMuted }: any) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const playerRef = useRef<any>(null);
 
@@ -345,6 +346,10 @@ function SlimVimeoPlayer({ videoUrl, title, onProgress, onDuration, isPaused, se
         player.on("timeupdate", (data: any) => onProgress?.(data.seconds));
         player.on("loaded", () => {
           player.getDuration().then((duration: number) => onDuration?.(duration));
+          // Set âm lượng ban đầu
+          if (isMuted !== undefined) {
+            player.setVolume(isMuted ? 0 : 1);
+          }
         });
       }
     };
@@ -366,12 +371,19 @@ function SlimVimeoPlayer({ videoUrl, title, onProgress, onDuration, isPaused, se
     }
   }, [seekTo]);
 
+  // Theo dõi biến Muted
+  useEffect(() => {
+    if (playerRef.current) {
+      playerRef.current.setVolume(isMuted ? 0 : 1);
+    }
+  }, [isMuted]);
+
   return (
     <iframe
       ref={iframeRef}
       src={transformVimeoUrl(videoUrl)}
       title={title}
-      className="absolute inset-0 h-full w-full scale-[1.05]"
+      className="absolute inset-0 h-full w-full scale-[1.05] bg-black"
       allow="autoplay; fullscreen; picture-in-picture"
       allowFullScreen
     />
@@ -395,9 +407,10 @@ const Experience = () => {
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [isCompleted, setIsCompleted] = useState(false);
 
-  // --- STATE CHO VIDEO ---
+  // --- STATE CHO VIDEO CHUẨN ---
   const [isPlayingVideo, setIsPlayingVideo] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [isMuted, setIsMuted] = useState(false); // <--- THÊM BIẾN TẮT TIẾNG
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [seekTo, setSeekTo] = useState<number | null>(null);
@@ -463,17 +476,23 @@ const Experience = () => {
     };
   }, [isDragging, duration]);
 
+  const handleMouseEnterVideo = () => {
+    setShowControls(true);
+    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+  };
+
+  const handleMouseLeaveVideo = () => {
+    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    controlsTimeoutRef.current = setTimeout(() => {
+      setShowControls(false);
+    }, 5000);
+  };
+
   useEffect(() => {
-    if (isPlayingVideo && !isPaused && showControls && !isDragging) {
-      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
-      controlsTimeoutRef.current = setTimeout(() => {
-        setShowControls(false);
-      }, 3000);
-    }
     return () => {
       if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
     };
-  }, [isPlayingVideo, isPaused, showControls, isDragging]);
+  }, []);
 
   const toggleControls = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -591,7 +610,6 @@ const Experience = () => {
     }
   };
 
-  // --- HÀM RENDER NỘI DUNG TỪNG LOẠI BÀI TẬP ---
   const renderExerciseContent = () => {
     const ex = EXERCISES[currentEx] as Exercise;
 
@@ -607,26 +625,11 @@ const Experience = () => {
             <div className="w-full md:w-5/12 flex-shrink-0 flex flex-col items-center justify-center bg-slate-50 rounded-2xl p-3 sm:p-4 border border-slate-100 relative">
 
               {ex.image && (
-                <div className="
-        relative
-        w-full
-        aspect-[4/3]        /* 👈 mobile cao hơn */
-        sm:aspect-video     /* 👈 tablet */
-        md:aspect-auto
-        md:h-full
-        p-2
-      ">
+                <div className="relative w-full aspect-[4/3] sm:aspect-video md:aspect-auto md:h-full p-2">
                   <img
                     src={ex.image}
                     alt="exercise hint"
-                    className="
-            absolute inset-0
-            w-full h-full
-            object-contain
-            object-center
-            rounded-md
-            drop-shadow-[0_12px_24px_rgba(26,43,72,0.14)]
-          "
+                    className="absolute inset-0 w-full h-full object-contain object-center rounded-md drop-shadow-[0_12px_24px_rgba(26,43,72,0.14)]"
                   />
 
                   {ex.audio && (
@@ -636,16 +639,7 @@ const Experience = () => {
                         e.stopPropagation();
                         playTTS(ex.audioText || ex.question);
                       }}
-                      className="
-              absolute inset-0 m-auto
-              w-10 h-10 sm:w-12 sm:h-12
-              bg-[#0061ab]/90 text-white
-              rounded-full
-              flex items-center justify-center
-              shadow-lg
-              hover:scale-110 transition
-              backdrop-blur-sm
-            "
+                      className="absolute inset-0 m-auto w-10 h-10 sm:w-12 sm:h-12 bg-[#0061ab]/90 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition backdrop-blur-sm"
                     >
                       <Volume2 size={20} className="sm:w-6 sm:h-6" />
                     </button>
@@ -660,14 +654,7 @@ const Experience = () => {
                     e.stopPropagation();
                     playTTS(ex.audioText || ex.question);
                   }}
-                  className="
-          w-16 h-16 sm:w-20 sm:h-20
-          bg-[#0061ab] text-white
-          rounded-full
-          flex items-center justify-center
-          hover:scale-105 transition
-          shadow-lg
-        "
+                  className="w-16 h-16 sm:w-20 sm:h-20 bg-[#0061ab] text-white rounded-full flex items-center justify-center hover:scale-105 transition shadow-lg"
                 >
                   <Volume2 size={28} className="sm:w-9 sm:h-9" />
                 </button>
@@ -679,9 +666,7 @@ const Experience = () => {
             <h4 className="font-black text-[#1a2b48] text-lg md:text-xl mb-4 whitespace-pre-line">
               {ex.question}
             </h4>
-            <div
-              className={`grid ${ex.options && ex.options.length > 2 ? "grid-cols-1" : "grid-cols-2"} gap-3`}
-            >
+            <div className={`grid ${ex.options && ex.options.length > 2 ? "grid-cols-1" : "grid-cols-2"} gap-3`}>
               {ex.options?.map((opt, idx) => {
                 const isSelected = selectedOpt === idx;
                 let btnClass = "border-slate-200 bg-white hover:bg-slate-50";
@@ -693,12 +678,7 @@ const Experience = () => {
                 } else if (isSelected)
                   btnClass = "border-[#1a2b48] bg-blue-50 ring-1 ring-[#1a2b48]";
 
-                const displayOpt =
-                  opt.startsWith("A.") ||
-                    opt.startsWith("B.") ||
-                    opt.startsWith("C.")
-                    ? opt.substring(3)
-                    : opt;
+                const displayOpt = opt.startsWith("A.") || opt.startsWith("B.") || opt.startsWith("C.") ? opt.substring(3) : opt;
 
                 return (
                   <button
@@ -708,9 +688,7 @@ const Experience = () => {
                     disabled={isChecking}
                     className={`w-full p-4 rounded-xl border-2 text-left font-bold transition-all flex items-center gap-3 ${btnClass}`}
                   >
-                    <span
-                      className={`w-7 h-7 rounded flex items-center justify-center text-xs shrink-0 ${isSelected && !isChecking ? "bg-[#1a2b48] text-white" : "bg-slate-100 text-slate-500"}`}
-                    >
+                    <span className={`w-7 h-7 rounded flex items-center justify-center text-xs shrink-0 ${isSelected && !isChecking ? "bg-[#1a2b48] text-white" : "bg-slate-100 text-slate-500"}`}>
                       {String.fromCharCode(65 + idx)}
                     </span>
                     {displayOpt}
@@ -747,9 +725,7 @@ const Experience = () => {
           </p>
           <div className="min-h-[80px] bg-slate-50 p-4 md:p-6 rounded-2xl flex flex-wrap gap-2 md:gap-3 mb-4 border-2 border-dashed border-slate-300 items-center justify-center shadow-inner">
             {orderedWords.length === 0 && (
-              <span className="text-slate-400 text-sm font-medium">
-                Bấm vào từ bên dưới để ghép câu...
-              </span>
+              <span className="text-slate-400 text-sm font-medium">Bấm vào từ bên dưới để ghép câu...</span>
             )}
             {orderedWords.map((w, idx) => (
               <button
@@ -883,7 +859,6 @@ const Experience = () => {
               </div>
             ) : (
               <div className="flex flex-col h-full animate-in fade-in relative p-6 md:p-12 min-h-[500px]">
-                {/* Progress Header */}
                 <div className="flex justify-between items-center mb-8">
                   <span className="text-xs font-bold text-[#0061ab] bg-blue-50 border border-blue-100 px-4 py-1.5 rounded-full">
                     Câu hỏi {currentEx + 1}/{EXERCISES.length}
@@ -895,12 +870,10 @@ const Experience = () => {
                   </div>
                 </div>
 
-                {/* Question Content */}
                 <div className="flex-grow flex flex-col justify-center mb-8">
                   {renderExerciseContent()}
                 </div>
 
-                {/* Footer Controls */}
                 <div className="mt-auto border-t border-slate-200/60 pt-6 flex flex-col items-center">
                   {!isChecking ? (
                     <button
@@ -971,18 +944,57 @@ const Experience = () => {
           </>
         )}
 
-        {/* NỘI DUNG TAB: VIDEO */}
+        {/* NỘI DUNG TAB: VIDEO CHUẨN CÓ THANH ĐIỀU KHIỂN */}
         {activeTab === 'video' && (
           <div className="p-4 md:p-14 flex-grow flex flex-col items-center justify-center">
             <div className="w-full max-w-4xl aspect-video relative group animate-zoom-in">
-              <div className="relative h-full w-full rounded-[1.5rem] md:rounded-[3rem] border-4 md:border-[12px] border-white bg-slate-900 shadow-2xl overflow-hidden">
+              <div
+                className="relative h-full w-full rounded-[1.5rem] md:rounded-[3rem] border-4 md:border-[12px] border-white bg-slate-900 shadow-2xl overflow-hidden"
+                onMouseEnter={handleMouseEnterVideo}
+                onMouseLeave={handleMouseLeaveVideo}
+              >
                 {isPlayingVideo ? (
-                  <SlimVimeoPlayer videoUrl={content.videoUrl || "https://player.vimeo.com/video/1176153399"} title="Video học thử" />
+                  <>
+                    <SlimVimeoPlayer
+                      videoUrl="https://player.vimeo.com/video/1176153399?h=09b018576d"
+                      title="Video học thử"
+                      onProgress={setCurrentTime}
+                      onDuration={setDuration}
+                      isPaused={isPaused}
+                      seekTo={seekTo}
+                      isMuted={isMuted} // Thêm Muted
+                    />
+                    <div className="absolute inset-0 z-10 cursor-pointer" onClick={toggleControls} />
+
+                    <div className={`absolute inset-x-4 bottom-2.5 md:inset-x-8 md:bottom-4 z-20 transition-all duration-300 ${showControls ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
+                      <div className="mx-auto w-[95%] md:w-[75%] bg-white/95 rounded-full px-4 py-1.5 md:px-6 md:py-2.5 flex items-center justify-between gap-3 md:gap-5 shadow-xl backdrop-blur-md h-12" onClick={(e) => e.stopPropagation()}>
+
+                        <button onClick={() => setIsPaused(!isPaused)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100/80 text-slate-800 hover:bg-slate-200 transition-colors">
+                          {isPaused ? <Play className="h-4 w-4 fill-current ml-0.5" /> : <div className="flex gap-1"><div className="h-3 w-0.5 bg-current rounded-full" /><div className="h-3 w-0.5 bg-current rounded-full" /></div>}
+                        </button>
+
+                        <div className="hidden md:flex shrink-0 items-center gap-1.5 text-xs font-bold text-slate-600 tabular-nums">
+                          <span>{formatTime(currentTime)}</span>
+                          <span className="text-slate-300">/</span>
+                          <span>{formatTime(duration)}</span>
+                        </div>
+
+                        <div ref={progressBarRef} onMouseDown={handleMouseDown} onTouchStart={handleTouchStart} className="relative flex-grow h-1.5 bg-slate-200 rounded-full cursor-pointer group/progress touch-none">
+                          <div className="absolute inset-y-0 left-0 bg-[#0061ab] rounded-full transition-all duration-100" style={{ width: `${progressPercent}%` }} />
+                          <div className="absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#1a2b48] shadow-md border-2 border-white transition-all group-hover/progress:scale-125" style={{ left: `${progressPercent}%` }} />
+                        </div>
+
+                        <button onClick={() => setIsMuted(!isMuted)} className="flex shrink-0 items-center justify-center h-8 w-8 rounded-full hover:bg-slate-100 transition-colors text-slate-600">
+                          {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+                  </>
                 ) : (
                   <div className="relative w-full h-full cursor-pointer" onClick={() => setIsPlayingVideo(true)}>
                     <img src="/src/assets/video_experience_thumbnail.png" className="w-full h-full object-cover opacity-80" alt="Preview" />
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center hover:bg-black/20 transition-colors">
-                      <PlayCircle size={80} className="text-white opacity-90 shadow-2xl" />
+                      <PlayCircle size={80} className="text-white opacity-90 shadow-2xl animate-pulse" />
                     </div>
                   </div>
                 )}
@@ -995,45 +1007,13 @@ const Experience = () => {
         {activeTab === 'pronounce' && (
           <div className="p-4 sm:p-6 md:p-10 lg:p-14 flex-grow flex flex-col items-center justify-center">
             <div className="w-full max-w-3xl">
-
-              <div
-                className="
-        relative
-        w-full
-        aspect-[4/3] 
-        sm:aspect-video
-        md:aspect-auto
-        md:h-[420px]   /* 👈 FIX CHIỀU CAO TỪ MD */
-        rounded-2xl sm:rounded-3xl
-        overflow-hidden
-        shadow-lg sm:shadow-xl
-        border-2 sm:border-4 border-white
-        bg-slate-50
-      "
-              >
-
+              <div className="relative w-full aspect-[4/3] sm:aspect-video md:aspect-auto md:h-[420px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-lg sm:shadow-xl border-2 sm:border-4 border-white bg-slate-50">
                 {typeof content.aiPronunciationImageUrl === 'string' && content.aiPronunciationImageUrl.trim() ? (
-                  <img
-                    src={resolveAssetUrl(content.aiPronunciationImageUrl)}
-                    alt="AI"
-                    className="
-            absolute inset-0
-            w-full h-full
-            object-cover
-            transition-transform duration-500
-            hover:scale-105
-          "
-                  />
+                  <img src={resolveAssetUrl(content.aiPronunciationImageUrl)} alt="AI" className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 hover:scale-105" />
                 ) : (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-slate-400 font-semibold">
-                      Chưa có ảnh mô phỏng AI
-                    </span>
-                  </div>
+                  <div className="absolute inset-0 flex items-center justify-center"><span className="text-slate-400 font-semibold">Chưa có ảnh mô phỏng AI</span></div>
                 )}
-
               </div>
-
             </div>
           </div>
         )}

@@ -1,139 +1,312 @@
-import React from 'react';
-import { ArrowRight, CheckCircle2, ClipboardList, WandSparkles, Target, Waypoints, Gift, ShieldCheck, FileText, Zap, Box, Layers, Activity } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { ADMIN_SECTION_LIST } from '../adminSections';
-import { useAdminAuth } from '../hooks/useAdminAuth';
-import { adminCard, adminCardMuted, adminAccentText } from '../adminTheme';
+import React, { useEffect, useState } from 'react';
+import { 
+  BarChart3, 
+  PieChart as PieChartIcon, 
+  Users, 
+  TrendingUp, 
+  AlertTriangle,
+  RefreshCw,
+  Globe
+} from 'lucide-react';
+import { 
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend
+} from 'recharts';
 
-const cards = [
-  { id: 'hero', title: 'Trang đầu', desc: 'Tiêu đề, CTA và các điểm nhấn thị giác.', icon: WandSparkles, color: 'text-indigo-400' },
-  { id: 'painpoints', title: 'Nỗi đau', desc: 'Quản lý các điểm chạm tâm lý.', icon: Target, color: 'text-rose-400' },
-  { id: 'solution', title: 'Giải pháp', desc: 'Các tính năng cốt lõi & truyền thông.', icon: ClipboardList, color: 'text-emerald-400' },
-  { id: 'methodology', title: 'Phương pháp', desc: 'Các khối quy trình và chiến lược.', icon: Waypoints, color: 'text-amber-400' },
-  { id: 'lucky-wheel', title: 'Vòng quay', desc: 'Phần thưởng game hóa & ưu đãi.', icon: Gift, color: 'text-violet-400' },
-  { id: 'leads', title: 'Quản lý Lead', icon: FileText, desc: 'Xem và xuất dữ liệu khách hàng.', color: 'text-cyan-400' },
-];
+// Import context để tự động biết đang ở site Tiếng Trung hay Tiếng Đức
+import { useSiteContext } from '../../../context/LandingSiteContext';
 
-interface OverviewProps {
-  onNavigate?: (id: string) => void;
+// --- 1. ĐỊNH NGHĨA TYPES ---
+interface TrendData {
+  _id: string; 
+  leads: number;
+  suspicious: number;
 }
 
-export default function Overview({ onNavigate }: OverviewProps) {
-  const { isAuthenticated, user } = useAdminAuth();
+interface ConversionData {
+  siteKey: string;
+  totalLeads: number;
+  breakdown: {
+    status: string;
+    count: number;
+    percentage: string;
+  }[];
+}
+
+interface KocPerformance {
+  _id: string;
+  koc: string;
+  totalLeads: number;
+  enrolled: number;
+  suspicious: number;
+  lastLeadAt: string;
+  conversionRate: number;
+}
+
+const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#64748b'];
+
+// Dịch trạng thái sang Tiếng Việt cho đẹp
+const STATUS_LABELS: Record<string, string> = {
+  'NEW': 'Mới',
+  'CONTACTED': 'Đã liên hệ',
+  'ENROLLED': 'Thành công',
+  'CANCELLED': 'Đã hủy'
+};
+
+export default function LeadStatistics() {
+  // Lấy siteKey tự động (tieng-duc hoặc tieng-trung)
+  const { siteKey } = useSiteContext(); 
+  const siteName = siteKey === 'tieng-duc' ? 'Đức (DE)' : 'Trung (CN)';
+  
+  const [trends, setTrends] = useState<TrendData[]>([]);
+  const [conversion, setConversion] = useState<ConversionData | null>(null);
+  const [kocs, setKocs] = useState<KocPerformance[]>([]);
+  
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  // --- 2. HÀM GỌI API ĐỘNG THEO SITEKEY ---
+  const fetchStatistics = async () => {
+    setIsLoading(true);
+    setError('');
+    
+    const token = localStorage.getItem('ula_admin_token'); 
+    const headers = {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+
+    try {
+      // API TỰ ĐỘNG THAY ĐỔI THEO TỪNG SITE
+      const [trendsRes, conversionRes, kocsRes] = await Promise.all([
+        fetch(`http://localhost:3002/api/leads/stats/trends?site=${siteKey}`, { headers }),
+        fetch(`http://localhost:3002/api/leads/stats/conversion?site=${siteKey}`, { headers }),
+        fetch(`http://localhost:3002/api/leads/stats/kocs?site=${siteKey}`, { headers })
+      ]);
+
+      if (!trendsRes.ok || !conversionRes.ok || !kocsRes.ok) {
+        throw new Error('Lỗi khi tải dữ liệu thống kê');
+      }
+
+      const trendsData = await trendsRes.json();
+      const conversionData = await conversionRes.json();
+      const kocsData = await kocsRes.json();
+
+      setTrends(trendsData.trends || []);
+      setConversion(conversionData);
+      setKocs(kocsData.performance || []);
+
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Đã có lỗi xảy ra');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Gọi lại API mỗi khi chuyển đổi giữa Tiếng Đức và Tiếng Trung
+  useEffect(() => {
+    void fetchStatistics();
+  }, [siteKey]);
+
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? dateStr : `${d.getDate()}/${d.getMonth() + 1}`;
+  };
+
+  // Lọc biểu đồ tròn: Chuyên lọc bỏ các trạng thái có 0 lead (Tiếng Trung đang bị)
+  const validConversions = conversion?.breakdown?.filter(item => item.count > 0) || [];
+
+  if (isLoading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <RefreshCw className="w-8 h-8 text-blue-500 animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 bg-red-50 text-red-600 rounded-xl font-bold flex items-center gap-2">
+        <AlertTriangle className="w-5 h-5" /> {error}
+      </div>
+    );
+  }
 
   return (
-    <div className="grid gap-8 xl:grid-cols-[1fr_350px]">
-      <div className="space-y-8">
-        <section className={adminCard}>
-          <div className="flex flex-wrap items-start justify-between gap-6 mb-10">
-            <div>
-              <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.4em] font-black text-slate-400 mb-2">
-                <Box className="w-3 h-3" />
-                Tổng quan hệ thống
+    <div className="space-y-6 animate-in fade-in duration-500">
+      
+      {/* HEADER TỰ ĐỘNG ĐỔI TÊN */}
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.4em] font-black text-slate-500 mb-2">
+            <Globe className="w-3 h-3 text-blue-500" />
+            Dashboard ({siteName})
+          </div>
+          <h2 className="text-3xl font-black text-slate-800 tracking-tight">Thống Kê Khách Hàng</h2>
+          <p className="text-sm text-slate-500 font-medium mt-1">Tổng quan dữ liệu thu thập được từ Landing Page {siteName}</p>
+        </div>
+        <button 
+          onClick={fetchStatistics}
+          className="flex items-center gap-2 px-6 py-2.5 bg-white border border-slate-200 rounded-xl shadow-sm hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 font-bold text-sm text-slate-700 transition-all"
+        >
+          <RefreshCw className="w-4 h-4" /> Cập nhật Data
+        </button>
+      </div>
+
+      {/* TỔNG QUAN TỔNG SỐ */}
+      {conversion && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="p-6 bg-white rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-100 flex items-center gap-5 relative overflow-hidden">
+            <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-50 rounded-full blur-2xl"></div>
+            <div className="p-4 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-2xl shadow-lg shadow-blue-500/30">
+              <Users className="w-7 h-7" />
+            </div>
+            <div className="relative z-10">
+              <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">Tổng Leads Thu Được</p>
+              <h3 className="text-4xl font-black text-slate-800">{conversion.totalLeads}</h3>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* CHART 1: TRENDS */}
+        <div className="lg:col-span-2 p-6 bg-white rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-100">
+          <div className="flex items-center gap-2 mb-8">
+            <TrendingUp className="w-5 h-5 text-emerald-500" />
+            <h3 className="text-xl font-black text-slate-800">Xu Hướng Thu Thập Theo Ngày</h3>
+          </div>
+          <div className="h-80 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={trends} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorLeads" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="_id" tickFormatter={formatDate} fontSize={12} tickLine={false} axisLine={false} dy={10} />
+                <YAxis fontSize={12} tickLine={false} axisLine={false} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <Tooltip 
+                  labelFormatter={(label) => `Ngày: ${new Date(label).toLocaleDateString('vi-VN')}`}
+                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                />
+                <Legend verticalAlign="top" height={36}/>
+                <Area type="monotone" dataKey="leads" name="Tổng Leads" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorLeads)" />
+                <Area type="monotone" dataKey="suspicious" name="Đáng ngờ (Spam)" stroke="#ef4444" strokeWidth={3} fill="transparent" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* CHART 2: CONVERSION (Lọc mượt mà) */}
+        <div className="p-6 bg-white rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-100 flex flex-col">
+          <div className="flex items-center gap-2 mb-6">
+            <PieChartIcon className="w-5 h-5 text-indigo-500" />
+            <h3 className="text-xl font-black text-slate-800">Tỷ Lệ Chuyển Đổi</h3>
+          </div>
+          <div className="flex-1 min-h-[300px]">
+            {validConversions.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={validConversions}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={70}
+                    outerRadius={100}
+                    paddingAngle={5}
+                    dataKey="count"
+                    nameKey="status"
+                    stroke="none"
+                  >
+                    {validConversions.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    formatter={(value: number, name: string, props: any) => [`${value} Leads (${props.payload.percentage})`, STATUS_LABELS[name] || name]}
+                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                  />
+                  <Legend 
+                    formatter={(value) => <span className="text-slate-700 font-bold ml-1">{STATUS_LABELS[value] || value}</span>}
+                    verticalAlign="bottom" height={36} 
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center text-center">
+                <div className="w-20 h-20 rounded-full bg-slate-50 flex items-center justify-center mb-3">
+                  <PieChartIcon className="w-8 h-8 text-slate-300" />
+                </div>
+                <div className="text-slate-400 font-bold">Chưa có đủ dữ liệu</div>
+                <div className="text-xs text-slate-400 mt-1">Hãy chờ có Lead đầu tiên nhé</div>
               </div>
-              <h2 className="text-4xl font-black text-slate-900 tracking-tighter">Trung tâm <span className={adminAccentText}>Điều khiển</span></h2>
-            </div>
-            <div className="flex items-center gap-2 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-2 text-[11px] font-black uppercase tracking-widest text-emerald-600">
-               <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-               Đã kết nối Production
-            </div>
+            )}
           </div>
-
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {cards.map((card) => {
-              const Icon = card.icon;
-              return (
-                <button
-                  key={card.id}
-                  onClick={() => onNavigate?.(card.id)}
-                  className="group relative overflow-hidden rounded-[28px] border border-slate-200 bg-white p-6 text-left transition-all duration-300 hover:bg-slate-50 hover:border-slate-300 hover:-translate-y-1 shadow-sm w-full"
-                >
-                  <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                      <Icon className="w-16 h-16" />
-                  </div>
-                  <div className="relative z-10 flex flex-col h-full">
-                    <div className={`h-12 w-12 rounded-2xl bg-white flex items-center justify-center mb-6 border border-slate-200 group-hover:scale-110 transition-transform duration-500 shadow-sm`}>
-                      <Icon className={`w-6 h-6 ${card.color}`} />
-                    </div>
-                    <div className="flex-1">
-                       <h3 className="text-lg font-black text-slate-900 mb-2 group-hover:text-indigo-600 transition-colors">{card.title}</h3>
-                       <p className="text-xs text-slate-500 leading-relaxed font-medium">{card.desc}</p>
-                    </div>
-                    <div className="mt-6 flex items-center justify-between">
-                       <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-slate-600 transition-colors">Quản lý dữ liệu</span>
-                       <div className="h-8 w-8 rounded-full bg-white border border-slate-200 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-600 transition-all shadow-sm">
-                          <ArrowRight className="w-4 h-4" />
-                       </div>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
-        <div className="grid gap-4 md:grid-cols-3">
-            <div className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-sm">
-                <div className="flex items-center gap-3 mb-4">
-                    <div className="h-10 w-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
-                        <Zap className="h-5 w-5 text-indigo-600" />
-                    </div>
-                    <div className="text-xs font-black uppercase tracking-widest text-slate-400">Tổng lượt đồng bộ</div>
-                </div>
-                <div className="text-3xl font-black text-slate-900">1,284</div>
-                <div className="mt-2 text-[10px] text-emerald-600 font-bold uppercase tracking-widest">+12% so với tuần trước</div>
-            </div>
-            <div className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-sm">
-                <div className="flex items-center gap-3 mb-4">
-                    <div className="h-10 w-10 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center">
-                        <Layers className="h-5 w-5 text-rose-600" />
-                    </div>
-                    <div className="text-xs font-black uppercase tracking-widest text-slate-400">Phần hoạt động</div>
-                </div>
-                <div className="text-3xl font-black text-slate-900">05/05</div>
-                <div className="mt-2 text-[10px] text-slate-500 font-bold uppercase tracking-widest">Đang vận hành tốt</div>
-            </div>
-            <div className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-sm">
-                <div className="flex items-center gap-3 mb-4">
-                    <div className="h-10 w-10 rounded-xl bg-cyan-50 border border-cyan-100 flex items-center justify-center">
-                        <Activity className="h-5 w-5 text-cyan-600" />
-                    </div>
-                    <div className="text-xs font-black uppercase tracking-widest text-slate-400">Độ trễ API</div>
-                </div>
-                <div className="text-3xl font-black text-slate-900">42ms</div>
-                <div className="mt-2 text-[10px] text-emerald-600 font-bold uppercase tracking-widest">Hiệu suất tối ưu</div>
-            </div>
         </div>
       </div>
 
-      <aside className="space-y-6">
-        <section className={`${adminCardMuted} space-y-6 bg-slate-50/50`}>
-            <div>
-                {/* <div className="text-[10px] uppercase tracking-[0.4em] font-black text-slate-400 mb-3 flex items-center gap-2">
-                   <ShieldCheck className="w-3 h-3" />
-                   Giao thức bảo mật
-                </div> */}
-                
-            </div>
-
-            <div>
-                <div className="text-[10px] uppercase tracking-[0.4em] font-black text-slate-400 mb-4">Danh mục các phần</div>
-                <div className="space-y-2">
-                    {ADMIN_SECTION_LIST.map((section) => (
-                    <div key={section.key} className="group flex items-center justify-between gap-3 p-3 rounded-xl border border-transparent hover:border-slate-200 hover:bg-white transition-all">
-                        <span className="text-xs font-bold text-slate-500 group-hover:text-slate-900 transition-colors">{section.title}</span>
-                        <code className="text-[9px] font-black text-slate-400 bg-slate-100 border border-slate-200 px-2 py-1 rounded-md uppercase tracking-widest">{section.key}</code>
+      {/* TABLE: KOC PERFORMANCE */}
+      <div className="p-6 bg-white rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-100 overflow-hidden">
+        <div className="flex items-center gap-2 mb-6">
+          <BarChart3 className="w-5 h-5 text-amber-500" />
+          <h3 className="text-xl font-black text-slate-800">Hiệu Suất KOC / Affiliate</h3>
+        </div>
+        
+        <div className="overflow-x-auto no-scrollbar">
+          <table className="min-w-full text-left text-sm border-collapse">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200 text-[10px] uppercase font-black text-slate-400 tracking-[0.25em]">
+                <th className="px-6 py-5 rounded-tl-2xl">Mã KOC</th>
+                <th className="px-6 py-5">Tổng Lead</th>
+                <th className="px-6 py-5 text-emerald-500">Đăng ký (Success)</th>
+                <th className="px-6 py-5 text-red-400">Spam / Đáng ngờ</th>
+                <th className="px-6 py-5">Chuyển đổi</th>
+                <th className="px-6 py-5 rounded-tr-2xl text-right">Lead gần nhất</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {kocs.length > 0 ? kocs.map((koc) => (
+                <tr key={koc._id} className="hover:bg-slate-50/80 transition-colors">
+                  <td className="px-6 py-4">
+                    <span className="font-mono text-base font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg">
+                      {koc.koc}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 font-black text-slate-700 text-base">{koc.totalLeads}</td>
+                  <td className="px-6 py-4 font-black text-emerald-500 text-base">{koc.enrolled}</td>
+                  <td className="px-6 py-4 font-black text-red-500 text-base">{koc.suspicious}</td>
+                  <td className="px-6 py-4">
+                    <span className={`px-3 py-1 font-bold rounded-full text-xs ${
+                      koc.conversionRate > 20 ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
+                      koc.conversionRate > 0 ? 'bg-amber-50 text-amber-600 border border-amber-100' :
+                      'bg-slate-100 text-slate-500 border border-slate-200'
+                    }`}>
+                      {koc.conversionRate}%
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-right text-slate-500 text-xs font-bold">
+                    {koc.lastLeadAt ? new Date(koc.lastLeadAt).toLocaleString('vi-VN') : '---'}
+                  </td>
+                </tr>
+              )) : (
+                <tr>
+                  <td colSpan={6} className="px-6 py-20 text-center">
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-50 mb-4">
+                      <BarChart3 className="w-8 h-8 text-slate-300" />
                     </div>
-                    ))}
-                </div>
-            </div>
+                    <div className="text-slate-500 font-bold">Chưa có hoạt động Affiliate nào cho chiến dịch {siteName}</div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-            <div className="pt-4 border-t border-slate-200">
-                <div className="text-xs font-black text-slate-900 mb-2">Sao lưu tự động</div>
-                <p className="text-[10px] text-slate-400 leading-relaxed font-bold uppercase tracking-widest">Mọi thay đổi đều được kiểm soát phiên bản. Có thể khôi phục qua console.</p>
-            </div>
-        </section>
-      </aside>
     </div>
   );
 }

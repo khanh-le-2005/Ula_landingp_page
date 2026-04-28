@@ -414,6 +414,119 @@ const deleteLead = async (req, res, next) => {
   }
 };
 
+// 1. Thống kê xu hướng (Trends) - Theo ngày trong 30 ngày qua
+const getTrendsStats = async (req, res, next) => {
+  try {
+    const siteKey = req.siteKey;
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const trends = await Lead.aggregate([
+      { 
+        $match: { 
+          siteKey, 
+          createdAt: { $gte: thirtyDaysAgo } 
+        } 
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          leads: { $sum: 1 },
+          suspicious: { $sum: { $cond: ["$is_suspicious", 1, 0] } }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    // Fill zeros for missing days
+    const fullTrends = [];
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
+      const found = trends.find(t => t._id === dateStr);
+      fullTrends.push(found || { _id: dateStr, leads: 0, suspicious: 0 });
+    }
+
+    res.status(200).json({ siteKey, trends: fullTrends });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 2. Thống kê tỷ lệ chuyển đổi (Conversion) - Theo trạng thái
+const getConversionStats = async (req, res, next) => {
+  try {
+    const siteKey = req.siteKey;
+    const stats = await Lead.aggregate([
+      { $match: { siteKey } },
+      {
+        $group: {
+          _id: "$status",
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const totalLeads = stats.reduce((sum, s) => sum + s.count, 0);
+    const validStatuses = ["NEW", "CONTACTED", "ENROLLED", "CANCELLED"];
+    
+    const breakdown = validStatuses.map(status => {
+      const found = stats.find(s => s._id === status);
+      const count = found ? found.count : 0;
+      return {
+        status,
+        count: count,
+        percentage: totalLeads > 0 ? ((count / totalLeads) * 100).toFixed(2) + '%' : '0%'
+      };
+    });
+
+    res.status(200).json({ siteKey, totalLeads, breakdown });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 3. Thống kê hiệu suất KOC (KOC Performance)
+const getKocPerformanceStats = async (req, res, next) => {
+  try {
+    const siteKey = req.siteKey;
+    const performance = await Lead.aggregate([
+      { $match: { siteKey, referralCode: { $ne: null } } },
+      {
+        $group: {
+          _id: "$referralCode",
+          totalLeads: { $sum: 1 },
+          enrolled: { $sum: { $cond: [{ $eq: ["$status", "ENROLLED"] }, 1, 0] } },
+          suspicious: { $sum: { $cond: ["$is_suspicious", 1, 0] } },
+          lastLeadAt: { $max: "$createdAt" }
+        }
+      },
+      {
+        $project: {
+          koc: "$_id",
+          totalLeads: 1,
+          enrolled: 1,
+          suspicious: 1,
+          lastLeadAt: 1,
+          conversionRate: {
+            $cond: [
+              { $gt: ["$totalLeads", 0] },
+              { $multiply: [{ $divide: ["$enrolled", "$totalLeads"] }, 100] },
+              0
+            ]
+          }
+        }
+      },
+      { $sort: { totalLeads: -1 } }
+    ]);
+
+    res.status(200).json({ siteKey, performance });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = { 
   submitForward, 
   submitGerman, 
@@ -422,6 +535,9 @@ module.exports = {
   getStats, 
   getComprehensiveStats,
   getUtmStats,
+  getTrendsStats,
+  getConversionStats,
+  getKocPerformanceStats,
   updateLeadStatus, 
   deleteLead 
 };

@@ -6,11 +6,11 @@ import { useLandingSection } from "../pages/admin/hooks/useLandingSection";
 import { resolveAssetUrl } from "../utils/assetUtil";
 
 const TRUSTED_VIETNAMESE_AVATARS = [
-  "https://i.pravatar.cc/120?img=12",
-  "https://i.pravatar.cc/120?img=32",
-  "https://i.pravatar.cc/120?img=47",
-  "https://i.pravatar.cc/120?img=56",
-  "https://i.pravatar.cc/120?img=68",
+  "https://images.pexels.com/photos/29677093/pexels-photo-29677093.jpeg?auto=compress&cs=tinysrgb&w=160&h=160&fit=crop",
+  "https://images.pexels.com/photos/30436001/pexels-photo-30436001.jpeg?auto=compress&cs=tinysrgb&w=160&h=160&fit=crop",
+  "https://images.pexels.com/photos/4063971/pexels-photo-4063971.jpeg?auto=compress&cs=tinysrgb&w=160&h=160&fit=crop",
+  "https://images.pexels.com/photos/36064019/pexels-photo-36064019.jpeg?auto=compress&cs=tinysrgb&w=160&h=160&fit=crop",
+  "https://images.pexels.com/photos/12667510/pexels-photo-12667510.jpeg?auto=compress&cs=tinysrgb&w=160&h=160&fit=crop",
 ];
 
 type SlimVimeoPlayerProps = {
