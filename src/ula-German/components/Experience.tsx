@@ -800,7 +800,7 @@ const Experience = () => {
                           (EXERCISES[currentEx].type === "mcq" && selectedOpt !== null) ||
                           (EXERCISES[currentEx].type === "mcq_sentence" && selectedOpt !== null) ||
                           (EXERCISES[currentEx].type === "fill" && fillAnswer.trim() !== "")
-                          ? "bg-[#1a2b48] text-white hover:bg-[#0061ab] shadow-lg hover:-translate-y-1"
+                          ? "bg-[#0061ab] text-white cursor-pointer hover:shadow-lg hover:-translate-y-1"
                           : "bg-slate-200 text-slate-400 cursor-not-allowed"
                         }`}
                     >

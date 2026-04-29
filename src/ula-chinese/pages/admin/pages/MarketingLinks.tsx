@@ -205,15 +205,16 @@ export default function MarketingLinks() {
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-[10px] uppercase font-black tracking-[0.25em] text-slate-400">
                   <th className="px-6 py-5">Tên Link / Ghi chú</th>
-                  <th className="px-6 py-5">Thông số Tracking (UTM / Ref)</th>
-                  <th className="px-6 py-5">Link Đích (Target URL)</th>
+                  <th className="px-6 py-5">Thông số Tracking</th>
+                  <th className="px-6 py-5">Link & Chiến dịch</th>
+                  <th className="px-6 py-5 text-center">Hiệu suất</th>
                   <th className="px-6 py-5 text-end">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {isLoading && links.length === 0 ? (
                   <tr>
-                    <td className="px-6 py-12 text-center" colSpan={4}>
+                    <td className="px-6 py-12 text-center" colSpan={5}>
                       <div className="flex flex-col items-center gap-3">
                         <RefreshCw className="h-6 w-6 text-indigo-500 animate-spin" />
                         <span className="text-xs font-black uppercase tracking-widest text-slate-400">Đang tải danh sách...</span>
@@ -222,7 +223,7 @@ export default function MarketingLinks() {
                   </tr>
                 ) : filteredLinks.length === 0 ? (
                   <tr>
-                    <td className="px-6 py-12 text-center" colSpan={4}>
+                    <td className="px-6 py-12 text-center" colSpan={5}>
                       <div className="flex flex-col items-center gap-4 text-slate-400 font-bold italic">
                         <LinkIcon className="h-10 w-10 opacity-20" />
                         <span>Chưa có Tracking Link nào được tạo.</span>
@@ -268,21 +269,59 @@ export default function MarketingLinks() {
                         </div>
                       </td>
                       <td className="px-6 py-6">
-                        <div className="flex items-center gap-2 group/link">
-                          <div className="h-10 px-4 rounded-xl bg-slate-100 border border-slate-200 flex items-center gap-2 max-w-[250px] overflow-hidden">
-                            <ExternalLink className="w-3 h-3 text-slate-400 shrink-0" />
-                            <span className="text-[10px] font-medium text-slate-500 truncate" title={link.fullUrl}>
-                              {link.fullUrl}
-                            </span>
+                        <div className="flex flex-col gap-3">
+                          <div className="flex items-center gap-2 group/link">
+                            <div className="h-10 px-4 rounded-xl bg-slate-100 border border-slate-200 flex items-center gap-2 max-w-[250px] overflow-hidden">
+                              <ExternalLink className="w-3 h-3 text-slate-400 shrink-0" />
+                              <span className="text-[10px] font-medium text-slate-500 truncate" title={link.fullUrl}>
+                                {link.fullUrl}
+                              </span>
+                            </div>
+                            <button
+                              onClick={() => handleCopy(link.fullUrl, link._id)}
+                              className="h-10 w-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 transition-all shadow-sm shrink-0"
+                              title="Sao chép Link"
+                            >
+                              {copiedCode === link._id ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                            </button>
                           </div>
-                          <button
-                            onClick={() => handleCopy(link.fullUrl, link._id)}
-                            className="h-10 w-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 transition-all shadow-sm shrink-0"
-                            title="Sao chép Link"
-                          >
-                            {copiedCode === link._id ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
-                          </button>
+                          {link.campaignInfo && (link.campaignInfo.promoCode || link.campaignInfo.discountText) && (
+                            <div className="flex flex-col gap-1 mt-1">
+                              {link.campaignInfo.promoCode && (
+                                <div className="text-[10px] font-black uppercase tracking-widest text-rose-500">
+                                  Mã: {link.campaignInfo.promoCode}
+                                </div>
+                              )}
+                              {link.campaignInfo.discountText && (
+                                <div className="text-xs font-bold text-slate-700">
+                                  {link.campaignInfo.discountText}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
+                      </td>
+                      <td className="px-6 py-6 text-center">
+                        {link.metrics ? (
+                          <div className="flex items-center justify-center gap-4">
+                            <div className="flex flex-col items-center">
+                              <span className="text-sm font-black text-slate-900">{link.metrics.clicks}</span>
+                              <span className="text-[9px] uppercase tracking-widest font-bold text-slate-400">Click</span>
+                            </div>
+                            <div className="w-px h-6 bg-slate-200"></div>
+                            <div className="flex flex-col items-center">
+                              <span className="text-sm font-black text-emerald-600">{link.metrics.leads}</span>
+                              <span className="text-[9px] uppercase tracking-widest font-bold text-slate-400">Lead</span>
+                            </div>
+                            <div className="w-px h-6 bg-slate-200"></div>
+                            <div className="flex flex-col items-center">
+                              <span className="text-sm font-black text-amber-500">{link.metrics.cr}</span>
+                              <span className="text-[9px] uppercase tracking-widest font-bold text-slate-400">CR</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-400 italic font-medium">Chưa có data</span>
+                        )}
                       </td>
                       <td className="px-6 py-6">
                         <div className="flex justify-end gap-2 text-end">

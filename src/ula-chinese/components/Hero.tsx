@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
-import { ChevronRight, Play, Star, Volume2 } from "lucide-react";
+import { ChevronRight, Play, Star, Volume2, VolumeX } from "lucide-react";
 import { heroDefault } from "../pages/admin/adminData";
 import { ADMIN_SECTION_KEYS } from "../pages/admin/adminSections";
 import { useLandingSection } from "../pages/admin/hooks/useLandingSection";
@@ -46,11 +46,12 @@ const transformVimeoUrl = (url: string) => {
   return `${trimmed}${separator}autoplay=1&muted=0&controls=0&badge=0&autopause=0&vimeo_logo=0&dnt=1`;
 };
 
-function SlimVimeoPlayer({ videoUrl, title, onProgress, onDuration, isPaused, seekTo }: SlimVimeoPlayerProps & {
+function SlimVimeoPlayer({ videoUrl, title, onProgress, onDuration, isPaused, seekTo, isMuted }: SlimVimeoPlayerProps & {
   onProgress?: (time: number) => void;
   onDuration?: (duration: number) => void;
   isPaused?: boolean;
   seekTo?: number | null;
+  isMuted?: boolean;
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const playerRef = useRef<any>(null);
@@ -102,6 +103,12 @@ function SlimVimeoPlayer({ videoUrl, title, onProgress, onDuration, isPaused, se
     }
   }, [seekTo]);
 
+  useEffect(() => {
+    if (playerRef.current) {
+      playerRef.current.setVolume(isMuted ? 0 : 1);
+    }
+  }, [isMuted]);
+
   const enhancedUrl = transformVimeoUrl(videoUrl);
 
   return (
@@ -119,8 +126,9 @@ function SlimVimeoPlayer({ videoUrl, title, onProgress, onDuration, isPaused, se
 export default function Hero() {
   const { content: hero } = useLandingSection(ADMIN_SECTION_KEYS.hero, heroDefault);
   const heroSectionRef = useRef<HTMLElement | null>(null);
-  const [isPlayingHeroVideo, setIsPlayingHeroVideo] = useState(false);
+  const [isPlayingHeroVideo, setIsPlayingHeroVideo] = useState(true);
   const [isPaused, setIsPaused] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [seekTo, setSeekTo] = useState<number | null>(null);
@@ -312,12 +320,13 @@ export default function Hero() {
                 {isPlayingHeroVideo && heroVideoWatchUrl ? (
                   <>
                     <SlimVimeoPlayer
-                      videoUrl={heroVideoWatchUrl}
+                      videoUrl={"https://player.vimeo.com/video/1176153399?h=09b018576d"}
                       title={heroVideoTitle}
                       onProgress={setCurrentTime}
                       onDuration={setDuration}
                       isPaused={isPaused}
                       seekTo={seekTo}
+                      isMuted={isMuted}
                     />
 
                     {/* Click Overlay to toggle controls */}
@@ -365,8 +374,15 @@ export default function Hero() {
                           />
                         </div>
 
-                        <button className="flex shrink-0 items-center justify-center h-7 w-7 md:h-9 md:w-9 rounded-full hover:bg-slate-50 transition-colors text-slate-500">
-                          <Volume2 className="h-4 w-4 md:h-5 md:w-5" />
+                        <button 
+                          onClick={() => setIsMuted(!isMuted)}
+                          className="flex shrink-0 items-center justify-center h-7 w-7 md:h-9 md:w-9 rounded-full hover:bg-slate-50 transition-colors text-slate-500"
+                        >
+                          {isMuted ? (
+                            <VolumeX className="h-4 w-4 md:h-5 md:w-5" />
+                          ) : (
+                            <Volume2 className="h-4 w-4 md:h-5 md:w-5" />
+                          )}
                         </button>
                       </div>
                     </div>

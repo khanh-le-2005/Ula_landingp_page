@@ -9,6 +9,11 @@ const affiliateSchema = new mongoose.Schema(
     commissionRate: { type: Number, default: 0.1 },            // Hoa hồng: 10%
     isActive: { type: Boolean, default: true, index: true },   // Có đang hoạt động không
     notes: { type: String },
+    socialMedia: {
+      tiktok: { type: String },
+      facebook: { type: String },
+      instagram: { type: String },
+    },
     siteKey: { type: String, required: true, default: "main" } // Trang hiển thị
   },
   { timestamps: true }

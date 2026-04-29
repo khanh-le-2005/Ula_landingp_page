@@ -1,6 +1,8 @@
 const { MarketingLink } = require("../models/marketingLinkModel");
 const { Campaign } = require("../models/campaignModel");
 const { Affiliate } = require("../models/affiliateModel");
+const { Lead } = require("../models/leadModel");
+const { MarketingClick } = require("../models/marketingClickModel");
 
 // Hàm Helper để build Link chuẩn
 const getFullUrl = (req, siteKey, tag) => {
@@ -15,12 +17,45 @@ const getFullUrl = (req, siteKey, tag) => {
   return url;
 };
 
-// Lấy danh sách toàn bộ Marketing Link
+// Lấy danh sách toàn bộ Marketing Link kèm theo hiệu suất (Clicks, Leads, CR)
 const getLinks = async (req, res, next) => {
   try {
     const siteKey = req.query.siteKey || req.headers["x-site-key"] || req.siteKey; 
     const links = await MarketingLink.find({ siteKey }).sort({ createdAt: -1 });
-    res.status(200).json(links);
+
+    const enrichedLinks = await Promise.all(links.map(async (link) => {
+      // 1. Nhận diện link qua bộ UTM + Ref để lấy chỉ số hiệu suất
+      const filter = {
+        siteKey: link.siteKey,
+        utm_source: link.utm_source || null,
+        utm_medium: link.utm_medium || null,
+        utm_campaign: link.utm_campaign || null,
+        referralCode: link.ref || null
+      };
+
+      const [clicksCount, leadsCount, campaign] = await Promise.all([
+        MarketingClick.countDocuments(filter),
+        Lead.countDocuments(filter),
+        link.tag ? Campaign.findOne({ tag: link.tag, siteKey: link.siteKey }) : null
+      ]);
+      
+      const cr = clicksCount > 0 ? ((leadsCount / clicksCount) * 100).toFixed(1) : (leadsCount > 0 ? "100" : "0");
+      
+      return {
+        ...link.toObject(),
+        metrics: {
+          clicks: clicksCount,
+          leads: leadsCount,
+          cr: cr + "%"
+        },
+        campaignInfo: campaign ? {
+          promoCode: campaign.promoCode,
+          discountText: campaign.discountText
+        } : null
+      };
+    }));
+
+    res.status(200).json(enrichedLinks);
   } catch (error) {
     next(error);
   }

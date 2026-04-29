@@ -20,7 +20,17 @@ const sendRewardEmail = async (toEmail, prizeInfo) => {
     return;
   }
 
-  const { customerName, prizeName, prizeCode, sitePromoCode, discountText } = prizeInfo;
+  const { customerName, prizeName, prizeCode, sitePromoCode, discountText, siteKey } = prizeInfo;
+
+  // Fix cứng link theo Site
+  let finalCheckoutUrl = "https://ulaedu.com/khoa-hoc";
+  let finalStudyUrl = "https://ulaedu.com/hoc-tap";
+
+  if (siteKey === "tieng-duc") {
+    finalCheckoutUrl = "https://ulaedu.com/#/checkout?packageId=69d12063a7f4e1d552505e12&lang=GERMAN";
+  } else if (siteKey === "tieng-trung") {
+    finalCheckoutUrl = "https://ulaedu.com/#/checkout?packageId=69d2765aa7f4e1d552506075&lang=CHINESE";
+  }
 
   const mailOptions = {
     from: `"Ula Landing Page" <${process.env.EMAIL_USER}>`,
@@ -30,7 +40,7 @@ const sendRewardEmail = async (toEmail, prizeInfo) => {
       <div style="background-color: #f1f5f9; padding: 40px 10px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
         <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);">
           <!-- Header Image/Banner Gradient -->
-          <div style="background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%); padding: 40px 20px; text-align: center;">
+          <div style="background: linear-gradient(135deg, #2B6AA3 0%, #1E4E7A 100%); padding: 40px 20px; text-align: center;">
             <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">Chúc mừng ${customerName}!</h1>
             <p style="color: rgba(255, 255, 255, 0.9); margin: 10px 0 0 0; font-size: 16px;">Bạn đã nhận thành công gói ưu đãi từ Ula Education</p>
           </div>
@@ -38,13 +48,13 @@ const sendRewardEmail = async (toEmail, prizeInfo) => {
           <div style="padding: 40px 30px;">
             <!-- Main Offer -->
             <div style="border: 1px solid #e2e8f0; border-radius: 16px; padding: 30px; text-align: center; background-color: #ffffff; position: relative; margin-bottom: 30px;">
-              <span style="background-color: #dcfce7; color: #166534; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 99px; text-transform: uppercase; position: absolute; top: -12px; left: 50%; transform: translateX(-50%);">Ưu đãi độc quyền</span>
+              <span style="background-color: #e0f2fe; color: #1E4E7A; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 99px; text-transform: uppercase; position: absolute; top: -12px; left: 50%; transform: translateX(-50%);">Ưu đãi độc quyền</span>
               <h3 style="margin: 0; color: #1e293b; font-size: 18px; font-weight: 600;">🎁 1. ${discountText || 'Ưu đãi học phí đặc biệt'}</h3>
               <div style="margin: 20px 0;">
-                <span style="font-family: 'Courier New', Courier, monospace; font-size: 36px; font-weight: 800; color: #2563eb; letter-spacing: 4px; background: #f8fafc; padding: 10px 20px; border-radius: 12px; border: 2px dashed #cbd5e1; display: inline-block;">${sitePromoCode || 'ULA-SPECIAL'}</span>
+                <span style="font-family: 'Courier New', Courier, monospace; font-size: 36px; font-weight: 800; color: #1E4E7A; letter-spacing: 4px; background: #f8fafc; padding: 10px 20px; border-radius: 12px; border: 2px dashed #2B6AA3; display: inline-block;">${sitePromoCode || 'ULA-SPECIAL'}</span>
               </div>
               <p style="color: #64748b; font-size: 14px; margin-bottom: 25px;">Sử dụng mã này khi đăng ký để nhận ngay ưu đãi.<br>Hiệu lực trong vòng <strong style="color: #ef4444;">72 giờ</strong> kể từ bây giờ.</p>
-              <a href="https://ulaedu.com/khoa-hoc" style="background-color: #2563eb; color: #ffffff; padding: 16px 32px; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 16px; display: inline-block; transition: all 0.2s ease;">Dùng ưu đãi ngay</a>
+              <a href="${finalCheckoutUrl}" style="background-color: #1E4E7A; color: #ffffff; padding: 16px 32px; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 16px; display: inline-block; transition: all 0.2s ease;">Dùng ưu đãi ngay</a>
             </div>
 
             <!-- Lucky Spin Section -->
@@ -66,7 +76,7 @@ const sendRewardEmail = async (toEmail, prizeInfo) => {
             <div style="background-color: #f8fafc; border-radius: 16px; padding: 30px; text-align: center;">
               <h4 style="margin: 0 0 10px 0; color: #1e293b; font-size: 16px; font-weight: 600;">Sẵn sàng bắt đầu cùng Ula?</h4>
               <p style="color: #64748b; font-size: 14px; margin-bottom: 20px;">Lộ trình học tập chi tiết và nền tảng AI thông minh đang chờ đón bạn.</p>
-              <a href="https://ulaedu.com/hoc-tap" style="background-color: #475569; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; font-size: 14px;">Vào web học ngay</a>
+              <a href="${finalStudyUrl}" style="background-color: #1E4E7A; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; font-size: 14px;">Vào web học ngay</a>
             </div>
           </div>
 

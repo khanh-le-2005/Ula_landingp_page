@@ -31,6 +31,10 @@ const leadSchema = new mongoose.Schema(
       default: "NEW",
       index: true,
     },
+    // CRM: Ghi chú & Quản lý nội bộ
+    notes: { type: String },            // Ghi chú của admin/sale
+    assignedTo: { type: String },       // Sale nào đang chăm sóc
+    lastUpdatedBy: { type: String },    // Người cập nhật cuối cùng
   },
   { timestamps: true }
 );

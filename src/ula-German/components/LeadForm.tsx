@@ -221,7 +221,7 @@ const LeadForm: React.FC<ConsultationModalProps> = ({
     setIsSubmitting(true);
 
     const trackingData = resolveTrackingData();
-    const siteKey = options?.variant === "chinese" ? "tieng-trung" : "tieng-duc";
+    const siteKey = "tieng-duc";
 
     const payload = {
       siteKey: siteKey, // Bắt buộc gửi siteKey để Backend lưu đúng chỗ

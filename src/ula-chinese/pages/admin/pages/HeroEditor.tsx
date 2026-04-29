@@ -86,7 +86,7 @@ export default function HeroEditor() {
                 </div>
                 <input className={adminInput} value={hero.badge} onChange={(e) => setHero({ ...hero, badge: e.target.value })} placeholder="v.d. CẬP NHẬT 2024" />
               </div>
-              <div className="space-y-3">
+              {/* <div className="space-y-3">
                 <div className={adminLabel}>
                   <PlayCircle className="inline-block w-3 h-3 mr-2 text-indigo-500" />
                   Video Hero(dán link vimeo vào đây)
@@ -97,12 +97,12 @@ export default function HeroEditor() {
                   onChange={(e) => setHero({ ...hero, heroVideoWatchUrl: e.target.value })}
                   placeholder="v.d. https://player.vimeo.com/video/..."
                 />
-              </div>
-              {/* <ImageUploadField
+              </div> */}
+              <ImageUploadField
                 label="Thumbnail Video / Ảnh thay thế"
                 value={hero.heroImageUrl}
                 onChange={(val) => setHero({ ...hero, heroImageUrl: val })}
-              /> */}
+              />
             </div>
 
             <div className="space-y-4">

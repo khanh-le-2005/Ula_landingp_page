@@ -31,11 +31,14 @@ router.get("/stats/trends", verifyToken, checkRole(["ADMIN", "EDITOR"]), leadCon
 // Admin/Editor: Thống kê tỷ lệ chuyển đổi (Conversion)
 router.get("/stats/conversion", verifyToken, checkRole(["ADMIN", "EDITOR"]), leadController.getConversionStats);
 
-// Admin/Editor: Thống kê hiệu suất KOC chi tiết
+// Admin/Editor: Thống kê hiệu suất KOC
 router.get("/stats/kocs", verifyToken, checkRole(["ADMIN", "EDITOR"]), leadController.getKocPerformanceStats);
 
-// Admin/Editor: Cập nhật trạng thái Lead (CRM)
-router.put("/:id/status", verifyToken, checkRole(["ADMIN", "EDITOR"]), leadController.updateLeadStatus);
+// Admin/Editor: Thống kê hiệu suất marketing (Clicks, Leads, CR)
+router.get("/stats/marketing", verifyToken, checkRole(["ADMIN", "EDITOR"]), leadController.getMarketingStats);
+
+// Admin/Editor: Cập nhật Lead (CRM: Status, Notes, Assigned)
+router.put("/:id", verifyToken, checkRole(["ADMIN", "EDITOR"]), leadController.updateLead);
 
 // Admin: Xóa Lead rác
 router.delete("/:id", verifyToken, checkRole(["ADMIN"]), leadController.deleteLead);

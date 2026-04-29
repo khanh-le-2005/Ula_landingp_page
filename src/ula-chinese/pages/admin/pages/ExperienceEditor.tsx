@@ -64,7 +64,7 @@ export default function ExperienceEditor() {
                   onChange={(e) => setContent(prev => ({ ...prev, sectionSubtitle: e.target.value }))}
                 />
               </div>
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <div className={adminLabel}>Link Video (Vimeo)</div>
                 <input
                   className={adminInput}
@@ -72,7 +72,7 @@ export default function ExperienceEditor() {
                   placeholder="https://vimeo.com/..."
                   onChange={(e) => setContent(prev => ({ ...prev, videoUrl: e.target.value }))}
                 />
-              </div>
+              </div> */}
             </div>
 
             <div className="rounded-[2rem] bg-indigo-500/5 p-8 border border-indigo-500/10">

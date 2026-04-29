@@ -93,7 +93,7 @@ const inputClassName =
   "h-[2.7rem] w-full rounded-[1.05rem] border border-[#d9dbe7] bg-[#f7f7fb] px-4 text-[0.96rem] font-medium text-[#1a2b48] outline-none transition-all";
 const fieldErrorClassName = "mt-1.5 text-[13px] font-medium text-red-500";
 
-const DEFAULT_OPTIONS: ConsultationModalOptions = { variant: "german" };
+const DEFAULT_OPTIONS: ConsultationModalOptions = { variant: "chinese" };
 const DEFAULT_ONCLOSE = () => {};
 
 const LeadForm: React.FC<ConsultationModalProps> = ({
@@ -301,8 +301,8 @@ const LeadForm: React.FC<ConsultationModalProps> = ({
     // 1. Lấy dữ liệu tracking từ Cookie (UTM, Ref, Tag...)
     const trackingData = resolveTrackingData();
 
-    // 2. Xác định siteKey dựa trên variant
-    const siteKey = options?.variant === "chinese" ? "tieng-trung" : "tieng-duc";
+    // 2. Xác định siteKey cho trang tiếng Trung
+    const siteKey = "tieng-trung";
 
     // 3. Chuẩn bị Payload đúng chuẩn Backend yêu cầu
     const payload = {

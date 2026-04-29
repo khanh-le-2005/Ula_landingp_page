@@ -152,9 +152,9 @@ const getSiteConfig = async (req, res, next) => {
 const updateSiteConfig = async (req, res, next) => {
   try {
     const siteKey = req.query.siteKey || req.body.siteKey || req.siteKey;
-    const { discountText, sitePromoCode } = req.body;
-    if (!discountText && !sitePromoCode) {
-      return res.status(400).json({ message: "Cần ít nhất 1 trường: discountText hoặc sitePromoCode" });
+    
+    if (Object.keys(req.body).length === 0) {
+      return res.status(400).json({ message: "Dữ liệu cập nhật không được để trống" });
     }
     const { LandingPage } = require("../models/lpModel");
     const updated = await LandingPage.findOneAndUpdate(

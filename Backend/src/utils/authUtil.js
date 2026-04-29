@@ -8,9 +8,21 @@ const verifyToken = (req, res, next) => {
 
   if (!token) return res.status(401).json({ message: "Không có Token!" });
 
-  jwt.verify(token, process.env.JWT_SECRET_KEY, (err, decoded) => {
-    if (err)
-      return res.status(403).json({ message: "Token không hợp lệ/hết hạn!" });
+  const secret = process.env.JWT_SECRET_KEY;
+  if (!secret) {
+    console.error("❌ [CRITICAL] JWT_SECRET_KEY chưa được cấu hình trong .env!");
+    return res.status(500).json({ message: "Lỗi cấu hình server (Thiếu Secret Key)" });
+  }
+
+  jwt.verify(token, secret, (err, decoded) => {
+    if (err) {
+      if (err.name === "TokenExpiredError") {
+        console.warn(`⚠️ [AUTH] Token hết hạn lúc: ${err.expiredAt}`);
+        return res.status(401).json({ message: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại." });
+      }
+      console.error(`❌ [AUTH] Token không hợp lệ: ${err.message}`);
+      return res.status(403).json({ message: "Token không hợp lệ hoặc sai chữ ký!" });
+    }
 
     req.user_id = decoded.user_id; // Nhét user_id vào request
     next();

@@ -19,24 +19,21 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
   type = 'image',
 }) => {
   const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const processFile = async (file: File) => {
-    if (type !== 'image' || !file.type.startsWith('image/')) {
-      onChange(file);
-      return;
-    }
     try {
-      const options = {
-        maxSizeMB: 0.8, // Nén xuống dưới 1MB để vượt qua Nginx
-        maxWidthOrHeight: 1920,
-        useWebWorker: true
-      };
-      const compressedFile = await imageCompression(file, options);
-      onChange(compressedFile);
+      setIsUploading(true);
+
+      // 👉 Không nén nữa, trả luôn file gốc
+      onChange(file);
+
     } catch (error) {
-      console.error('Image compression failed:', error);
-      onChange(file); // Fallback to original
+      console.error('Process file failed:', error);
+      onChange(file); // fallback
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -106,12 +103,12 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
             ${previewUrl ? 'aspect-video' : 'py-8'}
           `}
         >
-          {previewUrl ? (
+          {previewUrl && !isUploading ? (
             <div className="absolute inset-0 group">
               {type === 'video' && typeof previewUrl === 'string' && previewUrl.includes('mp4') ? (
                 <video src={previewUrl} className="w-full h-full object-cover" muted loop autoPlay />
               ) : (
-                <img src={resolveAssetUrl(previewUrl)} alt="Preview" className="w-full h-full object-cover" />
+                <>   <img src={resolveAssetUrl(previewUrl)} alt="Preview" className="w-full h-full object-cover" />   <img src={(previewUrl)} alt="Preview" className="w-full h-full object-cover" /></>
               )}
               <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
                 <div className="bg-white/10 p-2 rounded-full border border-white/20">
@@ -127,16 +124,17 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center gap-3">
-              <div className="p-3 rounded-2xl bg-slate-900 border border-white/5 text-indigo-400 group-hover:scale-110 transition-transform">
+              {isUploading ? <div className="bg-black">loading...</div> : <> <div className="p-3 rounded-2xl bg-slate-900 border border-white/5 text-indigo-400 group-hover:scale-110 transition-transform">
                 <Upload className="w-5 h-5" />
               </div>
-              <div className="text-center">
-                <p className="text-xs font-bold text-slate-300">Drag & drop or Click</p>
-                <p className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider">Local media files supported</p>
-              </div>
+                <div className="text-center">
+                  <p className="text-xs font-bold text-slate-300">Drag & drop or Click</p>
+                  <p className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider">Local media files supported</p>
+                </div></>}
+
             </div>
           )}
-          <input
+          < input
             type="file"
             ref={fileInputRef}
             onChange={handleFileChange}

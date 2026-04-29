@@ -33,4 +33,40 @@ const login = async (username, password) => {
   };
 };
 
-module.exports = { login };
+const refreshToken = async (incomingToken) => {
+  if (!incomingToken) {
+    throw new Error("Missing Refresh Token");
+  }
+
+  const secret = process.env.JWT_REFRESH_SECRET_KEY;
+  if (!secret) {
+    throw new Error("Server Error: Missing Refresh Secret");
+  }
+
+  // 1. Verify token
+  let decoded;
+  try {
+    decoded = jwt.verify(incomingToken, secret);
+  } catch (error) {
+    throw new Error("Refresh Token không hợp lệ hoặc đã hết hạn");
+  }
+
+  // 2. Kiểm tra user trong DB
+  const user = await userModel.findById(decoded.user_id);
+  if (!user) {
+    throw new Error("Người dùng không tồn tại");
+  }
+
+  // 3. Tạo cặp token mới
+  const payload = { user_id: user.id };
+  const accessToken = jwt.sign(payload, process.env.JWT_SECRET_KEY, {
+    expiresIn: "1d",
+  });
+  const newRefreshToken = jwt.sign(payload, secret, {
+    expiresIn: "7d",
+  });
+
+  return { accessToken, refreshToken: newRefreshToken };
+};
+
+module.exports = { login, refreshToken };

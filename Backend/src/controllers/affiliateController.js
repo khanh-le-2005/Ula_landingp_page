@@ -1,11 +1,31 @@
 const { Affiliate } = require("../models/affiliateModel");
+const { Lead } = require("../models/leadModel");
+const { MarketingClick } = require("../models/marketingClickModel");
 
-// Lấy danh sách tất cả KOC (Admin/Editor) theo trang đang chọn
+// Lấy danh sách tất cả KOC (Admin/Editor) kèm theo chỉ số sệu suất (Clicks, Leads, CR)
 const getAffiliates = async (req, res, next) => {
   try {
     const siteKey = req.query.siteKey || req.headers["x-site-key"] || req.siteKey; 
     const affiliates = await Affiliate.find({ siteKey }).sort({ createdAt: -1 });
-    res.status(200).json(affiliates);
+
+    // Lấy chỉ số hiệu suất cho từng KOC
+    const enrichedAffiliates = await Promise.all(affiliates.map(async (aff) => {
+      const clicksCount = await MarketingClick.countDocuments({ siteKey, referralCode: aff.code });
+      const leadsCount = await Lead.countDocuments({ siteKey, referralCode: aff.code });
+      
+      const cr = clicksCount > 0 ? ((leadsCount / clicksCount) * 100).toFixed(1) : (leadsCount > 0 ? "100" : "0");
+      
+      return {
+        ...aff.toObject(),
+        metrics: {
+          clicks: clicksCount,
+          leads: leadsCount,
+          cr: cr + "%"
+        }
+      };
+    }));
+
+    res.status(200).json(enrichedAffiliates);
   } catch (error) {
     next(error);
   }

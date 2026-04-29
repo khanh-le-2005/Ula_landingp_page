@@ -495,7 +495,7 @@ export default function Campaigns() {
       </div>
     );
   }
-
+  console.log('hero', hero)
   // --- RENDERING EDITOR MODE ---
   return (
     <div className="space-y-8 animate-in slide-in-from-right duration-500">
@@ -805,7 +805,7 @@ export default function Campaigns() {
                       <span className="text-xs font-bold text-slate-700">Đây là Video (Bỏ tick nếu là Ảnh)</span>
                     </label>
                   </div>
-                  <div className="grid md:grid-cols-2 gap-4">
+                  {/* <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <div className={adminLabel}>Màu nền (Gradient CSS)</div>
                       <input className={adminInput} value={card.gradient} onChange={(e) => {
@@ -814,7 +814,7 @@ export default function Campaigns() {
                         setSolution({ ...solution, cards: newCards });
                       }} placeholder="from-indigo-600/40 to-blue-500/10" />
                     </div>
-                  </div>
+                  </div> */}
                   <div className="space-y-2">
                     <div className={adminLabel}>Các điểm chính (Bullet points)</div>
                     <div className="space-y-2">

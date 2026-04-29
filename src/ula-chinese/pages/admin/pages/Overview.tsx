@@ -1,312 +1,268 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  BarChart3, 
-  PieChart as PieChartIcon, 
-  Users, 
-  TrendingUp, 
-  AlertTriangle,
-  RefreshCw,
-  Globe
-} from 'lucide-react';
-import { 
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend
-} from 'recharts';
-
-// Import context để tự động biết đang ở site Tiếng Trung hay Tiếng Đức
+import { RefreshCw, Filter, MousePointerClick, Users, Percent, AlertCircle, Globe } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { fetchMarketingReport, fetchMarketingMetaOptions, type MarketingReportResponse, type MarketingMetaOptions } from '../adminApi';
 import { useSiteContext } from '../../../context/LandingSiteContext';
+import { adminCard, adminAccentText, adminSecondaryButton } from '../adminTheme';
 
-// --- 1. ĐỊNH NGHĨA TYPES ---
-interface TrendData {
-  _id: string; 
-  leads: number;
-  suspicious: number;
-}
-
-interface ConversionData {
-  siteKey: string;
-  totalLeads: number;
-  breakdown: {
-    status: string;
-    count: number;
-    percentage: string;
-  }[];
-}
-
-interface KocPerformance {
-  _id: string;
-  koc: string;
-  totalLeads: number;
-  enrolled: number;
-  suspicious: number;
-  lastLeadAt: string;
-  conversionRate: number;
-}
-
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#64748b'];
-
-// Dịch trạng thái sang Tiếng Việt cho đẹp
-const STATUS_LABELS: Record<string, string> = {
-  'NEW': 'Mới',
-  'CONTACTED': 'Đã liên hệ',
-  'ENROLLED': 'Thành công',
-  'CANCELLED': 'Đã hủy'
-};
-
-export default function LeadStatistics() {
-  // Lấy siteKey tự động (tieng-duc hoặc tieng-trung)
-  const { siteKey } = useSiteContext(); 
-  const siteName = siteKey === 'tieng-duc' ? 'Đức (DE)' : 'Trung (CN)';
-  
-  const [trends, setTrends] = useState<TrendData[]>([]);
-  const [conversion, setConversion] = useState<ConversionData | null>(null);
-  const [kocs, setKocs] = useState<KocPerformance[]>([]);
-  
+export default function Overview() {
+  const { siteKey } = useSiteContext();
+  const [report, setReport] = useState<MarketingReportResponse | null>(null);
+  const [metaOptions, setMetaOptions] = useState<MarketingMetaOptions | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // --- 2. HÀM GỌI API ĐỘNG THEO SITEKEY ---
-  const fetchStatistics = async () => {
+  // UI Hiển thị rõ ràng đang ở trang nào
+  const isGerman = siteKey === 'tieng-duc';
+  const siteName = isGerman ? 'Tiếng Đức (DE)' : 'Tiếng Trung (CN)';
+
+  const [filters, setFilters] = useState({
+    from: '',
+    to: '',
+    utm_source: '',
+    utm_medium: '',
+    tag: ''
+  });
+
+  const loadData = async () => {
     setIsLoading(true);
     setError('');
-    
-    const token = localStorage.getItem('ula_admin_token'); 
-    const headers = {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    };
-
     try {
-      // API TỰ ĐỘNG THAY ĐỔI THEO TỪNG SITE
-      const [trendsRes, conversionRes, kocsRes] = await Promise.all([
-        fetch(`http://localhost:3002/api/leads/stats/trends?site=${siteKey}`, { headers }),
-        fetch(`http://localhost:3002/api/leads/stats/conversion?site=${siteKey}`, { headers }),
-        fetch(`http://localhost:3002/api/leads/stats/kocs?site=${siteKey}`, { headers })
+      const activeFilters: Record<string, string> = {};
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) activeFilters[key] = value;
+      });
+
+      const [reportData, metaData] = await Promise.all([
+        fetchMarketingReport(siteKey, activeFilters),
+        fetchMarketingMetaOptions(siteKey)
       ]);
-
-      if (!trendsRes.ok || !conversionRes.ok || !kocsRes.ok) {
-        throw new Error('Lỗi khi tải dữ liệu thống kê');
-      }
-
-      const trendsData = await trendsRes.json();
-      const conversionData = await conversionRes.json();
-      const kocsData = await kocsRes.json();
-
-      setTrends(trendsData.trends || []);
-      setConversion(conversionData);
-      setKocs(kocsData.performance || []);
-
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Đã có lỗi xảy ra');
+      
+      setReport(reportData);
+      setMetaOptions(metaData);
+    } catch (err: any) {
+      setError(err.message || 'Lỗi khi tải báo cáo Marketing');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Gọi lại API mỗi khi chuyển đổi giữa Tiếng Đức và Tiếng Trung
   useEffect(() => {
-    void fetchStatistics();
-  }, [siteKey]);
+    void loadData();
+  }, [siteKey, filters]);
 
-  const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr);
-    return isNaN(d.getTime()) ? dateStr : `${d.getDate()}/${d.getMonth() + 1}`;
+  const clearFilters = () => {
+    setFilters({ from: '', to: '', utm_source: '', utm_medium: '', tag: '' });
   };
 
-  // Lọc biểu đồ tròn: Chuyên lọc bỏ các trạng thái có 0 lead (Tiếng Trung đang bị)
-  const validConversions = conversion?.breakdown?.filter(item => item.count > 0) || [];
-
-  if (isLoading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <RefreshCw className="w-8 h-8 text-blue-500 animate-spin" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-4 bg-red-50 text-red-600 rounded-xl font-bold flex items-center gap-2">
-        <AlertTriangle className="w-5 h-5" /> {error}
-      </div>
-    );
-  }
+  const chartData = report?.data?.map(row => {
+    let name = "";
+    if (row.ref) name += `${row.ref}`;
+    else if (row.campaign) name += `${row.campaign}`;
+    else name = `${row.source || 'Organic'} / ${row.medium || 'None'}`;
+    
+    return {
+      name: name,
+      Clicks: row.clicks,
+      Leads: row.leads,
+    };
+  }) || [];
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-8 animate-in fade-in duration-700">
       
-      {/* HEADER TỰ ĐỘNG ĐỔI TÊN */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-6">
         <div>
+          {/* CẬP NHẬT: Thêm cục báo hiệu Site đang xem */}
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.4em] font-black text-slate-500 mb-2">
-            <Globe className="w-3 h-3 text-blue-500" />
-            Dashboard ({siteName})
+            <Globe className="w-3 h-3 text-indigo-500" />
+            Báo Cáo Tổng Hợp ({siteName})
           </div>
-          <h2 className="text-3xl font-black text-slate-800 tracking-tight">Thống Kê Khách Hàng</h2>
-          <p className="text-sm text-slate-500 font-medium mt-1">Tổng quan dữ liệu thu thập được từ Landing Page {siteName}</p>
+          
+          <h2 className="text-3xl font-black text-black tracking-tight">Báo cáo <span className={adminAccentText}>Marketing</span></h2>
+          <p className="mt-1 text-sm font-medium text-slate-500">Phân tích hiệu suất quảng cáo & Tỉ lệ chuyển đổi (CR).</p>
         </div>
-        <button 
-          onClick={fetchStatistics}
-          className="flex items-center gap-2 px-6 py-2.5 bg-white border border-slate-200 rounded-xl shadow-sm hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 font-bold text-sm text-slate-700 transition-all"
-        >
-          <RefreshCw className="w-4 h-4" /> Cập nhật Data
+        <button onClick={() => void loadData()} className={adminSecondaryButton}>
+          <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} /> Đồng bộ
         </button>
       </div>
 
-      {/* TỔNG QUAN TỔNG SỐ */}
-      {conversion && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="p-6 bg-white rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-100 flex items-center gap-5 relative overflow-hidden">
-            <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-50 rounded-full blur-2xl"></div>
-            <div className="p-4 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-2xl shadow-lg shadow-blue-500/30">
-              <Users className="w-7 h-7" />
-            </div>
-            <div className="relative z-10">
-              <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">Tổng Leads Thu Được</p>
-              <h3 className="text-4xl font-black text-slate-800">{conversion.totalLeads}</h3>
-            </div>
-          </div>
+      {error && (
+        <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-5 flex items-center gap-4 text-rose-400 font-bold text-sm">
+          <AlertCircle className="h-5 w-5" /> {error}
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* CHART 1: TRENDS */}
-        <div className="lg:col-span-2 p-6 bg-white rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-100">
-          <div className="flex items-center gap-2 mb-8">
-            <TrendingUp className="w-5 h-5 text-emerald-500" />
-            <h3 className="text-xl font-black text-slate-800">Xu Hướng Thu Thập Theo Ngày</h3>
+      {/* --- BỘ LỌC ĐA NĂNG --- */}
+      <div className="p-6 bg-slate-50/80 rounded-[24px] border border-slate-100">
+        <div className="flex items-center gap-2 text-slate-500 mb-4">
+          <Filter className="w-4 h-4 text-indigo-500" />
+          <span className="text-xs font-black uppercase tracking-widest text-slate-800">Lọc Báo Cáo</span>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 items-end">
+          <div className="col-span-2 lg:col-span-2 flex gap-2">
+            <div className="flex-1">
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Từ ngày</label>
+              <input type="date" value={filters.from} onChange={(e) => setFilters(p => ({ ...p, from: e.target.value }))} className="w-full px-3 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20" />
+            </div>
+            <div className="flex-1">
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Đến ngày</label>
+              <input type="date" value={filters.to} onChange={(e) => setFilters(p => ({ ...p, to: e.target.value }))} className="w-full px-3 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20" />
+            </div>
           </div>
-          <div className="h-80 w-full">
+
+          <div className="col-span-1">
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Nguồn (Source)</label>
+            <select value={filters.utm_source} onChange={(e) => setFilters(p => ({ ...p, utm_source: e.target.value }))} className="w-full px-3 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
+              <option value="">Tất cả</option>
+              {metaOptions?.utmSources.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+
+          <div className="col-span-1">
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Phương thức</label>
+            <select value={filters.utm_medium} onChange={(e) => setFilters(p => ({ ...p, utm_medium: e.target.value }))} className="w-full px-3 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
+              <option value="">Tất cả</option>
+              {metaOptions?.utmMediums.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </div>
+
+          <div className="col-span-1">
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Chiến dịch</label>
+            <select value={filters.tag} onChange={(e) => setFilters(p => ({ ...p, tag: e.target.value }))} className="w-full px-3 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 truncate">
+              <option value="">Tất cả</option>
+              {metaOptions?.campaigns.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+            </select>
+          </div>
+
+          <div className="col-span-1">
+             <button onClick={clearFilters} className="h-[34px] w-full flex items-center justify-center rounded-xl bg-slate-200/50 text-slate-500 hover:bg-rose-100 hover:text-rose-600 transition-colors text-xs font-bold">Xóa lọc</button>
+          </div>
+        </div>
+      </div>
+
+      {/* --- THẺ SUMMARY TỔNG QUAN --- */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className={adminCard}>
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-sm"><MousePointerClick className="w-6 h-6" /></div>
+            <div>
+              <div className="text-[10px] uppercase font-black tracking-[0.2em] text-slate-400 mb-1">Tổng truy cập (Clicks)</div>
+              <div className="text-3xl font-black text-slate-900">{report?.summary?.totalVisits || 0}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className={adminCard}>
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-sm"><Users className="w-6 h-6" /></div>
+            <div>
+              <div className="text-[10px] uppercase font-black tracking-[0.2em] text-slate-400 mb-1">Tổng đăng ký (Leads)</div>
+              <div className="text-3xl font-black text-slate-900">{report?.summary?.totalLeads || 0}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className={adminCard}>
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shadow-sm"><Percent className="w-6 h-6" /></div>
+            <div>
+              <div className="text-[10px] uppercase font-black tracking-[0.2em] text-slate-400 mb-1">Tỉ lệ chuyển đổi (CR)</div>
+              <div className="text-3xl font-black text-amber-500">{report?.summary?.totalCR || "0%"}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* --- BIỂU ĐỒ TRỰC QUAN --- */}
+      {chartData.length > 0 && (
+        <section className={adminCard}>
+          <div className="mb-6">
+            <h3 className="text-lg font-black text-slate-800 tracking-tight">Hiệu suất theo Nguồn / KOC</h3>
+            <p className="text-xs font-medium text-slate-500">Tương quan giữa số lượt truy cập (Clicks) và số đăng ký (Leads)</p>
+          </div>
+          <div className="h-[400px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={trends} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorLeads" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="_id" tickFormatter={formatDate} fontSize={12} tickLine={false} axisLine={false} dy={10} />
-                <YAxis fontSize={12} tickLine={false} axisLine={false} />
+              <BarChart
+                data={chartData}
+                margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <Tooltip 
-                  labelFormatter={(label) => `Ngày: ${new Date(label).toLocaleDateString('vi-VN')}`}
-                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                <XAxis 
+                  dataKey="name" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fontSize: 10, fill: '#64748b', fontWeight: 600 }}
+                  angle={-45}
+                  textAnchor="end"
+                  interval={0}
                 />
-                <Legend verticalAlign="top" height={36}/>
-                <Area type="monotone" dataKey="leads" name="Tổng Leads" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorLeads)" />
-                <Area type="monotone" dataKey="suspicious" name="Đáng ngờ (Spam)" stroke="#ef4444" strokeWidth={3} fill="transparent" />
-              </AreaChart>
+                <YAxis 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fontSize: 10, fill: '#64748b', fontWeight: 600 }} 
+                />
+                <Tooltip 
+                  cursor={{ fill: '#f8fafc' }}
+                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)', padding: '12px' }}
+                  labelStyle={{ fontWeight: 900, color: '#0f172a', marginBottom: '8px' }}
+                />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', fontWeight: 700, paddingTop: '20px' }} />
+                <Bar dataKey="Clicks" name="Lượt truy cập" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={60} />
+                <Bar dataKey="Leads" name="Đăng ký" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={60} />
+              </BarChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </section>
+      )}
 
-        {/* CHART 2: CONVERSION (Lọc mượt mà) */}
-        <div className="p-6 bg-white rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-100 flex flex-col">
-          <div className="flex items-center gap-2 mb-6">
-            <PieChartIcon className="w-5 h-5 text-indigo-500" />
-            <h3 className="text-xl font-black text-slate-800">Tỷ Lệ Chuyển Đổi</h3>
-          </div>
-          <div className="flex-1 min-h-[300px]">
-            {validConversions.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={validConversions}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={70}
-                    outerRadius={100}
-                    paddingAngle={5}
-                    dataKey="count"
-                    nameKey="status"
-                    stroke="none"
-                  >
-                    {validConversions.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    formatter={(value: number, name: string, props: any) => [`${value} Leads (${props.payload.percentage})`, STATUS_LABELS[name] || name]}
-                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                  />
-                  <Legend 
-                    formatter={(value) => <span className="text-slate-700 font-bold ml-1">{STATUS_LABELS[value] || value}</span>}
-                    verticalAlign="bottom" height={36} 
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-full flex flex-col items-center justify-center text-center">
-                <div className="w-20 h-20 rounded-full bg-slate-50 flex items-center justify-center mb-3">
-                  <PieChartIcon className="w-8 h-8 text-slate-300" />
-                </div>
-                <div className="text-slate-400 font-bold">Chưa có đủ dữ liệu</div>
-                <div className="text-xs text-slate-400 mt-1">Hãy chờ có Lead đầu tiên nhé</div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* TABLE: KOC PERFORMANCE */}
-      <div className="p-6 bg-white rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-100 overflow-hidden">
-        <div className="flex items-center gap-2 mb-6">
-          <BarChart3 className="w-5 h-5 text-amber-500" />
-          <h3 className="text-xl font-black text-slate-800">Hiệu Suất KOC / Affiliate</h3>
-        </div>
-        
-        <div className="overflow-x-auto no-scrollbar">
-          <table className="min-w-full text-left text-sm border-collapse">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-[10px] uppercase font-black text-slate-400 tracking-[0.25em]">
-                <th className="px-6 py-5 rounded-tl-2xl">Mã KOC</th>
-                <th className="px-6 py-5">Tổng Lead</th>
-                <th className="px-6 py-5 text-emerald-500">Đăng ký (Success)</th>
-                <th className="px-6 py-5 text-red-400">Spam / Đáng ngờ</th>
-                <th className="px-6 py-5">Chuyển đổi</th>
-                <th className="px-6 py-5 rounded-tr-2xl text-right">Lead gần nhất</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {kocs.length > 0 ? kocs.map((koc) => (
-                <tr key={koc._id} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="px-6 py-4">
-                    <span className="font-mono text-base font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg">
-                      {koc.koc}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 font-black text-slate-700 text-base">{koc.totalLeads}</td>
-                  <td className="px-6 py-4 font-black text-emerald-500 text-base">{koc.enrolled}</td>
-                  <td className="px-6 py-4 font-black text-red-500 text-base">{koc.suspicious}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-3 py-1 font-bold rounded-full text-xs ${
-                      koc.conversionRate > 20 ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
-                      koc.conversionRate > 0 ? 'bg-amber-50 text-amber-600 border border-amber-100' :
-                      'bg-slate-100 text-slate-500 border border-slate-200'
-                    }`}>
-                      {koc.conversionRate}%
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right text-slate-500 text-xs font-bold">
-                    {koc.lastLeadAt ? new Date(koc.lastLeadAt).toLocaleString('vi-VN') : '---'}
-                  </td>
+      {/* --- BẢNG CHI TIẾT --- */}
+      <section className={adminCard}>
+        <div className="relative overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-xl">
+          <div className="overflow-x-auto no-scrollbar">
+            <table className="min-w-full text-left text-sm border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200 text-[10px] uppercase font-black tracking-[0.25em] text-slate-400">
+                  <th className="px-6 py-5">Nguồn / Kênh (Source & Medium)</th>
+                  <th className="px-6 py-5">Chiến dịch / Mã KOC</th>
+                  <th className="px-6 py-5 text-center">Lượt bấm (Clicks)</th>
+                  <th className="px-6 py-5 text-center">Đăng ký (Leads)</th>
+                  <th className="px-6 py-5 text-right">Tỉ lệ CR</th>
                 </tr>
-              )) : (
-                <tr>
-                  <td colSpan={6} className="px-6 py-20 text-center">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-50 mb-4">
-                      <BarChart3 className="w-8 h-8 text-slate-300" />
-                    </div>
-                    <div className="text-slate-500 font-bold">Chưa có hoạt động Affiliate nào cho chiến dịch {siteName}</div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {isLoading ? (
+                  <tr><td colSpan={5} className="px-6 py-12 text-center"><RefreshCw className="w-6 h-6 text-indigo-500 animate-spin mx-auto" /></td></tr>
+                ) : !report?.data || report.data.length === 0 ? (
+                  <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-400 font-bold italic">Không có dữ liệu báo cáo nào.</td></tr>
+                ) : (
+                  report.data.map((row, idx) => (
+                    <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-6 py-6">
+                        <div className="flex flex-col gap-1.5">
+                          <span className="text-xs font-black uppercase text-indigo-600">{row.source || "Tự nhiên"}</span>
+                          <span className="text-[10px] font-bold text-slate-500">{row.medium || "Không xác định"}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-6">
+                        <div className="flex flex-col gap-1.5">
+                          <span className="text-xs font-black text-slate-800">{row.campaign || "Mặc định"}</span>
+                          <span className="text-[10px] font-bold text-slate-500">Ref: {row.ref || "N/A"}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-6 text-center font-bold text-slate-700">{row.clicks}</td>
+                      <td className="px-6 py-6 text-center font-bold text-emerald-600">{row.leads}</td>
+                      <td className="px-6 py-6 text-right font-black text-amber-500">{row.cr}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
-
+      </section>
+      
     </div>
   );
 }

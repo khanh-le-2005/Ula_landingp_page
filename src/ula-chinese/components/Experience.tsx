@@ -676,7 +676,7 @@ const Experience = () => {
                   else if (isSelected)
                     btnClass = "border-red-500 bg-red-50 text-red-700";
                 } else if (isSelected)
-                  btnClass = "border-[#1a2b48] bg-blue-50 ring-1 ring-[#1a2b48]";
+                  btnClass = "border-[#ef4444] bg-blue-50 ring-1 ring-[#ef4444]";
 
                 const displayOpt = opt.startsWith("A.") || opt.startsWith("B.") || opt.startsWith("C.") ? opt.substring(3) : opt;
 
@@ -688,7 +688,7 @@ const Experience = () => {
                     disabled={isChecking}
                     className={`w-full p-4 rounded-xl border-2 text-left font-bold transition-all flex items-center gap-3 ${btnClass}`}
                   >
-                    <span className={`w-7 h-7 rounded flex items-center justify-center text-xs shrink-0 ${isSelected && !isChecking ? "bg-[#1a2b48] text-white" : "bg-slate-100 text-slate-500"}`}>
+                    <span className={`w-7 h-7 rounded flex items-center justify-center text-xs shrink-0 ${isSelected && !isChecking ? "bg-[#ef4444] text-white" : "bg-slate-100 text-slate-500"}`}>
                       {String.fromCharCode(65 + idx)}
                     </span>
                     {displayOpt}
@@ -829,13 +829,13 @@ const Experience = () => {
 
       {/* 2. Tabs */}
       <div className="grid grid-cols-2 gap-3 md:flex md:justify-center bg-white/30 backdrop-blur-md p-2 rounded-2xl shadow-lg border border-white mb-8 md:mb-12 z-20 relative">
-        <button onClick={() => setActiveTab('pronounce')} className={`flex items-center justify-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm font-bold transition-all ${activeTab === 'pronounce' ? 'bg-[#1a2b48] text-white shadow-md' : 'text-slate-500'}`}>
+        <button onClick={() => setActiveTab('pronounce')} className={`flex items-center justify-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm font-bold transition-all ${activeTab === 'pronounce' ? 'bg-gradient-to-r from-[#ef4444] to-[#b91c1c] text-white shadow-md' : 'text-slate-500'}`}>
           <Mic size={14} /> AI sửa phát âm
         </button>
-        <button onClick={() => setActiveTab('quiz')} className={`flex items-center justify-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm font-bold transition-all ${activeTab === 'quiz' ? 'bg-[#0061ab] text-white shadow-md' : 'text-slate-500'}`}>
+        <button onClick={() => setActiveTab('quiz')} className={`flex items-center justify-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm font-bold transition-all ${activeTab === 'quiz' ? 'bg-gradient-to-r from-[#ef4444] to-[#b91c1c] text-white shadow-md' : 'text-slate-500'}`}>
           <BookOpen size={14} /> Demo bài tập
         </button>
-        <button onClick={() => { setActiveTab('video'); setIsPlayingVideo(false); }} className={`col-span-2 mx-auto w-fit flex items-center justify-center gap-2 px-6 py-2 rounded-full text-xs sm:text-sm font-bold transition-all ${activeTab === 'video' ? 'bg-[#0061ab] text-white shadow-md' : 'text-slate-500'}`}>
+        <button onClick={() => { setActiveTab('video'); setIsPlayingVideo(false); }} className={`col-span-2 mx-auto w-fit flex items-center justify-center gap-2 px-6 py-2 rounded-full text-xs sm:text-sm font-bold transition-all ${activeTab === 'video' ? 'bg-gradient-to-r from-[#ef4444] to-[#b91c1c] text-white shadow-md' : 'text-slate-500'}`}>
           <PlayCircle size={14} /> Video học thử
         </button>
       </div>
@@ -897,7 +897,7 @@ const Experience = () => {
                           (EXERCISES[currentEx].type === "mcq" && selectedOpt !== null) ||
                           (EXERCISES[currentEx].type === "mcq_sentence" && selectedOpt !== null) ||
                           (EXERCISES[currentEx].type === "fill" && fillAnswer.trim() !== "")
-                          ? "bg-[#1a2b48] text-white hover:bg-[#0061ab] shadow-lg hover:-translate-y-1"
+                          ? "bg-[#ef4444] text-white cursor-pointer hover:shadow-lg hover:-translate-y-1"
                           : "bg-slate-200 text-slate-400 cursor-not-allowed"
                         }`}
                     >

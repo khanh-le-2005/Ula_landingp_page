@@ -1,4 +1,5 @@
 const { Lead } = require("../models/leadModel");
+const { MarketingClick } = require("../models/marketingClickModel");
 const { findByCode } = require("../models/affiliateModel");
 const { Campaign } = require("../models/campaignModel");
 const { sendRewardEmail } = require("../services/emailService");
@@ -161,12 +162,14 @@ const processLeadSubmission = async (req, res, next, overrideSiteKey = null) => 
         }
       }
 
+
       sendRewardEmail(formData.email, {
         customerName: formData.fullname || formData.name || "Khách hàng",
         prizeName: req.body.prizeName, // Để null nếu không có
         prizeCode: req.body.prizeCode, // Để null nếu không có
         sitePromoCode: sitePromoCode,
-        discountText: discountText
+        discountText: discountText,
+        siteKey: siteKey // Để email service tự quyết định link dựa trên siteKey
       });
     }
 
@@ -197,7 +200,8 @@ const getLeads = async (req, res, next) => {
       ref, tag, status, 
       utm_source, utm_medium, utm_campaign,
       from, to,
-      is_suspicious 
+      is_suspicious,
+      search 
     } = req.query;
     
     // Luôn luôn lọc theo trang hiện tại (Tenant-isolation)
@@ -223,6 +227,18 @@ const getLeads = async (req, res, next) => {
       filter.createdAt = {};
       if (from) filter.createdAt.$gte = new Date(from);
       if (to) filter.createdAt.$lte = new Date(to);
+    }
+
+    // 5. Tìm kiếm theo từ khóa (Search)
+    if (search) {
+      filter.$or = [
+        { "formData.fullname": { $regex: search, $options: "i" } },
+        { "formData.name": { $regex: search, $options: "i" } },
+        { "formData.email": { $regex: search, $options: "i" } },
+        { "formData.phone": { $regex: search, $options: "i" } },
+        { "formData.sdt": { $regex: search, $options: "i" } },
+        { "referralCode": { $regex: search, $options: "i" } }
+      ];
     }
 
     const leads = await Lead.find(filter).sort({ createdAt: -1 });
@@ -380,19 +396,29 @@ const getUtmStats = async (req, res, next) => {
   }
 };
 
-// Cập nhật trạng thái chìa khóa (CRM)
-const updateLeadStatus = async (req, res, next) => {
+// Cập nhật thông tin Lead (CRM: Trạng thái, Ghi chú, Phân công)
+const updateLead = async (req, res, next) => {
   try {
-    const { status } = req.body;
-    const validStatuses = ["NEW", "CONTACTED", "ENROLLED", "CANCELLED"];
-    
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({ message: "Trạng thái không hợp lệ" });
+    const { status, notes, assignedTo } = req.body;
+    const updateData = {};
+
+    if (status) {
+      const validStatuses = ["NEW", "CONTACTED", "ENROLLED", "CANCELLED"];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({ message: "Trạng thái không hợp lệ" });
+      }
+      updateData.status = status;
     }
+
+    if (notes !== undefined) updateData.notes = notes;
+    if (assignedTo !== undefined) updateData.assignedTo = assignedTo;
+    
+    // Ghi nhận người cập nhật (từ token auth)
+    updateData.lastUpdatedBy = req.user?.email || "Admin";
 
     const lead = await Lead.findByIdAndUpdate(
       req.params.id,
-      { status },
+      { $set: updateData },
       { new: true, runValidators: true }
     );
     
@@ -527,6 +553,112 @@ const getKocPerformanceStats = async (req, res, next) => {
   }
 };
 
+// 4. Báo cáo Marketing chuyên sâu (Clicks, Leads, CR) - THEO YÊU CẦU
+const getMarketingStats = async (req, res, next) => {
+  try {
+    const siteKey = req.siteKey;
+    const { from, to, source, medium, campaign, ref } = req.query;
+
+    const filter = { siteKey };
+    if (from || to) {
+      filter.createdAt = {};
+      if (from) filter.createdAt.$gte = new Date(from);
+      if (to) filter.createdAt.$lte = new Date(to);
+    }
+
+    // Thêm lọc theo UTM nếu có
+    if (source) filter.utm_source = source;
+    if (medium) filter.utm_medium = medium;
+    if (campaign) filter.utm_campaign = campaign;
+    if (ref) filter.referralCode = ref;
+
+    // 1. Thống kê CLICKS (truy cập) từ MarketingClick collection
+    const clicksStats = await MarketingClick.aggregate([
+      { $match: filter },
+      {
+        $group: {
+          _id: {
+            source: "$utm_source",
+            medium: "$utm_medium",
+            campaign: "$utm_campaign",
+            ref: "$referralCode"
+          },
+          clicks: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // 2. Thống kê LEADS (chuyển đổi) từ Lead collection
+    const leadsStats = await Lead.aggregate([
+      { $match: filter },
+      {
+        $group: {
+          _id: {
+            source: "$utm_source",
+            medium: "$utm_medium",
+            campaign: "$utm_campaign",
+            ref: "$referralCode"
+          },
+          leads: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // 3. Hợp nhất dữ liệu (Merging)
+    const statsMap = new Map();
+
+    clicksStats.forEach(c => {
+      const key = JSON.stringify(c._id);
+      statsMap.set(key, { ...c._id, clicks: c.clicks, leads: 0 });
+    });
+
+    leadsStats.forEach(l => {
+      const key = JSON.stringify(l._id);
+      if (statsMap.has(key)) {
+        const item = statsMap.get(key);
+        item.leads = l.leads;
+      } else {
+        statsMap.set(key, { ...l._id, clicks: 0, leads: l.leads });
+      }
+    });
+
+    // Chuyển sang array và tính CR
+    const result = Array.from(statsMap.values()).map(item => {
+      const cr = item.clicks > 0 ? ((item.leads / item.clicks) * 100).toFixed(1) : (item.leads > 0 ? "100" : "0");
+      return {
+        source: item.source || "Direct/None",
+        medium: item.medium || "None",
+        campaign: item.campaign || "None",
+        ref: item.ref || "Direct/None",
+        clicks: item.clicks,
+        leads: item.leads,
+        cr: cr + "%"
+      };
+    });
+
+    // Sắp xếp theo số lead giảm dần
+    result.sort((a, b) => b.leads - a.leads);
+
+    // Tính tổng quan (Summary)
+    const totalVisits = result.reduce((s, i) => s + i.clicks, 0);
+    const totalLeads = result.reduce((s, i) => s + i.leads, 0);
+    const totalCR = totalVisits > 0 ? ((totalLeads / totalVisits) * 100).toFixed(2) : "0";
+
+    res.status(200).json({
+      siteKey,
+      period: { from, to },
+      summary: {
+        totalVisits,
+        totalLeads,
+        totalCR: totalCR + "%"
+      },
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = { 
   submitForward, 
   submitGerman, 
@@ -538,6 +670,7 @@ module.exports = {
   getTrendsStats,
   getConversionStats,
   getKocPerformanceStats,
-  updateLeadStatus, 
+  getMarketingStats,
+  updateLead, 
   deleteLead 
 };

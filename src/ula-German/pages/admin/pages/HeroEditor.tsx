@@ -15,7 +15,8 @@ export default function HeroEditor() {
   );
 
   const handleSave = async () => {
-    await save(hero);
+    const formData = flattenToFormData(hero);
+    await save(formData);
   };
 
   return (
@@ -79,7 +80,7 @@ export default function HeroEditor() {
                 <input className={adminInput} value={hero.badge} onChange={(e) => setHero({ ...hero, badge: e.target.value })} placeholder="v.d. CẬP NHẬT 2024" />
               </div>
               <div className="space-y-3">
-                <div className={adminLabel}>
+                {/* <div className={adminLabel}>
                   <PlayCircle className="inline-block w-3 h-3 mr-2 text-indigo-500" />
                   Video Hero(dán link vimeo vào đây)
                 </div>
@@ -88,7 +89,14 @@ export default function HeroEditor() {
                   value={hero.heroVideoWatchUrl}
                   onChange={(e) => setHero({ ...hero, heroVideoWatchUrl: e.target.value })}
                   placeholder="v.d. https://player.vimeo.com/video/..."
-                />
+                /> */}
+                <div className="mt-4 pt-4 border-t border-slate-100">
+                  <ImageUploadField
+                    label="Ảnh Thumbnail Video"
+                    value={hero.heroImageUrl as string}
+                    onChange={(val) => setHero({ ...hero, heroImageUrl: val })}
+                  />
+                </div>
               </div>
             </div>
 

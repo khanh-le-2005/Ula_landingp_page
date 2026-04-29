@@ -52,7 +52,7 @@ const navItems = [
   { id: 'affiliates', label: 'quản lý KOC ', icon: BadgeCheck },
   { id: 'marketing-links', label: 'Link Marketing(UTM)', icon: Globe },
   { id: 'site-config', label: 'Mã giảm giá chung', icon: Settings },
-  { id: 'lead-statistics', label: 'Thống kê Lead', icon: PieChart },
+  // { id: 'lead-statistics', label: 'Thống kê Lead', icon: PieChart },
 ];
 
 function AdminLayoutInner() {
