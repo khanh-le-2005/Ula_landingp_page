@@ -783,14 +783,44 @@ export default function Campaigns() {
                     </div>
                   </div> */}
                   <div className="space-y-2">
-                    <div className={adminLabel}>Các điểm chính (Bullet points)</div>
+                    <div className="flex items-center justify-between">
+                      <div className={adminLabel}>Các điểm chính (Bullet points)</div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newCards = [...solution.cards];
+                          newCards[idx].bullets = [...(newCards[idx].bullets || []), ""];
+                          setSolution({ ...solution, cards: newCards });
+                        }}
+                        className="p-1 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-100 transition-all"
+                      >
+                        <Plus className="w-3 h-3" />
+                      </button>
+                    </div>
                     <div className="space-y-2">
                       {card.bullets.map((bullet: string, bIdx: number) => (
-                        <input key={bIdx} className={`${adminInput} !py-2 !text-xs`} value={bullet} onChange={(e) => {
-                          const newCards = [...solution.cards];
-                          newCards[idx].bullets[bIdx] = e.target.value;
-                          setSolution({ ...solution, cards: newCards });
-                        }} />
+                        <div key={bIdx} className="flex items-center gap-2">
+                          <input
+                            className={`${adminInput} !py-2 !text-xs flex-grow`}
+                            value={bullet}
+                            onChange={(e) => {
+                              const newCards = [...solution.cards];
+                              newCards[idx].bullets[bIdx] = e.target.value;
+                              setSolution({ ...solution, cards: newCards });
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newCards = [...solution.cards];
+                              newCards[idx].bullets = newCards[idx].bullets.filter((_: any, i: number) => i !== bIdx);
+                              setSolution({ ...solution, cards: newCards });
+                            }}
+                            className="p-2 rounded-lg bg-rose-50 text-rose-500 border border-rose-100 hover:bg-rose-100 transition-all"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
                       ))}
                     </div>
                   </div>

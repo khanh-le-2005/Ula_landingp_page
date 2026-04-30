@@ -73,28 +73,36 @@ export default function SolutionEditor() {
 
   const handleSave = async () => {
     try {
+      // 1. Tạo bản sao dữ liệu an toàn
       const cleanContent = { ...content };
 
+      // 2. Chặn lỗi mất ảnh: Duyệt qua từng card và kiểm tra kỹ mediaUrl
       if (Array.isArray(cleanContent.cards)) {
-        cleanContent.cards = cleanContent.cards.map(card => {
+        cleanContent.cards = cleanContent.cards.map((card, index) => {
           const newCard = { ...card };
 
-          // BỘ LỌC THÔNG MINH:
+          // Kiểm tra xem đây có phải là File mới được upload không?
           const isNewFile = newCard.mediaUrl instanceof File;
+
+          // Kiểm tra xem đường link hiện tại có hợp lệ không?
           const isOldValidUrl = typeof newCard.mediaUrl === 'string' &&
             newCard.mediaUrl.trim() !== '' &&
             newCard.mediaUrl !== 'null' &&
             !newCard.mediaUrl.includes('[object Object]');
 
-          // NẾU KHÔNG PHẢI FILE MỚI, CŨNG KHÔNG PHẢI LINK CŨ HỢP LỆ -> MỚI XÓA ĐỂ TRÁNH LƯU RÁC
+          // NẾU LÀ RÁC (KHÔNG MỚI, KHÔNG CŨ HỢP LỆ)
           if (!isNewFile && !isOldValidUrl) {
-            delete newCard.mediaUrl;
+            // CỰC KỲ QUAN TRỌNG: KHÔNG DELETE NỮA! 
+            // Ta lấy lại đúng ảnh cũ từ DB (fallbackRef) hoặc ảnh gốc mặc định đắp vào.
+            // Điều này ép Backend phải lưu lại cái ảnh đó, không được phép xóa đi.
+            newCard.mediaUrl = solutionDefault.cards[index]?.mediaUrl || '';
           }
 
           return newCard;
         });
       }
 
+      // 3. Gói thành FormData và Gửi đi
       const formData = flattenToFormData(cleanContent);
       const result = await save(formData);
 

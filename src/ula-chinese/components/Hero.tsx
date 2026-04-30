@@ -13,6 +13,7 @@ const TRUSTED_VIETNAMESE_AVATARS = [
   "https://images.pexels.com/photos/12667510/pexels-photo-12667510.jpeg?auto=compress&cs=tinysrgb&w=160&h=160&fit=crop",
 ];
 
+
 type SlimVimeoPlayerProps = {
   videoUrl: string;
   title: string;
@@ -128,7 +129,7 @@ export default function Hero() {
   const heroSectionRef = useRef<HTMLElement | null>(null);
   const [isPlayingHeroVideo, setIsPlayingHeroVideo] = useState(true);
   const [isPaused, setIsPaused] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [seekTo, setSeekTo] = useState<number | null>(null);

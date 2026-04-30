@@ -73,8 +73,39 @@ export default function SolutionEditor() {
 
   const handleSave = async () => {
     try {
-      const formData = flattenToFormData(content);
+      // 1. Tạo bản sao dữ liệu an toàn
+      const cleanContent = { ...content };
+
+      // 2. Chặn lỗi mất ảnh: Duyệt qua từng card và kiểm tra kỹ mediaUrl
+      if (Array.isArray(cleanContent.cards)) {
+        cleanContent.cards = cleanContent.cards.map((card, index) => {
+          const newCard = { ...card };
+
+          // Kiểm tra xem đây có phải là File mới được upload không?
+          const isNewFile = newCard.mediaUrl instanceof File;
+
+          // Kiểm tra xem đường link hiện tại có hợp lệ không?
+          const isOldValidUrl = typeof newCard.mediaUrl === 'string' &&
+            newCard.mediaUrl.trim() !== '' &&
+            newCard.mediaUrl !== 'null' &&
+            !newCard.mediaUrl.includes('[object Object]');
+
+          // NẾU LÀ RÁC (KHÔNG MỚI, KHÔNG CŨ HỢP LỆ)
+          if (!isNewFile && !isOldValidUrl) {
+            // CỰC KỲ QUAN TRỌNG: KHÔNG DELETE NỮA! 
+            // Ta lấy lại đúng ảnh cũ từ DB (fallbackRef) hoặc ảnh gốc mặc định đắp vào.
+            // Điều này ép Backend phải lưu lại cái ảnh đó, không được phép xóa đi.
+            newCard.mediaUrl = solutionDefault.cards[index]?.mediaUrl || '';
+          }
+
+          return newCard;
+        });
+      }
+
+      // 3. Gói thành FormData và Gửi đi
+      const formData = flattenToFormData(cleanContent);
       const result = await save(formData);
+
       console.log('[SolutionEditor] Lưu thành công!', result);
       alert('Đã lưu thay đổi thành công!');
     } catch (err) {
@@ -117,18 +148,18 @@ export default function SolutionEditor() {
               <Type className="w-3 h-3" /> Tiêu đề phần (Headline)
             </div>
             <div className="grid md:grid-cols-3 gap-6">
-               <div className="space-y-1">
-                 <div className={adminLabel}>Phần 1 (Chỉ)</div>
-                 <input className={adminInput} value={content.titlePart1} onChange={(e) => updateTitle({ titlePart1: e.target.value })} />
-               </div>
-               <div className="space-y-1">
-                 <div className={adminLabel}>Phần nổi bật (30 phút/ngày)</div>
-                 <input className={adminInput} value={content.titleHighlight} onChange={(e) => updateTitle({ titleHighlight: e.target.value })} />
-               </div>
-               <div className="space-y-1">
-                 <div className={adminLabel}>Phần 2 (dễ dàng bắt đầu)</div>
-                 <input className={adminInput} value={content.titlePart2} onChange={(e) => updateTitle({ titlePart2: e.target.value })} />
-               </div>
+              <div className="space-y-1">
+                <div className={adminLabel}>Phần 1 (Chỉ)</div>
+                <input className={adminInput} value={content.titlePart1} onChange={(e) => updateTitle({ titlePart1: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <div className={adminLabel}>Phần nổi bật (30 phút/ngày)</div>
+                <input className={adminInput} value={content.titleHighlight} onChange={(e) => updateTitle({ titleHighlight: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <div className={adminLabel}>Phần 2 (dễ dàng bắt đầu)</div>
+                <input className={adminInput} value={content.titlePart2} onChange={(e) => updateTitle({ titlePart2: e.target.value })} />
+              </div>
             </div>
           </div>
 
@@ -161,10 +192,10 @@ export default function SolutionEditor() {
                     <div className="space-y-3">
                       {(Array.isArray(feature.bullets) ? feature.bullets : []).map((bullet, bIndex) => (
                         <div key={bIndex} className="relative group/bullet flex items-center gap-2">
-                           <input className={adminInput} value={bullet} onChange={(e) => updateBullet(fIndex, bIndex, e.target.value)} />
-                           <button onClick={() => removeBullet(fIndex, bIndex)} className="p-2 text-slate-400 hover:text-rose-500 transition-colors" title="Xóa">
-                             <Trash2 className="w-4 h-4" />
-                           </button>
+                          <input className={adminInput} value={bullet} onChange={(e) => updateBullet(fIndex, bIndex, e.target.value)} />
+                          <button onClick={() => removeBullet(fIndex, bIndex)} className="p-2 text-slate-400 hover:text-rose-500 transition-colors" title="Xóa">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
                       ))}
                       <button onClick={() => addBullet(fIndex)} className="mt-2 flex items-center gap-1 text-xs font-bold text-indigo-500 hover:text-indigo-600 transition-colors">
@@ -175,7 +206,7 @@ export default function SolutionEditor() {
                 </div>
 
                 <div className="space-y-6">
-                  <ImageUploadField 
+                  <ImageUploadField
                     label="Phương tiện (Ảnh/Video)"
                     value={feature.mediaUrl}
                     onChange={(val) => updateFeature(fIndex, { mediaUrl: val as any })}
@@ -183,7 +214,7 @@ export default function SolutionEditor() {
                   />
                   <div className="flex items-center gap-4 group cursor-pointer" onClick={() => updateFeature(fIndex, { isVideo: !feature.isVideo })}>
                     <div className={`flex h-5 w-10 items-center rounded-full transition-all ${feature.isVideo ? 'bg-indigo-600' : 'bg-slate-200'}`}>
-                       <div className={`h-4 w-4 rounded-full bg-white shadow-md transition-all ${feature.isVideo ? 'translate-x-5' : 'translate-x-1'}`} />
+                      <div className={`h-4 w-4 rounded-full bg-white shadow-md transition-all ${feature.isVideo ? 'translate-x-5' : 'translate-x-1'}`} />
                     </div>
                     <span className="text-xs font-bold text-slate-400 group-hover:text-slate-900 transition-colors">Xử lý dưới dạng Video</span>
                   </div>

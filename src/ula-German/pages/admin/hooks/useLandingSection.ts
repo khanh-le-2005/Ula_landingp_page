@@ -85,7 +85,17 @@ const mergeWithFallback = <T,>(fallback: T, remote: unknown): T => {
       }
     }
 
-    merged[key] = remoteValue;
+    // --- CHỐNG GHI ĐÈ GIÁ TRỊ RỖNG ---
+    // Nếu Server trả về rỗng ("") nhưng Fallback (mặc định) có dữ liệu, 
+    // ta giữ lại Fallback để tránh làm mất ảnh hoặc thông tin quan trọng.
+    const isRemoteEmpty = remoteValue === "" || remoteValue === null || remoteValue === undefined;
+    const isFallbackNotEmpty = fallbackValue !== "" && fallbackValue !== null && fallbackValue !== undefined;
+
+    if (isRemoteEmpty && isFallbackNotEmpty) {
+      merged[key] = fallbackValue;
+    } else {
+      merged[key] = remoteValue;
+    }
   });
 
   return merged as T;

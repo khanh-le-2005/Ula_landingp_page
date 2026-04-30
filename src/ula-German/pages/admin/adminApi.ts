@@ -1,4 +1,4 @@
-  // --- BÁO CÁO MARKETING (OVERVIEW) ---
+// --- BÁO CÁO MARKETING (OVERVIEW) ---
 export interface MarketingReportRow {
   source: string;
   medium: string;
@@ -169,7 +169,6 @@ export type LuckyWheelPrize = {
 // --- CORE UTILS ---
 
 const TOKEN_KEY = "ula_admin_token";
-const REFRESH_TOKEN_KEY = "ula_admin_refresh_token";
 const USER_KEY = "ula_admin_user";
 
 const getBaseUrl = () => {
@@ -280,44 +279,6 @@ const requestJson = async <T>(
   });
 
   if (response.status === 401) {
-    const refreshToken = getStoredAdminRefreshToken();
-    if (refreshToken && path !== "/api/auth/refresh-token") {
-      try {
-        const refreshResponse = await fetch(buildUrl("/api/auth/refresh-token"), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ refreshToken }),
-        });
-
-        if (refreshResponse.ok) {
-          const refreshData = await refreshResponse.json();
-          const { accessToken: newAccessToken, refreshToken: newRefreshToken } = refreshData.data || refreshData;
-          
-          const currentUser = getStoredAdminUser();
-          if (currentUser) {
-            setStoredAdminSession(newAccessToken, newRefreshToken, currentUser);
-            
-            // Retry the original request with new token
-            const retryHeaders = new Headers(headers);
-            retryHeaders.set("Authorization", `Bearer ${newAccessToken}`);
-            
-            const retryResponse = await fetch(buildUrl(path, finalParams), {
-              ...init,
-              headers: retryHeaders,
-              credentials: "include",
-            });
-            
-            if (retryResponse.ok) {
-              const contentType = retryResponse.headers.get("content-type") || "";
-              return contentType.includes("application/json") ? await retryResponse.json() : await retryResponse.text();
-            }
-          }
-        }
-      } catch (err) {
-        console.error("Refresh token failed:", err);
-      }
-    }
-    
     handleAdminLogout();
     throw new Error("Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại.");
   }
@@ -344,8 +305,6 @@ const requestJson = async <T>(
 
 export const getStoredAdminToken = () => localStorage.getItem(TOKEN_KEY) || "";
 
-export const getStoredAdminRefreshToken = () => localStorage.getItem(REFRESH_TOKEN_KEY) || "";
-
 export const getStoredAdminUser = (): AdminUserInfo | null => {
   const raw = localStorage.getItem(USER_KEY);
   if (!raw) return null;
@@ -356,20 +315,18 @@ export const getStoredAdminUser = (): AdminUserInfo | null => {
   }
 };
 
-export const setStoredAdminSession = (token: string, refreshToken: string, user: AdminUserInfo) => {
+export const setStoredAdminSession = (token: string, user: AdminUserInfo) => {
   localStorage.setItem(TOKEN_KEY, token);
-  localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
   localStorage.setItem(USER_KEY, JSON.stringify(user));
 };
 
 export const clearStoredAdminSession = () => {
   localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(REFRESH_TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
 };
 
 export const loginAdmin = async (username: string, password: string) => {
-  const response = await requestJson<{ message: string; data: AdminLoginResponse }>(
+  return requestJson<{ message: string; data: AdminLoginResponse }>(
     "/api/auth/login",
     {
       method: "POST",
@@ -377,12 +334,6 @@ export const loginAdmin = async (username: string, password: string) => {
       body: JSON.stringify({ username, password }),
     },
   );
-  
-  if (response.data && response.data.accessToken) {
-    setStoredAdminSession(response.data.accessToken, response.data.refreshToken, response.data.user_info);
-  }
-  
-  return response;
 };
 
 // --- LANDING PAGE ---
@@ -425,11 +376,11 @@ export const fetchLandingPage = async (siteKey?: string, variant?: string, campa
       return data;
     })
     .finally(() => {
-       // Xóa cache sau 2 giây để Admin luôn kéo được dữ liệu mới khi nhấn F5
-       setTimeout(() => {
-         delete landingPageCache[cacheKey];
-         delete landingPageDataCache[cacheKey];
-       }, 2000);
+      // Xóa cache sau 2 giây để Admin luôn kéo được dữ liệu mới khi nhấn F5
+      setTimeout(() => {
+        delete landingPageCache[cacheKey];
+        delete landingPageDataCache[cacheKey];
+      }, 2000);
     });
 
   landingPageCache[cacheKey] = promise;
@@ -544,263 +495,263 @@ export type LeadSubmissionResponse = {
 };
 
 export const submitLeadRegistration = async (payload: LeadSubmissionPayload) => {
-    // Bắt buộc lấy siteKey từ Form truyền lên (hoặc lấy từ context hiện tại)
-    const site = payload.siteKey || getSiteContext().site;
+  // Bắt buộc lấy siteKey từ Form truyền lên (hoặc lấy từ context hiện tại)
+  const site = payload.siteKey || getSiteContext().site;
 
-    return requestJson<LeadSubmissionResponse>('/api/leads/submit', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Site-Key': site, // <--- ÉP BACKEND LƯU ĐÚNG KHO
-      },
-      body: JSON.stringify(payload),
-    }, { siteKey: site }); // <--- ÉP REQUESTJSON KHÔNG ĐƯỢC GHI ĐÈ
-  };
+  return requestJson<LeadSubmissionResponse>('/api/leads/submit', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Site-Key': site, // <--- ÉP BACKEND LƯU ĐÚNG KHO
+    },
+    body: JSON.stringify(payload),
+  }, { siteKey: site }); // <--- ÉP REQUESTJSON KHÔNG ĐƯỢC GHI ĐÈ
+};
 
-  export const fetchLeads = async (siteKey?: string, filters: { ref?: string; tag?: string; status?: string } = {}) => {
-    const token = getStoredAdminToken();
-    const { site } = getSiteContext(siteKey);
-    const response = await requestJson<any>("/api/leads", { method: "GET" }, { siteKey: site, ...filters }, token);
-    return Array.isArray(response) ? response : (response.data || []);
-  };
+export const fetchLeads = async (siteKey?: string, filters: { ref?: string; tag?: string; status?: string } = {}) => {
+  const token = getStoredAdminToken();
+  const { site } = getSiteContext(siteKey);
+  const response = await requestJson<any>("/api/leads", { method: "GET" }, { siteKey: site, ...filters }, token);
+  return Array.isArray(response) ? response : (response.data || []);
+};
 
-  export const updateLeadStatus = async (id: string, status: string) => {
-    const token = getStoredAdminToken();
-    return requestJson<{ message: string; data: LeadRecord }>(
-      `/api/leads/${id}/status`,
-      {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      },
-      {},
-      token
-    );
-  };
+export const updateLeadStatus = async (id: string, status: string) => {
+  const token = getStoredAdminToken();
+  return requestJson<{ message: string; data: LeadRecord }>(
+    `/api/leads/${id}/status`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    },
+    {},
+    token
+  );
+};
 
-  export const deleteLead = async (id: string) => {
-    const token = getStoredAdminToken();
-    return requestJson<{ message: string }>(`/api/leads/${id}`, { method: "DELETE" }, {}, token);
-  };
+export const deleteLead = async (id: string) => {
+  const token = getStoredAdminToken();
+  return requestJson<{ message: string }>(`/api/leads/${id}`, { method: "DELETE" }, {}, token);
+};
 
-  export const trackVisitor = async (queryString: string) => {
-    return fetch(buildUrl("/api/track" + queryString), {
-      method: "GET",
-      credentials: "include",
-    }).catch((err) => console.error("Tracking failed:", err));
-  };
+export const trackVisitor = async (queryString: string) => {
+  return fetch(buildUrl("/api/track" + queryString), {
+    method: "GET",
+    credentials: "include",
+  }).catch((err) => console.error("Tracking failed:", err));
+};
 
-  // --- AFFILIATES (KOC) ---
+// --- AFFILIATES (KOC) ---
 
-  export const fetchAffiliates = async (siteKey?: string) => {
-    const token = getStoredAdminToken();
-    const { site } = getSiteContext(siteKey);
-    return requestJson<Affiliate[]>("/api/affiliates", { method: "GET" }, { siteKey: site }, token);
-  };
+export const fetchAffiliates = async (siteKey?: string) => {
+  const token = getStoredAdminToken();
+  const { site } = getSiteContext(siteKey);
+  return requestJson<Affiliate[]>("/api/affiliates", { method: "GET" }, { siteKey: site }, token);
+};
 
-  export const createAffiliate = async (data: Partial<Affiliate>) => {
-    const token = getStoredAdminToken();
-    return requestJson<{ message: string; data: Affiliate }>(
-      "/api/affiliates",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      },
-      { siteKey: data.siteKey },
-      token,
-    );
-  };
+export const createAffiliate = async (data: Partial<Affiliate>) => {
+  const token = getStoredAdminToken();
+  return requestJson<{ message: string; data: Affiliate }>(
+    "/api/affiliates",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    },
+    { siteKey: data.siteKey },
+    token,
+  );
+};
 
-  export const updateAffiliate = async (id: string, data: Partial<Affiliate>) => {
-    const token = getStoredAdminToken();
-    return requestJson<{ message: string; data: Affiliate }>(
-      `/api/affiliates/${id}`,
-      {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      },
-      { siteKey: data.siteKey },
-      token,
-    );
-  };
+export const updateAffiliate = async (id: string, data: Partial<Affiliate>) => {
+  const token = getStoredAdminToken();
+  return requestJson<{ message: string; data: Affiliate }>(
+    `/api/affiliates/${id}`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    },
+    { siteKey: data.siteKey },
+    token,
+  );
+};
 
-  export const deleteAffiliate = async (id: string) => {
-    const token = getStoredAdminToken();
-    return requestJson<{ message: string }>(`/api/affiliates/${id}`, { method: "DELETE" }, {}, token);
-  };
+export const deleteAffiliate = async (id: string) => {
+  const token = getStoredAdminToken();
+  return requestJson<{ message: string }>(`/api/affiliates/${id}`, { method: "DELETE" }, {}, token);
+};
 
-  export const fetchAffiliateStats = async (siteKey?: string) => {
-    const token = getStoredAdminToken();
-    const { site } = getSiteContext(siteKey);
-    return requestJson<AffiliateStats>("/api/affiliates/stats", { method: "GET" }, { siteKey: site }, token);
-  };
+export const fetchAffiliateStats = async (siteKey?: string) => {
+  const token = getStoredAdminToken();
+  const { site } = getSiteContext(siteKey);
+  return requestJson<AffiliateStats>("/api/affiliates/stats", { method: "GET" }, { siteKey: site }, token);
+};
 
-  export type AffiliateLinksResponse = {
-    affiliateName: string;
-    referralCode: string;
-    links: { platform: string; url: string }[];
-  };
+export type AffiliateLinksResponse = {
+  affiliateName: string;
+  referralCode: string;
+  links: { platform: string; url: string }[];
+};
 
-  export const fetchAffiliateLinks = async (id: string, siteKey?: string) => {
-    const token = getStoredAdminToken();
-    const { site } = getSiteContext(siteKey);
-    return requestJson<AffiliateLinksResponse>(`/api/affiliates/${id}/links`, { method: "GET" }, { siteKey: site }, token);
-  };
+export const fetchAffiliateLinks = async (id: string, siteKey?: string) => {
+  const token = getStoredAdminToken();
+  const { site } = getSiteContext(siteKey);
+  return requestJson<AffiliateLinksResponse>(`/api/affiliates/${id}/links`, { method: "GET" }, { siteKey: site }, token);
+};
 
-  // --- CAMPAIGNS ---
+// --- CAMPAIGNS ---
 
-  export const fetchCampaigns = async (siteKey?: string) => {
-    const token = getStoredAdminToken();
-    const { site } = getSiteContext(siteKey);
-    return requestJson<Campaign[]>("/api/campaigns", { method: "GET" }, { siteKey: site }, token);
-  };
+export const fetchCampaigns = async (siteKey?: string) => {
+  const token = getStoredAdminToken();
+  const { site } = getSiteContext(siteKey);
+  return requestJson<Campaign[]>("/api/campaigns", { method: "GET" }, { siteKey: site }, token);
+};
 
-  export const createCampaign = async (data: Partial<Campaign> | FormData, siteKey?: string) => {
-    const token = getStoredAdminToken();
-    const { site } = getSiteContext(siteKey);
-    const isFormData = data instanceof FormData;
+export const createCampaign = async (data: Partial<Campaign> | FormData, siteKey?: string) => {
+  const token = getStoredAdminToken();
+  const { site } = getSiteContext(siteKey);
+  const isFormData = data instanceof FormData;
 
-    return requestJson<{ message: string; data: Campaign }>(
-      "/api/campaigns",
-      {
-        method: "POST",
-        headers: isFormData ? {} : { "Content-Type": "application/json" },
-        body: isFormData ? data : JSON.stringify(data),
-      },
-      { siteKey: site },
-      token,
-    );
-  };
+  return requestJson<{ message: string; data: Campaign }>(
+    "/api/campaigns",
+    {
+      method: "POST",
+      headers: isFormData ? {} : { "Content-Type": "application/json" },
+      body: isFormData ? data : JSON.stringify(data),
+    },
+    { siteKey: site },
+    token,
+  );
+};
 
-  export const updateCampaign = async (id: string, data: Partial<Campaign> | FormData, siteKey?: string) => {
-    const token = getStoredAdminToken();
-    const { site } = getSiteContext(siteKey);
-    const isFormData = data instanceof FormData;
+export const updateCampaign = async (id: string, data: Partial<Campaign> | FormData, siteKey?: string) => {
+  const token = getStoredAdminToken();
+  const { site } = getSiteContext(siteKey);
+  const isFormData = data instanceof FormData;
 
-    return requestJson<{ message: string; data: Campaign }>(
-      `/api/campaigns/${id}`,
-      {
-        method: "PUT",
-        headers: isFormData ? {} : { "Content-Type": "application/json" },
-        body: isFormData ? data : JSON.stringify(data),
-      },
-      { siteKey: site },
-      token,
-    );
-  };
+  return requestJson<{ message: string; data: Campaign }>(
+    `/api/campaigns/${id}`,
+    {
+      method: "PUT",
+      headers: isFormData ? {} : { "Content-Type": "application/json" },
+      body: isFormData ? data : JSON.stringify(data),
+    },
+    { siteKey: site },
+    token,
+  );
+};
 
-  export const deleteCampaign = async (id: string, siteKey?: string) => {
-    const token = getStoredAdminToken();
-    const { site } = getSiteContext(siteKey);
-    return requestJson<{ message: string }>(`/api/campaigns/${id}`, { method: "DELETE" }, { siteKey: site }, token);
-  };
+export const deleteCampaign = async (id: string, siteKey?: string) => {
+  const token = getStoredAdminToken();
+  const { site } = getSiteContext(siteKey);
+  return requestJson<{ message: string }>(`/api/campaigns/${id}`, { method: "DELETE" }, { siteKey: site }, token);
+};
 
-  // --- PRIZE MANAGEMENT (Lucky Wheel) ---
+// --- PRIZE MANAGEMENT (Lucky Wheel) ---
 
-  export const fetchPrizes = async (siteKey?: string) => {
-    const token = getStoredAdminToken();
-    const { site } = getSiteContext(siteKey);
-    return requestJson<LuckyWheelPrize[]>("/api/prizes", { method: "GET" }, { siteKey: site }, token);
-  };
+export const fetchPrizes = async (siteKey?: string) => {
+  const token = getStoredAdminToken();
+  const { site } = getSiteContext(siteKey);
+  return requestJson<LuckyWheelPrize[]>("/api/prizes", { method: "GET" }, { siteKey: site }, token);
+};
 
-  export const createPrize = async (data: Partial<LuckyWheelPrize>, siteKey?: string) => {
-    const token = getStoredAdminToken();
-    const { site } = getSiteContext(siteKey);
-    return requestJson<{ message: string; data: LuckyWheelPrize }>(
-      "/api/prizes",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, siteKey: site }),
-      },
-      { siteKey: site },
-      token,
-    );
-  };
+export const createPrize = async (data: Partial<LuckyWheelPrize>, siteKey?: string) => {
+  const token = getStoredAdminToken();
+  const { site } = getSiteContext(siteKey);
+  return requestJson<{ message: string; data: LuckyWheelPrize }>(
+    "/api/prizes",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...data, siteKey: site }),
+    },
+    { siteKey: site },
+    token,
+  );
+};
 
-  export const updatePrizeApi = async (id: string, data: Partial<LuckyWheelPrize>, siteKey?: string) => {
-    const token = getStoredAdminToken();
-    const { site } = getSiteContext(siteKey);
-    return requestJson<{ message: string; data: LuckyWheelPrize }>(
-      `/api/prizes/${id}`,
-      {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      },
-      { siteKey: site },
-      token,
-    );
-  };
+export const updatePrizeApi = async (id: string, data: Partial<LuckyWheelPrize>, siteKey?: string) => {
+  const token = getStoredAdminToken();
+  const { site } = getSiteContext(siteKey);
+  return requestJson<{ message: string; data: LuckyWheelPrize }>(
+    `/api/prizes/${id}`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    },
+    { siteKey: site },
+    token,
+  );
+};
 
-  export const deletePrizeApi = async (id: string, siteKey?: string) => {
-    const token = getStoredAdminToken();
-    const { site } = getSiteContext(siteKey);
-    return requestJson<{ message: string }>(`/api/prizes/${id}`, { method: "DELETE" }, { siteKey: site }, token);
-  };
+export const deletePrizeApi = async (id: string, siteKey?: string) => {
+  const token = getStoredAdminToken();
+  const { site } = getSiteContext(siteKey);
+  return requestJson<{ message: string }>(`/api/prizes/${id}`, { method: "DELETE" }, { siteKey: site }, token);
+};
 
-  // --- MARKETING LINKS ---
+// --- MARKETING LINKS ---
 
-  export const fetchMarketingMetaOptions = async (siteKey?: string) => {
-    const token = getStoredAdminToken();
-    const { site } = getSiteContext(siteKey);
-    return requestJson<MarketingMetaOptions>(
-      `/api/marketing-links/meta-options`,
-      { method: "GET" },
-      { siteKey: site },
-      token
-    );
-  };
+export const fetchMarketingMetaOptions = async (siteKey?: string) => {
+  const token = getStoredAdminToken();
+  const { site } = getSiteContext(siteKey);
+  return requestJson<MarketingMetaOptions>(
+    `/api/marketing-links/meta-options`,
+    { method: "GET" },
+    { siteKey: site },
+    token
+  );
+};
 
-  export const fetchMarketingLinks = async (siteKey?: string) => {
-    const token = getStoredAdminToken();
-    const { site } = getSiteContext(siteKey);
-    return requestJson<MarketingLink[]>(
-      `/api/marketing-links`,
-      { method: "GET" },
-      { siteKey: site },
-      token
-    );
-  };
+export const fetchMarketingLinks = async (siteKey?: string) => {
+  const token = getStoredAdminToken();
+  const { site } = getSiteContext(siteKey);
+  return requestJson<MarketingLink[]>(
+    `/api/marketing-links`,
+    { method: "GET" },
+    { siteKey: site },
+    token
+  );
+};
 
-  export const createMarketingLink = async (data: Partial<MarketingLink>) => {
-    const token = getStoredAdminToken();
-    const { site } = getSiteContext(data.siteKey);
-    return requestJson<{ message: string; data: MarketingLink }>(
-      "/api/marketing-links",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data as any)
-      },
-      { siteKey: site },
-      token
-    );
-  };
+export const createMarketingLink = async (data: Partial<MarketingLink>) => {
+  const token = getStoredAdminToken();
+  const { site } = getSiteContext(data.siteKey);
+  return requestJson<{ message: string; data: MarketingLink }>(
+    "/api/marketing-links",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data as any)
+    },
+    { siteKey: site },
+    token
+  );
+};
 
-  export const updateMarketingLink = async (id: string, data: Partial<MarketingLink>) => {
-    const token = getStoredAdminToken();
-    const { site } = getSiteContext(data.siteKey);
-    return requestJson<{ message: string; data: MarketingLink }>(
-      `/api/marketing-links/${id}`,
-      {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data as any)
-      },
-      { siteKey: site },
-      token
-    );
-  };
+export const updateMarketingLink = async (id: string, data: Partial<MarketingLink>) => {
+  const token = getStoredAdminToken();
+  const { site } = getSiteContext(data.siteKey);
+  return requestJson<{ message: string; data: MarketingLink }>(
+    `/api/marketing-links/${id}`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data as any)
+    },
+    { siteKey: site },
+    token
+  );
+};
 
-  export const deleteMarketingLink = async (id: string) => {
-    const token = getStoredAdminToken();
-    return requestJson<{ message: string }>(
-      `/api/marketing-links/${id}`,
-      { method: "DELETE" },
-      {},
-      token
-    );
-  };
+export const deleteMarketingLink = async (id: string) => {
+  const token = getStoredAdminToken();
+  return requestJson<{ message: string }>(
+    `/api/marketing-links/${id}`,
+    { method: "DELETE" },
+    {},
+    token
+  );
+};
