@@ -60,7 +60,7 @@ const SKILL_COMPANION_ENABLED = false;
 
 const splitRoadmapBullets = (desc: string) => {
   const segments = desc
-    .split(/,|•|\s-\s| & /)
+    .split(/•|\s-\s| & /)
     .map((item) => item.trim())
     .filter(Boolean);
 
@@ -150,7 +150,7 @@ const MASTER_STEPS_CONTENT: Record<string, CourseRoadmapStep> = {
     title: "HSK6",
     desc: "Văn hoá, thành ngữ • Tiếng Trung học thuật • Chinh phục HSKK"
   },
-}; 
+};
 
 const skillCompanionCards = [
   {
@@ -215,36 +215,43 @@ const LevelTrackPanel: React.FC<{
     const progressWidthPercent = trackWidthPercent * progressRatio;
 
     return (
-      <div className="relative overflow-hidden rounded-[1.8rem] border border-white/60 px-3 py-2.5 shadow-[0_18px_55px_rgba(40,66,120,0.08),inset_0_1px_0_rgba(255,255,255,0.85)] backdrop-blur-2xl md:px-4 md:py-3">
-        <div className="mb-2 flex items-center gap-1.5 text-[#22314d]">
+      // Giảm padding 2 bên trên mobile (px-1.5) để có thêm diện tích cho 6 cột
+      <div className="relative overflow-hidden rounded-[1.8rem] border border-white/60 px-1.5 py-3 shadow-[0_18px_55px_rgba(40,66,120,0.08),inset_0_1px_0_rgba(255,255,255,0.85)] backdrop-blur-2xl md:px-4 md:py-3">
+
+        <div className="mb-4 flex items-center gap-1.5 pl-2 text-[#22314d]">
           <img
             src={stepFlagIcon}
             alt=""
-            className="h-4 w-4 shrink-0 object-contain"
+            className="h-3.5 w-3.5 shrink-0 object-contain md:h-4 md:w-4"
           />
           <h3 className="text-[11px] font-black uppercase tracking-wide md:text-[13px]">
             {title}
           </h3>
         </div>
 
-        <div className="relative px-1 md:px-2">
+        {/* Khung chứa lộ trình - Ép full 100% chiều rộng */}
+        <div className="relative w-full">
+
+          {/* Vạch kẻ nền - Căn chính giữa ổ khoá trên mobile (top-[1.2rem]) */}
           <div
-            className="pointer-events-none absolute top-[2.36rem] h-[3px] rounded-full bg-[#d6dde8] md:top-[2.52rem]"
+            className="pointer-events-none absolute top-[1.1rem] h-[3px] rounded-full bg-[#e2e8f0] md:top-[2.52rem]"
             style={{
               left: `${trackInsetPercent}%`,
               width: `${trackWidthPercent}%`,
             }}
           />
+          {/* Vạch tiến độ */}
           <div
-            className={`pointer-events-none absolute top-[2.36rem] h-[3px] rounded-full transition-[width] duration-300 ease-out md:top-[2.52rem] ${theme.levelProgressLine}`}
+            className={`pointer-events-none absolute top-[1.1rem] h-[3px] rounded-full transition-[width] duration-300 ease-out md:top-[2.52rem] ${theme.levelProgressLine}`}
             style={{
               left: `${trackInsetPercent}%`,
               width: `${progressWidthPercent}%`,
             }}
           />
 
+          {/* Lưới chia đều 6 cột */}
           <div
-            className="relative grid gap-1.5 md:gap-2.5"
+            className="relative grid gap-0.5 md:gap-2.5 w-full"
             style={{ gridTemplateColumns: `repeat(${levels.length}, minmax(0, 1fr))` }}
           >
             {levels.map((level, idx) => {
@@ -265,43 +272,46 @@ const LevelTrackPanel: React.FC<{
                     onSelect(idx);
                   }}
                   disabled={disabled}
-                  title={disabled ? (isTarget ? "Mục tiêu phải cao hơn trình độ hiện tại." : "Không thể chọn") : level.label}
-                  className={`relative flex flex-col items-center rounded-2xl px-1 py-0.5 transition-all duration-300 ${disabled
+                  title={disabled ? (isTarget ? "Mục tiêu phải cao hơn hiện tại." : "Không thể chọn") : level.label}
+                  className={`relative flex w-full flex-col items-center rounded-xl px-0 py-0.5 transition-all duration-300 ${disabled
                     ? "cursor-not-allowed opacity-40 grayscale-[0.4]"
                     : "cursor-pointer hover:-translate-y-0.5"
-                    } ${active ? "scale-[1.035]" : ""}`}
+                    } ${active ? "scale-[1.05]" : ""}`}
                 >
+                  {/* Hiệu ứng phát sáng phía sau Icon đang chọn */}
                   {active && (
                     <>
-                      <div className={`absolute left-1/2 top-[-0.2rem] h-[4.55rem] w-[4.55rem] -translate-x-1/2 rounded-full blur-xl md:h-[5rem] md:w-[5rem] ${theme.activeAuraOuter}`} />
-                      <div className={`absolute left-1/2 top-[0.22rem] h-[3.35rem] w-[3.35rem] -translate-x-1/2 rounded-full blur-md md:h-[3.6rem] md:w-[3.6rem] ${theme.activeAuraMid}`} />
-                      <div className={`absolute left-1/2 top-[0.82rem] h-6 w-6 -translate-x-1/2 rounded-full blur-sm md:top-[0.9rem] md:h-7 md:w-7 ${theme.activeAuraInner}`} />
+                      <div className={`absolute left-1/2 top-[-0.5rem] h-[3.5rem] w-[3.5rem] -translate-x-1/2 rounded-full blur-xl md:h-[5rem] md:w-[5rem] ${theme.activeAuraOuter}`} />
+                      <div className={`absolute left-1/2 top-[0rem] h-[2.5rem] w-[2.5rem] -translate-x-1/2 rounded-full blur-md md:h-[3.6rem] md:w-[3.6rem] ${theme.activeAuraMid}`} />
+                      <div className={`absolute left-1/2 top-[0.5rem] h-5 w-5 -translate-x-1/2 rounded-full blur-sm md:top-[0.9rem] md:h-7 md:w-7 ${theme.activeAuraInner}`} />
                     </>
                   )}
 
-                  <div className="relative z-10 flex h-[3rem] items-end justify-center md:h-[3.45rem]">
+                  {/* Vùng chứa Icon (Khoá / Cờ) */}
+                  <div className="relative z-10 flex h-[2.5rem] items-end justify-center md:h-[3.45rem]">
                     <img
                       src={markerSrc}
                       alt={level.label}
                       className={`object-contain transition-all duration-300 ${active
                         ? isTarget
-                          ? `h-[3rem] w-auto md:h-[3.35rem] ${theme.activeMarkerShadow}`
-                          : `h-[3.15rem] w-auto md:h-[3.5rem] ${theme.activeMarkerShadow}`
-                        : "h-7 w-7 md:h-8 md:w-8"
+                          ? `h-[2.2rem] w-auto md:h-[3.35rem] ${theme.activeMarkerShadow}`
+                          : `h-[2.5rem] w-auto md:h-[3.5rem] ${theme.activeMarkerShadow}`
+                        : "h-[1.1rem] w-[1.1rem] md:h-8 md:w-8" // Ổ khoá nhỏ lại trên mobile
                         } ${disabled && !active ? "grayscale-[0.2]" : ""}`}
                     />
                   </div>
 
-                  <div className="mt-1 text-center">
+                  {/* Vùng chứa Text - Cho phép rớt dòng tự nhiên (whitespace-normal) */}
+                  <div className="mt-1.5 w-full text-center px-0.5">
                     <div
-                      className={`font-black uppercase leading-none ${active
-                        ? `text-[0.95rem] md:text-[1.12rem] ${theme.activeLabel}`
-                        : "text-[0.8rem] text-slate-500 md:text-[0.9rem]"
+                      className={`font-black uppercase leading-[1.1] whitespace-normal break-words ${active
+                        ? `text-[11px] md:text-[1.12rem] ${theme.activeLabel}`
+                        : "text-[10px] text-slate-500 md:text-[0.9rem]"
                         }`}
                     >
                       {level.label}
                     </div>
-                    <div className="mt-0.5 text-[8px] font-semibold leading-tight text-slate-400 md:text-[9px]">
+                    <div className="mt-1 text-[8px] font-semibold leading-[1.2] text-slate-400 md:text-[10px] whitespace-normal break-words">
                       {level.sub}
                     </div>
                   </div>
@@ -323,7 +333,7 @@ const CourseRoadmapShowcase: React.FC<CourseRoadmapShowcaseProps> = ({
   targetLevelIdx,
   roadmapSteps,
   roadmapError,
-    canSelectTargetLevel,
+  canSelectTargetLevel,
   onCurrentLevelChange,
   onTargetLevelChange,
   onStepClick,
@@ -459,17 +469,17 @@ const CourseRoadmapShowcase: React.FC<CourseRoadmapShowcaseProps> = ({
                         const bulletItems = splitRoadmapBullets(step.desc);
                         const isEdgeFlag = index === 0 || index === displayedRoadmapSteps.length - 1;
                         return (
-                          <div key={`${step.id}-${index}`} className="relative flex w-[100px] md:w-[236px] max-w-full flex-col items-center shrink-0">
+                          <div key={`${step.id}-${index}`} className="relative flex w-[160px] md:w-[236px] max-w-full flex-col items-center shrink-0">
                             <div className="relative z-10 h-[3.2rem] md:h-[3.6rem] w-full">
-                              <div className="absolute bottom-[0.35rem] left-1/2 -translate-x-[3.2rem] md:bottom-[0.45rem] md:-translate-x-[5.15rem]">
+                              <div className="absolute bottom-[0.35rem] left-1/2 -translate-x-[5rem] md:bottom-[0.45rem] md:-translate-x-[5.15rem]">
                                 {isEdgeFlag && <><span className={`pointer-events-none absolute left-[56%] top-full h-6 w-12 -translate-x-1/2 -translate-y-[1.08rem] rounded-full blur-[10px] ${theme.activeAuraOuter}`} /><span className={`pointer-events-none absolute left-[56%] top-full h-4 w-9 -translate-x-1/2 -translate-y-[0.94rem] rounded-full blur-[7px] ${theme.activeAuraMid}`} /></>}
                                 <img src={stepFlagIcon} alt="" className="relative h-[2.2rem] w-[2.2rem] md:h-[4rem] md:w-[4rem] shrink-0 object-contain drop-shadow-[0_10px_18px_rgba(215,35,45,0.22)]" />
                               </div>
                               <span className="absolute bottom-0 left-1/2 flex h-8 w-8 md:h-11 md:w-11 -translate-x-1/2 items-center justify-center rounded-full border-[2px] md:border-[2.5px] border-[#d7a45b] bg-white text-[1rem] md:text-[1.45rem] font-black text-[#d8322f] shadow-[0_12px_24px_rgba(216,101,67,0.12)]">{index + 1}</span>
                             </div>
-                            <div className="group relative mt-2 flex w-[100px] md:w-[188px] min-h-[50px] md:min-h-[124px] flex-col rounded-[1rem] md:rounded-[1.5rem] border border-white/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.9),rgba(248,250,255,0.84))] px-2 md:px-4 py-4 items-center md:items-start text-center md:text-left shadow-[0_18px_34px_rgba(86,107,155,0.10),inset_0_1px_0_rgba(255,255,255,0.92)] backdrop-blur-xl transition hover:-translate-y-1 hover:border-[#f0d8bf]">
-                              <div className="md:mb-1 flex md:min-h-[1.9rem] items-center justify-center text-center"><h4 className="text-center text-[0.9rem] font-black leading-[1.08] tracking-[-0.01em] text-[#cf2d2d] md:text-[0.98rem]">{step.title}</h4></div>
-                              <ul className="hidden md:flex flex-col flex-1 space-y-1 text-[0.82rem] font-semibold leading-[1.28] text-[#6a7282] md:text-[0.88rem]">{bulletItems.map((item) => (<li key={item} className="flex gap-2 text-left"><span className="mt-[0.34rem] h-1.5 w-1.5 shrink-0 rounded-full bg-[#8f96a3]" /><span>{item}</span></li>))}</ul>
+                            <div className="group relative mt-2 flex w-[160px] md:w-[188px] min-h-[90px] md:min-h-[124px] flex-col rounded-[1rem] md:rounded-[1.5rem] border border-white/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.9),rgba(248,250,255,0.84))] px-2 md:px-4 py-4 items-center md:items-start text-center md:text-left shadow-[0_18px_34px_rgba(86,107,155,0.10),inset_0_1px_0_rgba(255,255,255,0.92)] backdrop-blur-xl transition hover:-translate-y-1 hover:border-[#f0d8bf]">
+                              <div className="md:mb-1 flex md:min-h-[1.9rem] items-center justify-center text-center"><h4 className="text-center text-[0.85rem] font-black leading-[1.15] tracking-[-0.01em] text-[#cf2d2d] md:text-[0.98rem]">{step.title}</h4></div>
+                              <ul className="flex flex-col flex-1 mt-1.5 space-y-1 text-[0.75rem] font-semibold leading-[1.28] text-[#6a7282] md:text-[0.88rem] md:mt-0">{bulletItems.map((item) => (<li key={item} className="flex gap-2 text-left"><span className="mt-[0.34rem] h-1.5 w-1.5 shrink-0 rounded-full bg-[#8f96a3]" /><span>{item}</span></li>))}</ul>
                               {/* <div className="hidden mt-4 md:inline-flex rounded-full border border-[#e2e8f0] bg-white/88 px-3 py-1 text-[10px] font-black text-[#4866a8] shadow-sm">{index === displayedRoadmapSteps.length - 1 ? "Chặng đích" : "Đang cập nhật"}</div> */}
                             </div>
                           </div>

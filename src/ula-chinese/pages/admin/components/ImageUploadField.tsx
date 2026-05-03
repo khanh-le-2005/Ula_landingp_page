@@ -1,6 +1,5 @@
 import React, { useRef, useState } from 'react';
 import { Upload, X, Link as LinkIcon, Image as ImageIcon } from 'lucide-react';
-import imageCompression from 'browser-image-compression';
 import { resolveAssetUrl } from '../../../utils/assetUtil';
 
 interface ImageUploadFieldProps {

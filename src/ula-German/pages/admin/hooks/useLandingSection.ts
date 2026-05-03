@@ -86,9 +86,9 @@ const mergeWithFallback = <T,>(fallback: T, remote: unknown): T => {
     }
 
     // --- CHỐNG GHI ĐÈ GIÁ TRỊ RỖNG ---
-    // Nếu Server trả về rỗng ("") nhưng Fallback (mặc định) có dữ liệu, 
-    // ta giữ lại Fallback để tránh làm mất ảnh hoặc thông tin quan trọng.
-    const isRemoteEmpty = remoteValue === "" || remoteValue === null || remoteValue === undefined;
+    // Nếu Server trả về null/undefined nhưng Fallback (mặc định) có dữ liệu, 
+    // ta giữ lại Fallback. KHÔNG chặn chuỗi rỗng ("") vì người dùng có thể cố tình xóa text.
+    const isRemoteEmpty = remoteValue === null || remoteValue === undefined;
     const isFallbackNotEmpty = fallbackValue !== "" && fallbackValue !== null && fallbackValue !== undefined;
 
     if (isRemoteEmpty && isFallbackNotEmpty) {
