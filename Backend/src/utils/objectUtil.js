@@ -34,4 +34,42 @@ const getNestedValue = (obj, path) => {
   return cleanPath.split(".").reduce((acc, part) => acc && acc[part], obj);
 };
 
-module.exports = { unflatten, getNestedValue };
+// Các field ảnh được bảo vệ không bị ghi đè bằng chuỗi rỗng
+const IMAGE_FIELDS = ['imageUrl', 'heroImageUrl', 'mediaUrl', 'imgSrc', 'mascotImageUrl', 'backgroundUrl'];
+
+/**
+ * Merge đệ quy data mới lên data cũ.
+ * - Nếu field ảnh gửi lên là "" -> giữ giá trị cũ từ DB
+ * - Object -> merge đệ quy; Array -> thay thế theo index
+ */
+const deepMergePreserveImages = (oldData, newData) => {
+  if (!oldData || typeof oldData !== 'object') return newData;
+  if (!newData || typeof newData !== 'object') return newData;
+
+  if (Array.isArray(newData)) {
+    if (!Array.isArray(oldData)) return newData;
+    return newData.map((item, i) => deepMergePreserveImages(oldData[i], item));
+  }
+
+  const result = { ...oldData };
+  for (const key of Object.keys(newData)) {
+    const newVal = newData[key];
+    const oldVal = oldData[key];
+
+    if (IMAGE_FIELDS.includes(key) && newVal === '') {
+      result[key] = oldVal; // giữ ảnh cũ
+      continue;
+    }
+
+    if (newVal && typeof newVal === 'object' && !Array.isArray(newVal) &&
+        oldVal && typeof oldVal === 'object' && !Array.isArray(oldVal)) {
+      result[key] = deepMergePreserveImages(oldVal, newVal);
+      continue;
+    }
+
+    result[key] = newVal;
+  }
+  return result;
+};
+
+module.exports = { unflatten, getNestedValue, deepMergePreserveImages };

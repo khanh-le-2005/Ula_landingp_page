@@ -1,4 +1,5 @@
 import React from 'react';
+import { toast } from 'react-toastify';
 import { RefreshCw, Save, Layout, Type, Sparkles, Box, Image as ImageIcon } from 'lucide-react';
 import { painpointsDefault, type PainpointsContent, PAINPOINTS_DEFAULT_COUNT } from '../adminData';
 import { ADMIN_SECTION_KEYS } from '../adminSections';
@@ -9,7 +10,7 @@ import robotMascotFallback from '../../../../assets/nhanvat1.png';
 import { resolveAssetUrl } from '../../../utils/assetUtil';
 
 export default function PainpointsEditor() {
-  const { content, setContent, isLoading, isSaving, error, lastSavedAt, reload, save } = useLandingSection<PainpointsContent>(
+  const { content, setContent, isLoading, isSaving, lastSavedAt, reload, save } = useLandingSection<PainpointsContent>(
     ADMIN_SECTION_KEYS.painpoints,
     painpointsDefault,
   );
@@ -30,6 +31,15 @@ export default function PainpointsEditor() {
     }));
   };
 
+  const handleSave = async () => {
+    try {
+      await save({ ...content, bubbles: fixedBubbles });
+      toast.success('Đã lưu thay đổi Nỗi lo thành công!');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Lỗi khi lưu Nỗi lo!');
+    }
+  };
+
   return (
     <div className="space-y-8">
       <section className={adminCard}>
@@ -47,12 +57,18 @@ export default function PainpointsEditor() {
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <button onClick={() => void reload()} className={adminSecondaryButton}>
+            <button 
+              onClick={() => {
+                void reload();
+                toast.info('Đang làm mới dữ liệu...');
+              }} 
+              className={adminSecondaryButton}
+            >
               <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
               Đồng bộ
             </button>
-            <button onClick={() => void save({ ...content, bubbles: fixedBubbles })} disabled={isSaving} className={adminPrimaryButton}>
-              <Save className="h-4 w-4" />
+            <button onClick={handleSave} disabled={isSaving} className={adminPrimaryButton}>
+              <Save className={`h-4 w-4 ${isSaving ? 'animate-bounce' : ''}`} />
               {isSaving ? 'Đang lưu...' : 'Lưu thay đổi'}
             </button>
           </div>
@@ -67,7 +83,6 @@ export default function PainpointsEditor() {
           ) : null}
         </div>
 
-        {error ? <div className="mb-8 rounded-2xl border border-rose-500/20 bg-rose-500/10 p-4 text-xs font-bold text-rose-400">{error}</div> : null}
 
         <div className="grid gap-5">
           <div className="space-y-2">

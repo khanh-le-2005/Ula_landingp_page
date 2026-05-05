@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
+import { toast } from "react-toastify"; // 👉 Thêm Toastify
 import {
   AlertCircle,
   RefreshCw,
@@ -30,6 +31,16 @@ import {
   adminSecondaryButton,
 } from "../adminTheme";
 
+// 👉 BƯỚC 1: CUSTOM HOOK CHẶN SPAM API
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+  return debouncedValue;
+}
+
 const formatValue = (value: unknown): string => {
   if (value == null || value === "") return "—";
   if (Array.isArray(value)) return value.join(", ");
@@ -54,13 +65,15 @@ const getStatusConfig = (status?: string) => {
 export default function Leads() {
   const { isAuthenticated } = useAdminAuth();
   const { siteKey } = useSiteContext();
+  
   const [leads, setLeads] = useState<LeadRecord[]>([]);
+  const [metaOptions, setMetaOptions] = useState<MarketingMetaOptions | null>(null);
+  
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedLead, setSelectedLead] = useState<LeadRecord | null>(null);
   const [isActionLoading, setIsActionLoading] = useState(false);
 
-  // SỬA CHUẨN THEO API DOCUMENTS: Thay startDate/endDate bằng from/to
   const [filters, setFilters] = useState({
     ref: '',
     tag: '',
@@ -71,20 +84,74 @@ export default function Leads() {
     to: ''
   });
 
-  const [metaOptions, setMetaOptions] = useState<MarketingMetaOptions | null>(null);
+  // 👉 BƯỚC 2: Bọc bộ lọc qua lớp trễ 500ms
+  const debouncedFilters = useDebounce(filters, 500);
 
-  useEffect(() => {
-    const loadMetaOptions = async () => {
-      try {
-        const data = await fetchMarketingMetaOptions(siteKey);
-        setMetaOptions(data);
-      } catch (err) {
-        console.error('Lỗi khi tải meta options:', err);
+  // 👉 BƯỚC 3: HÀM GỌI API GOM CHUNG (TRỊ BỆNH CHẾT CHÙM & RACE CONDITION)
+  const fetchLeadsData = async (activeFilters: Record<string, string>, isCancelled: boolean = false) => {
+    setIsLoading(true);
+    setError("");
+    
+    try {
+      // Dùng Promise.allSettled để 1 API chết không làm chết API kia
+      const results = await Promise.allSettled([
+        fetchLeads(siteKey, activeFilters),
+        fetchMarketingMetaOptions(siteKey)
+      ]);
+
+      if (isCancelled) return; // Nếu bị hủy thì dừng lại, không gán state
+
+      // Xử lý kết quả danh sách Leads
+      if (results[0].status === 'fulfilled') {
+        setLeads(results[0].value);
+      } else {
+        setError("Không thể tải danh sách leads");
+        setLeads([]);
       }
-    };
-    void loadMetaOptions();
-  }, [siteKey]);
 
+      // Xử lý kết quả Meta Options (Bộ lọc)
+      if (results[1].status === 'fulfilled') {
+        setMetaOptions(results[1].value);
+      }
+
+    } catch (loadError) {
+      if (!isCancelled) {
+        setError("Đã có lỗi hệ thống xảy ra");
+        setLeads([]);
+      }
+    } finally {
+      if (!isCancelled) setIsLoading(false);
+    }
+  };
+
+  // 👉 BƯỚC 4: LẮNG NGHE SỰ THAY ĐỔI
+  useEffect(() => {
+    let isCancelled = false; // Khởi tạo cờ hủy
+
+    const activeFilters: Record<string, string> = {};
+    Object.entries(debouncedFilters).forEach(([key, value]) => {
+      if (value) activeFilters[key] = value;
+    });
+
+    void fetchLeadsData(activeFilters, isCancelled);
+
+    return () => { isCancelled = true; }; // Bật cờ hủy khi unmount hoặc đổi filter
+  }, [siteKey, JSON.stringify(debouncedFilters)]);
+
+  // Hàm Refresh thủ công không cần chờ Debounce
+  const handleManualRefresh = () => {
+    const activeFilters: Record<string, string> = {};
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value) activeFilters[key] = value;
+    });
+    void fetchLeadsData(activeFilters, false);
+  };
+
+  const clearFilters = () => {
+    setFilters({ ref: '', tag: '', status: '', utm_source: '', utm_medium: '', from: '', to: '' });
+  };
+
+  // --- CÁC HÀM ACTION (ĐÃ THAY ALERT = TOAST) ---
   const handleUpdateStatus = async (id: string, newStatus: string) => {
     if (isActionLoading) return;
     setIsActionLoading(true);
@@ -94,15 +161,16 @@ export default function Leads() {
       if (selectedLead?._id === id) {
         setSelectedLead({ ...selectedLead, status: newStatus });
       }
+      toast.success('Đã cập nhật trạng thái thành công!');
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Lỗi cập nhật trạng thái');
+      toast.error(err instanceof Error ? err.message : 'Lỗi cập nhật trạng thái!');
     } finally {
       setIsActionLoading(false);
     }
   };
 
   const handleDeleteLead = async (id: string) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa Lead này?')) return;
+    if (!window.confirm('Bạn có chắc chắn muốn xóa Lead này? Dữ liệu không thể khôi phục.')) return;
     if (isActionLoading) return;
 
     setIsActionLoading(true);
@@ -110,43 +178,16 @@ export default function Leads() {
       await deleteLead(id);
       setLeads(prev => prev.filter(l => l._id !== id));
       setSelectedLead(null);
+      toast.success('Đã xóa Lead thành công!');
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Lỗi khi xóa Lead');
+      toast.error(err instanceof Error ? err.message : 'Lỗi khi xóa Lead!');
     } finally {
       setIsActionLoading(false);
     }
   };
 
-  const loadLeads = async () => {
-    setIsLoading(true);
-    setError("");
-    try {
-      // Build query object
-      const activeFilters: Record<string, string> = {};
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value) activeFilters[key] = value;
-      });
-
-      const data = await fetchLeads(siteKey, activeFilters);
-      setLeads(data);
-    } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Không thể tải danh sách leads");
-      setLeads([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    void loadLeads();
-  }, [siteKey, filters]);
-
-  const clearFilters = () => {
-    setFilters({ ref: '', tag: '', status: '', utm_source: '', utm_medium: '', from: '', to: '' });
-  };
-
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
+    <div className="space-y-8 animate-in fade-in duration-700 pb-20">
       <section className={adminCard}>
         <div className="flex flex-wrap items-start justify-between gap-6 mb-8">
           <div>
@@ -158,18 +199,25 @@ export default function Leads() {
               Danh sách <span className={adminAccentText}>Đăng ký</span>
             </h2>
           </div>
-          <button type="button" onClick={() => void loadLeads()} className={adminSecondaryButton}>
+          <button type="button" onClick={handleManualRefresh} className={adminSecondaryButton}>
             <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} /> Đồng bộ ngay
           </button>
         </div>
 
-        {/* --- BỘ LỌC ĐA NĂNG MỚI (GRID LAYOUT) --- */}
+        {/* --- BỘ LỌC ĐA NĂNG --- */}
         <div className="mb-8 p-6 bg-slate-50/80 rounded-[24px] border border-slate-100">
-          <div className="flex items-center gap-2 text-slate-500 mb-4">
-            <Filter className="w-4 h-4 text-indigo-500" />
-            <span className="text-xs font-black uppercase tracking-widest text-slate-800">Bộ lọc tìm kiếm</span>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2 text-slate-500">
+              <Filter className="w-4 h-4 text-indigo-500" />
+              <span className="text-xs font-black uppercase tracking-widest text-slate-800">Bộ lọc tìm kiếm</span>
+              {Object.values(filters).some(Boolean) && (
+                <span className="ml-2 px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-600 text-[9px] font-bold animate-pulse">ĐANG LỌC</span>
+              )}
+            </div>
             {Object.values(filters).some(Boolean) && (
-              <span className="ml-2 px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-600 text-[9px] font-bold">ĐANG LỌC</span>
+              <button onClick={clearFilters} className="text-[10px] font-bold text-rose-500 hover:text-rose-600 uppercase tracking-widest flex items-center gap-1">
+                <X className="w-3 h-3" /> Xóa lọc
+              </button>
             )}
           </div>
 
@@ -242,30 +290,21 @@ export default function Leads() {
                 {metaOptions?.campaigns.map(camp => <option key={camp.value} value={camp.value}>{camp.label}</option>)}
               </select>
             </div>
-
-            {/* <div className="col-span-1 flex items-end gap-2">
-              <div className="flex-1">
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Trạng thái</label>
-                <select
-                  value={filters.status}
-                  onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-                  className="w-full px-3 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 appearance-none cursor-pointer"
-                >
-                  <option value="">Tất cả</option>
-                  <option value="NEW">MỚI</option>
-                  <option value="CONTACTED">ĐÃ LIÊN HỆ</option>
-                  <option value="ENROLLED">ĐÃ NHẬP HỌC</option>
-                  <option value="CANCELLED">HỦY / RÁC</option>
-                </select>
-              </div>
-              <button
-                title="Xóa bộ lọc"
-                onClick={clearFilters}
-                className="h-[34px] px-3 flex items-center justify-center rounded-xl bg-slate-200/50 text-slate-500 hover:bg-rose-100 hover:text-rose-600 transition-colors"
+            
+            <div className="col-span-1">
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Trạng thái</label>
+              <select
+                value={filters.status}
+                onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+                className="w-full px-3 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 appearance-none cursor-pointer"
               >
-                <X className="w-4 h-4" />
-              </button>
-            </div> */}
+                <option value="">Tất cả</option>
+                <option value="NEW">MỚI</option>
+                <option value="CONTACTED">ĐÃ LIÊN HỆ</option>
+                <option value="ENROLLED">ĐÃ NHẬP HỌC</option>
+                <option value="CANCELLED">HỦY / RÁC</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -292,6 +331,8 @@ export default function Leads() {
               <tbody className="divide-y divide-slate-100">
                 {isLoading ? (
                   <tr><td className="px-6 py-12 text-center" colSpan={6}><RefreshCw className="h-6 w-6 text-indigo-500 animate-spin mx-auto" /></td></tr>
+                ) : error ? (
+                  <tr><td className="px-6 py-12 text-center text-rose-500 font-bold" colSpan={6}>{error}</td></tr>
                 ) : leads.length === 0 ? (
                   <tr><td className="px-6 py-12 text-center" colSpan={6}><Users className="h-10 w-10 opacity-20 mx-auto" /><p className="text-slate-400 font-bold mt-4">Không tìm thấy lead nào phù hợp bộ lọc.</p></td></tr>
                 ) : (
@@ -335,7 +376,7 @@ export default function Leads() {
         </div>
       </section>
 
-      {/* Modal */}
+      {/* Modal Chi Tiết */}
       {selectedLead && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="relative w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-2xl flex flex-col animate-in zoom-in-95">

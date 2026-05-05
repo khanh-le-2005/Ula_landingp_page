@@ -1,4 +1,5 @@
 import React from 'react';
+import { toast } from 'react-toastify'; // Import Toastify
 import { heroDefault } from '../adminData';
 import { ADMIN_SECTION_KEYS } from '../adminSections';
 import { useLandingSection } from '../hooks/useLandingSection';
@@ -9,18 +10,46 @@ import { flattenToFormData } from '../utils/formDataUtil';
 import { resolveAssetUrl } from '../../../utils/assetUtil';
 
 export default function HeroEditor() {
-  const { content: hero, setContent: setHero, isLoading, isSaving, error, lastSavedAt, reload, save } = useLandingSection(
+  // Lấy các state và function từ hook
+  const { content: hero, setContent: setHero, isLoading, isSaving, lastSavedAt, reload, save } = useLandingSection(
     ADMIN_SECTION_KEYS.hero,
     heroDefault,
   );
 
   const handleSave = async () => {
-    const formData = flattenToFormData(hero);
-    await save(formData);
+    try {
+      // 1. Tạo bản sao để "rửa" dữ liệu
+      const cleanHero = { ...hero };
+
+      // 2. KỸ THUẬT KÝ TỰ TÀNG HÌNH (\u200B)
+      // Giúp đánh lừa Frontend rằng ô này "có chữ", để Frontend không lôi mock data mặc định ra đắp vào
+      cleanHero.headlineTop = cleanHero.headlineTop?.trim() === '' ? '\u200B' : cleanHero.headlineTop;
+      cleanHero.headlineHighlight = cleanHero.headlineHighlight?.trim() === '' ? '\u200B' : cleanHero.headlineHighlight;
+      cleanHero.headlineBottom = cleanHero.headlineBottom?.trim() === '' ? '\u200B' : cleanHero.headlineBottom;
+
+      // 3. BẢO VỆ HÌNH ẢNH (Tránh lưu chữ "null" làm hỏng DB)
+      const isNewFile = cleanHero.heroImageUrl instanceof File;
+      const isOldValidUrl = typeof cleanHero.heroImageUrl === 'string' &&
+                            cleanHero.heroImageUrl.trim() !== '' &&
+                            cleanHero.heroImageUrl !== 'null' &&
+                            !cleanHero.heroImageUrl.includes('[object Object]');
+
+      if (!isNewFile && !isOldValidUrl) {
+        delete cleanHero.heroImageUrl;
+      }
+
+      // 4. Gửi dữ liệu lên Server
+      const formData = flattenToFormData(cleanHero);
+      await save(formData);
+      
+      toast.success('Đã lưu thay đổi Trang đầu (Hero) thành công!');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Lỗi khi lưu Trang đầu!');
+    }
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-in fade-in duration-500">
       <div className="space-y-8">
         <section className={adminCard}>
           <div className="mb-10 flex flex-wrap items-start justify-between gap-6">
@@ -34,7 +63,10 @@ export default function HeroEditor() {
             <div className="flex flex-wrap gap-3">
               <button
                 type="button"
-                onClick={() => void reload()}
+                onClick={() => {
+                  void reload();
+                  toast.info('Đang làm mới dữ liệu...');
+                }}
                 className={adminSecondaryButton}
               >
                 <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -46,7 +78,7 @@ export default function HeroEditor() {
                 disabled={isSaving}
                 className={adminPrimaryButton}
               >
-                <Save className="h-4 w-4" />
+                <Save className={`h-4 w-4 ${isSaving ? 'animate-bounce' : ''}`} />
                 {isSaving ? 'Đang lưu...' : 'Lưu thay đổi'}
               </button>
             </div>
@@ -63,12 +95,7 @@ export default function HeroEditor() {
             )}
           </div>
 
-          {error && (
-            <div className="mb-8 rounded-2xl border border-rose-500/20 bg-rose-500/10 p-4 text-xs font-bold text-rose-400">
-              <Sparkles className="inline-block w-4 h-4 mr-2" />
-              {error}
-            </div>
-          )}
+          {/* ĐÃ XÓA KHUNG ERROR MÀU ĐỎ CŨ Ở ĐÂY VÌ ĐÃ CÓ TOASTIFY LO */}
 
           <div className="space-y-8">
             <div className="grid md:grid-cols-2 gap-6 pb-6 border-b border-slate-100">
@@ -80,16 +107,6 @@ export default function HeroEditor() {
                 <input className={adminInput} value={hero.badge} onChange={(e) => setHero({ ...hero, badge: e.target.value })} placeholder="v.d. CẬP NHẬT 2024" />
               </div>
               <div className="space-y-3">
-                {/* <div className={adminLabel}>
-                  <PlayCircle className="inline-block w-3 h-3 mr-2 text-indigo-500" />
-                  Video Hero(dán link vimeo vào đây)
-                </div>
-                <input
-                  className={adminInput}
-                  value={hero.heroVideoWatchUrl}
-                  onChange={(e) => setHero({ ...hero, heroVideoWatchUrl: e.target.value })}
-                  placeholder="v.d. https://player.vimeo.com/video/..."
-                /> */}
                 <div className="mt-4 pt-4 border-t border-slate-100">
                   <ImageUploadField
                     label="Ảnh Thumbnail Video"
@@ -106,12 +123,12 @@ export default function HeroEditor() {
                 Tiêu đề chính
               </div>
               <div className="grid md:grid-cols-3 gap-4">
-                <input className={adminInput} value={hero.headlineTop} onChange={(e) => setHero({ ...hero, headlineTop: e.target.value })} placeholder="Phần đầu" />
+                <input className={adminInput} value={hero.headlineTop === '\u200B' ? '' : hero.headlineTop} onChange={(e) => setHero({ ...hero, headlineTop: e.target.value })} placeholder="Phần đầu" />
                 <div className="relative">
-                  <input className={`${adminInput} !border-indigo-200 !bg-indigo-50`} value={hero.headlineHighlight} onChange={(e) => setHero({ ...hero, headlineHighlight: e.target.value })} placeholder="Phần nổi bật" />
+                  <textarea className={`${adminInput} !border-indigo-200 !bg-indigo-50 min-h-[46px] resize-y`} value={hero.headlineHighlight === '\u200B' ? '' : hero.headlineHighlight} onChange={(e) => setHero({ ...hero, headlineHighlight: e.target.value })} placeholder="Phần nổi bật" />
                   <div className="absolute -top-1 -right-1 h-3 w-3 bg-indigo-500 rounded-full blur-[2px] opacity-30" />
                 </div>
-                <input className={adminInput} value={hero.headlineBottom} onChange={(e) => setHero({ ...hero, headlineBottom: e.target.value })} placeholder="Phần kết" />
+                <input className={adminInput} value={hero.headlineBottom === '\u200B' ? '' : hero.headlineBottom} onChange={(e) => setHero({ ...hero, headlineBottom: e.target.value })} placeholder="Phần kết" />
               </div>
             </div>
 

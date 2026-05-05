@@ -24,22 +24,12 @@ import {
 } from 'lucide-react';
 import { fetchCampaigns, createCampaign, updateCampaign, deleteCampaign, fetchLandingPage, fetchPrizes, type Campaign, type LuckyWheelPrize } from '../adminApi';
 import { adminCard, adminInput, adminLabel, adminPrimaryButton, adminSecondaryButton, adminAccentText } from '../adminTheme';
-import { useSiteContext, type SiteKey } from '../../../context/LandingSiteContext';
-import ImageUploadField from '../components/ImageUploadField';
+
+// Lấy từ Context
+import { useSiteContext } from '../../../../ula-chinese/context/LandingSiteContext';
+
+import { ImageUploadField } from '../components/ImageUploadField';
 import { flattenToFormData } from '../utils/formDataUtil';
-
-
-export interface LuckyWheelPrize {
-  _id?: string;
-  option: string;
-  code?: string;
-  probability?: number;
-  backgroundColor?: string;
-  textColor?: string;
-  order?: number;
-}
-
-// Đã loại bỏ flattenToFormData vì API backend mong muốn nhận JSON tĩnh
 
 export default function Campaigns() {
   const { siteKey } = useSiteContext();
@@ -47,7 +37,6 @@ export default function Campaigns() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
 
   const isGerman = siteKey === 'tieng-duc';
@@ -88,13 +77,11 @@ export default function Campaigns() {
 
   const loadCampaigns = async () => {
     setIsLoading(true);
-    setError('');
     try {
-      // Gọi fetchCampaigns truyền param siteKey (để BE get theo ?siteKey=...)
       const data = await fetchCampaigns(siteKey);
       setCampaigns(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Không thể tải danh sách chiến dịch');
+      toast.error(err instanceof Error ? err.message : 'Không thể tải danh sách chiến dịch');
     } finally {
       setIsLoading(false);
     }
@@ -104,29 +91,19 @@ export default function Campaigns() {
     void loadCampaigns();
   }, [siteKey]);
 
-  // Hàm này xử lý được cả data lúc lưu (Array) và lúc get (Object) của Backend
   const getSectionContent = (sectionsData: any, primaryKey: string, fallbackKey: string) => {
     if (!sectionsData) return {};
-
-    // Trường hợp 1: Nếu data là một Mảng (Cấu trúc cũ / Postman)
     if (Array.isArray(sectionsData)) {
       const found = sectionsData.find(s => s.sectionKey === primaryKey || s.sectionKey === fallbackKey);
       return found ? (found.content || found) : {};
     }
-
-    // Trường hợp 2: Nếu data là một Object (Cấu trúc mới backend tự convert)
     const targetSection = sectionsData[primaryKey] || sectionsData[fallbackKey];
-    if (targetSection) {
-      // Backend có thể để dữ liệu thẳng trong object, hoặc bọc trong chữ 'content'
-      return targetSection.content ? targetSection.content : targetSection;
-    }
-
+    if (targetSection) return targetSection.content ? targetSection.content : targetSection;
     return {};
   };
 
   const handleOpenEditor = async (campaign?: Campaign) => {
     setLastSavedUrl(null);
-    setError('');
     setIsLoading(true);
 
     try {
@@ -177,7 +154,9 @@ export default function Campaigns() {
       const sol = getSectionContent(currentSections, 'section_3_solution', 'solution');
       const solArray = Array.isArray(sol) ? sol : (Array.isArray(sol.cards) ? sol.cards : []);
       setSolution({
-        titlePart1: sol.titlePart1 || '', titleHighlight: sol.titleHighlight || '', titlePart2: sol.titlePart2 || '',
+        titlePart1: sol.titlePart1 || '', 
+        titleHighlight: sol.titleHighlight || '', 
+        titlePart2: sol.titlePart2 || '',
         cards: solArray.slice(0, 3).map((c: any) => ({
           category: c.category || '',
           title: c.title || '',
@@ -215,7 +194,7 @@ export default function Campaigns() {
 
       setIsEditing(true);
     } catch (err) {
-      setError('Lỗi khi tải dữ liệu soạn thảo.');
+      toast.error('Lỗi khi tải dữ liệu soạn thảo.');
     } finally {
       setIsLoading(false);
     }
@@ -243,16 +222,20 @@ export default function Campaigns() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.tag.trim() || !formData.name.trim()) {
-      setError('Vui lòng nhập đầy đủ Mã Tag và Tên chiến dịch.');
+    
+    // VALIDATION TRƯỚC KHI LƯU VÀ BẮN TOAST CẢNH BÁO
+    if (!formData.tag.trim()) {
+      toast.warning('⚠️ Vui lòng nhập Mã định danh (Tag Code) cho chiến dịch!');
+      return;
+    }
+    if (!formData.name.trim()) {
+      toast.warning('⚠️ Vui lòng nhập Tên chiến dịch!');
       return;
     }
 
     setIsSaving(true);
-    setError('');
 
     try {
-      // 1. Xử lý ảnh và video cho Cards
       const cleanSolutionCards = (Array.isArray(solution.cards) ? solution.cards : []).map(card => {
         const newCard = { ...card };
         newCard.isVideo = !!newCard.isVideo;
@@ -269,7 +252,6 @@ export default function Campaigns() {
         return newCard;
       });
 
-      // 2. Gom dữ liệu sections thành MẢNG (ARRAY) - GIỐNG Y HỆT JSON POSTMAN CỦA BẠN
       const formattedSections = [
         { sectionKey: "hero", content: hero },
         { sectionKey: "section_2_painpoints", content: painpoints },
@@ -286,7 +268,6 @@ export default function Campaigns() {
         { sectionKey: "luckyspin", content: luckyWheel }
       ];
 
-      // 3. Gom toàn bộ payload
       const finalData = {
         ...(editingCampaign ? { _id: editingCampaign._id } : {}),
         siteKey: formData.siteKey,
@@ -295,11 +276,10 @@ export default function Campaigns() {
         isActive: formData.isActive,
         discountText: formData.discountText,
         promoCode: formData.promoCode,
-        sections: formattedSections, // Đã đổi lại thành Mảng
+        sections: formattedSections, 
         prizes: luckyWheel.prizes
       };
 
-      // 4. HÀM QUÉT THÔNG MINH: Kiểm tra xem có File ảnh nào cần tải lên không
       const checkHasFiles = (obj: any): boolean => {
         if (!obj) return false;
         if (obj instanceof File) return true;
@@ -309,13 +289,7 @@ export default function Campaigns() {
       };
 
       const hasFiles = checkHasFiles(finalData);
-
-      // QUYẾT ĐỊNH PHƯƠNG THỨC GỬI DỮ LIỆU
-      // - KHÔNG CÓ ẢNH: Gửi thẳng JSON Object (100% lưu text mượt mà)
-      // - CÓ ẢNH MỚI: Bọc qua flattenToFormData để mang File đi
       const payload = hasFiles ? flattenToFormData(finalData) : finalData;
-
-      console.log(`🚀 [API SUBMIT] Đang gửi dạng: ${hasFiles ? 'FormData (CÓ ẢNH)' : 'JSON Thuần (CHỈ CÓ TEXT)'}`);
 
       let response;
       if (editingCampaign) {
@@ -327,40 +301,37 @@ export default function Campaigns() {
       setLastSavedUrl(response?.data?.fullUrl || null);
       if (editingCampaign) setEditingCampaign(response.data);
 
-      toast.success(editingCampaign ? 'Cập nhật chiến dịch thành công' : 'Tạo chiến dịch mới thành công');
+      // Bắn Toastify xanh lá cây thành công
+      toast.success(editingCampaign ? 'Cập nhật chiến dịch thành công!' : 'Tạo chiến dịch mới thành công!');
       await loadCampaigns();
 
       setIsEditing(false);
 
     } catch (err) {
-      console.error("❌ Lỗi khi lưu:", err);
-      setError(err instanceof Error ? err.message : 'Lỗi khi lưu chiến dịch');
-      toast.error('Lỗi khi lưu chiến dịch');
+      toast.error(err instanceof Error ? err.message : 'Lỗi khi lưu chiến dịch!');
     } finally {
       setIsSaving(false);
     }
   };
 
-
   const handleDelete = async (id: string) => {
     if (!window.confirm('Bạn có chắc chắn muốn xóa chiến dịch này?')) return;
     try {
       await deleteCampaign(id);
-      toast.success('Đã xóa chiến dịch');
+      toast.success('Đã xóa chiến dịch thành công!');
       await loadCampaigns();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Lỗi khi xóa chiến dịch');
+      toast.error(err instanceof Error ? err.message : 'Lỗi khi xóa chiến dịch!');
     }
   };
 
   const toggleStatus = async (campaign: Campaign) => {
     try {
-      // Truyền đúng thứ tự: 1. ID | 2. Data (JSON) | 3. siteKey
       await updateCampaign(campaign._id, { isActive: !campaign.isActive }, siteKey);
-      toast.success('Cập nhật trạng thái thành công');
+      toast.success(`Đã ${!campaign.isActive ? 'BẬT' : 'TẮT'} trạng thái chiến dịch!`);
       await loadCampaigns();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Lỗi khi cập nhật trạng thái');
+      toast.error(err instanceof Error ? err.message : 'Lỗi khi cập nhật trạng thái!');
     }
   };
 
@@ -371,11 +342,11 @@ export default function Campaigns() {
 
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const handleCopyLink = (url: string, id: string) => {
-    const fixedUrl = url.replace('/china', '/chinese');
+    const fixedUrl = isGerman ? url.replace('/chinese', '/german') : url.replace('/german', '/chinese');
     navigator.clipboard.writeText(fixedUrl);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
-    toast.success('Đã copy link!');
+    toast.success('Đã sao chép đường link!');
   };
 
   // --- RENDERING LIST MODE ---
@@ -495,7 +466,7 @@ export default function Campaigns() {
       </div>
     );
   }
-  console.log('hero', hero)
+
   // --- RENDERING EDITOR MODE ---
   return (
     <div className="space-y-8 animate-in slide-in-from-right duration-500">
@@ -551,12 +522,12 @@ export default function Campaigns() {
               </div>
 
               <div className="space-y-2">
-                <div className={adminLabel}>Mã định danh (Tag Code)</div>
+                <div className={adminLabel}>Mã định danh (Tag Code) <span className="text-rose-500">*</span></div>
                 <div className="relative">
                   <Hash className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <input
                     required
-                    className={`${adminInput} pl-12 font-mono text-rose-600 font-bold`}
+                    className={`${adminInput} pl-12 font-mono text-rose-600 font-bold border-rose-100 bg-rose-50/30 focus:border-rose-500 focus:ring-rose-500/20`}
                     placeholder="uu_dai_moi..."
                     value={formData.tag}
                     onChange={(e) => setFormData(prev => ({ ...prev, tag: e.target.value.toLowerCase().replace(/\s+/g, '_') }))}
@@ -565,10 +536,10 @@ export default function Campaigns() {
               </div>
 
               <div className="space-y-2">
-                <div className={adminLabel}>Tên chiến dịch</div>
+                <div className={adminLabel}>Tên chiến dịch <span className="text-rose-500">*</span></div>
                 <input
                   required
-                  className={adminInput}
+                  className={`${adminInput} border-rose-100 bg-rose-50/30 focus:border-rose-500 focus:ring-rose-500/20`}
                   placeholder="Mega Sale tháng 5..."
                   value={formData.name}
                   onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
@@ -608,13 +579,6 @@ export default function Campaigns() {
             </div>
           </section>
 
-          {error && (
-            <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
-              <div className="text-sm font-bold text-rose-700">{error}</div>
-            </div>
-          )}
-
         </div>
 
         {/* MAIN EDITOR: 5 BLOCKS */}
@@ -639,7 +603,7 @@ export default function Campaigns() {
                 <div className={adminLabel}>Tiêu đề chính</div>
                 <div className="grid md:grid-cols-3 gap-4">
                   <input className={adminInput} value={hero.headlineTop} onChange={(e) => setHero({ ...hero, headlineTop: e.target.value })} placeholder="Phần đầu" />
-                  <input className={`${adminInput} !border-indigo-100 !bg-indigo-50/50`} value={hero.headlineHighlight} onChange={(e) => setHero({ ...hero, headlineHighlight: e.target.value })} placeholder="Phần nổi bật" />
+                  <textarea className={`${adminInput} !border-indigo-100 !bg-indigo-50/50 min-h-[46px] resize-y`} value={hero.headlineHighlight} onChange={(e) => setHero({ ...hero, headlineHighlight: e.target.value })} placeholder="Phần nổi bật" />
                   <input className={adminInput} value={hero.headlineBottom} onChange={(e) => setHero({ ...hero, headlineBottom: e.target.value })} placeholder="Phần kết" />
                 </div>
               </div>
@@ -777,7 +741,6 @@ export default function Campaigns() {
                         const newCards = [...solution.cards];
                         newCards[idx].mediaUrl = val;
 
-                        // Tự động nhận diện (nếu bạn dán URL)
                         if (typeof val === 'string') {
                           if (val.match(/\.(mp4|webm|ogg)(\?.*)?$/i)) {
                             newCards[idx].isVideo = true;
@@ -785,17 +748,15 @@ export default function Campaigns() {
                             newCards[idx].isVideo = false;
                           }
                         }
-
                         setSolution({ ...solution, cards: newCards });
                       }}
                     />
 
-                    {/* NÚT CHECKBOX NÀY SẼ CỨU BẠN */}
                     <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg bg-slate-100/50 border border-slate-200 hover:bg-slate-100 transition-colors w-fit mt-2">
                       <input
                         type="checkbox"
                         className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer"
-                        checked={!!card.isVideo} // Ép kiểu boolean
+                        checked={!!card.isVideo} 
                         onChange={(e) => {
                           const newCards = [...solution.cards];
                           newCards[idx].isVideo = e.target.checked;
@@ -805,16 +766,6 @@ export default function Campaigns() {
                       <span className="text-xs font-bold text-slate-700">Đây là Video (Bỏ tick nếu là Ảnh)</span>
                     </label>
                   </div>
-                  {/* <div className="grid md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <div className={adminLabel}>Màu nền (Gradient CSS)</div>
-                      <input className={adminInput} value={card.gradient} onChange={(e) => {
-                        const newCards = [...solution.cards];
-                        newCards[idx].gradient = e.target.value;
-                        setSolution({ ...solution, cards: newCards });
-                      }} placeholder="from-indigo-600/40 to-blue-500/10" />
-                    </div>
-                  </div> */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <div className={adminLabel}>Các điểm chính (Bullet points)</div>
@@ -982,7 +933,6 @@ export default function Campaigns() {
                         </button>
                       </div>
 
-                      {/* CẬP NHẬT: Thêm form chọn 2 màu cho Vòng Quay */}
                       <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
                         <div className="space-y-1 lg:col-span-1">
                           <div className="text-[9px] font-black text-slate-400 uppercase">Tên phần quà</div>

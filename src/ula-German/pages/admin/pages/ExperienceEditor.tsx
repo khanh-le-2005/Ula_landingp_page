@@ -1,4 +1,5 @@
 import React from 'react';
+import { toast } from 'react-toastify'; // Thêm thư viện Toastify
 import { RefreshCw, Save, Brain, Layout, Image as ImageIcon, Sparkles } from 'lucide-react';
 import { experienceDefault, type ExperienceContent } from '../adminData';
 import { ADMIN_SECTION_KEYS } from '../adminSections';
@@ -14,11 +15,17 @@ export default function ExperienceEditor() {
   );
 
   const handleSave = async () => {
+    // 1. VALIDATION: Ngăn chặn lưu nếu để trống Tiêu đề chính
+    if (!content.sectionTitle?.trim()) {
+      toast.warning('⚠️ Vui lòng nhập Tiêu đề chính cho phần Trải nghiệm!');
+      return;
+    }
+
     try {
-      // 1. Tạo một bản sao để "rửa" dữ liệu trước khi lưu
+      // 2. Tạo một bản sao để "rửa" dữ liệu trước khi lưu
       const cleanContent = { ...content };
 
-      // 2. KIỂM TRA & BẢO VỆ ẢNH AI PRONUNCIATION
+      // 3. KIỂM TRA & BẢO VỆ ẢNH AI PRONUNCIATION
       // Nếu trường này đang chứa File (người dùng vừa upload ảnh mới) -> Giữ nguyên để upload
       const isNewFile = cleanContent.aiPronunciationImageUrl instanceof File;
       
@@ -34,13 +41,15 @@ export default function ExperienceEditor() {
         delete cleanContent.aiPronunciationImageUrl;
       }
 
-      // 3. Đóng gói và Gửi lên
+      // 4. Đóng gói và Gửi lên
       const formData = flattenToFormData(cleanContent);
       await save(formData);
       
-      alert('Đã lưu thay đổi thành công!');
+      // THAY THẾ ALERT BẰNG TOAST THÀNH CÔNG
+      toast.success('Đã lưu thay đổi Góc Học tập thành công!');
     } catch (err) {
-      alert('Có lỗi xảy ra khi lưu: ' + (err instanceof Error ? err.message : 'Lỗi không xác định'));
+      // THAY THẾ ALERT BẰNG TOAST BÁO LỖI
+      toast.error(err instanceof Error ? err.message : 'Lỗi không xác định khi lưu!');
     }
   };
 
@@ -63,12 +72,18 @@ export default function ExperienceEditor() {
             )}
           </div>
           <div className="flex flex-wrap gap-2">
-            <button onClick={() => void reload()} className={adminSecondaryButton}>
+            <button 
+              onClick={() => {
+                void reload();
+                toast.info('Đang làm mới dữ liệu...');
+              }} 
+              className={adminSecondaryButton}
+            >
               <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
               Đồng bộ
             </button>
             <button onClick={handleSave} disabled={isSaving} className={adminPrimaryButton}>
-              <Save className="h-4 w-4" />
+              <Save className={`h-4 w-4 ${isSaving ? 'animate-bounce' : ''}`} />
               {isSaving ? 'Đang lưu...' : 'Lưu thay đổi'}
             </button>
           </div>
@@ -78,9 +93,9 @@ export default function ExperienceEditor() {
           <div className="grid gap-8 md:grid-cols-1">
             <div className="space-y-6">
               <div className="space-y-2">
-                <div className={adminLabel}>Tiêu đề chính</div>
+                <div className={adminLabel}>Tiêu đề chính <span className="text-rose-500">*</span></div>
                 <input
-                  className={adminInput}
+                  className={`${adminInput} ${!content.sectionTitle?.trim() ? 'border-rose-100 bg-rose-50/30' : ''}`}
                   value={content.sectionTitle || ''}
                   onChange={(e) => setContent(prev => ({ ...prev, sectionTitle: e.target.value }))}
                   placeholder="HỌC TẬP KHÔNG GIỚI HẠN CÙNG ULA..."

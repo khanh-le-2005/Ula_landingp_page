@@ -392,7 +392,7 @@ function SlimVimeoPlayer({ videoUrl, title, onProgress, onDuration, isPaused, se
 
 const Experience = () => {
   const { content, isLoading } = useLandingSection(ADMIN_SECTION_KEYS.experience, experienceDefault);
-  const [activeTab, setActiveTab] = useState<'pronounce' | 'quiz' | 'video'>('quiz');
+  const [activeTab, setActiveTab] = useState<'pronounce' | 'quiz' | 'video'>('pronounce');
 
   // --- STATE CHO BÀI TẬP MỚI ---
   const [currentEx, setCurrentEx] = useState(0);
@@ -718,7 +718,7 @@ const Experience = () => {
 
     if (ex.type === "order") {
       return (
-        <div className="w-full bg-white/30 backdrop-blur-md text-[#1a2b48] shadow-sm p-4 md:p-6 border border-slate-200 rounded-2xl">
+        <div className="w-full bg-white/45 backdrop-blur-md text-[#1a2b48] shadow-sm p-4 md:p-6 border border-slate-200 rounded-2xl">
           <h3 className="text-lg font-black uppercase mb-2">Sắp xếp câu</h3>
           <p className="text-slate-500 font-medium text-sm mb-6 border-b pb-4">
             {ex.question}
@@ -769,7 +769,7 @@ const Experience = () => {
     if (ex.type === "fill") {
       const sentenceParts = (ex.sentence || "").split("___");
       return (
-        <div className="w-full bg-white/30 backdrop-blur-md text-[#1a2b48] shadow-sm p-4 md:p-6 border border-slate-200 rounded-2xl">
+        <div className="w-full bg-white/45 backdrop-blur-md text-[#1a2b48] shadow-sm p-4 md:p-6 border border-slate-200 rounded-2xl">
           <h3 className="text-lg font-black uppercase mb-6 border-b pb-4 whitespace-pre-line">
             {ex.question}
           </h3>
@@ -841,7 +841,7 @@ const Experience = () => {
       </div>
 
       {/* 3. Main Content Container */}
-      <div className="w-full max-w-5xl bg-white/30 backdrop-blur-2xl rounded-[32px] md:rounded-[40px] overflow-hidden min-h-[50px] md:min-h-[600px] flex flex-col relative z-10 reveal shadow-xl border border-white/50">
+      <div className="w-full max-w-5xl bg-white/5 backdrop-blur-2xl rounded-[32px] md:rounded-[40px] overflow-hidden min-h-[50px] md:min-h-[600px] flex flex-col relative z-10 reveal shadow-xl border border-white/50">
 
         {/* NỘI DUNG BÀI TẬP */}
         {activeTab === 'quiz' && (

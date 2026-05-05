@@ -7,6 +7,7 @@ import { adminCard, adminInput, adminLabel, adminPrimaryButton, adminSecondaryBu
 import { ImageUploadField } from '../components/ImageUploadField';
 import { flattenToFormData } from '../utils/formDataUtil';
 import { resolveAssetUrl } from '../../../utils/assetUtil';
+import { toast } from 'react-toastify';
 
 export default function MethodologyEditor() {
   const { content, setContent, isLoading, isSaving, lastSavedAt, reload, save } = useLandingSection<MethodologyContent>(
@@ -26,8 +27,13 @@ export default function MethodologyEditor() {
   };
 
   const handleSave = async () => {
-    const formData = flattenToFormData(content);
-    await save(formData);
+    try {
+      const formData = flattenToFormData(content);
+      await save(formData);
+      toast.success('Đã lưu thay đổi thành công!');
+    } catch (err) {
+      toast.error('Có lỗi xảy ra khi lưu: ' + (err instanceof Error ? err.message : 'Lỗi không xác định'));
+    }
   };
 
   return (
@@ -79,7 +85,7 @@ export default function MethodologyEditor() {
                   </div>
                 </div>
                 <ImageUploadField
-                  label="Tài sản Trưng bày"
+                  label="Ảnh Trưng bày - 1280 x 720 px (tỷ lệ 16:9)"
                   value={content.mainCard.imgSrc}
                   onChange={(val) => updateMainCard({ imgSrc: val as any })}
                 />
@@ -109,7 +115,7 @@ export default function MethodologyEditor() {
                       <input className={adminInput} value={card.subTitle} onChange={(e) => updateCard(index, { subTitle: e.target.value })} />
                     </div>
                     <ImageUploadField
-                      label="Biểu tượng/Ảnh Nút"
+                      label="Biểu tượng/Ảnh Nút - 1200 x 900 px  Tỷ lệ 4:3"
                       value={card.imgSrc}
                       onChange={(val) => updateCard(index, { imgSrc: val as any })}
                     />

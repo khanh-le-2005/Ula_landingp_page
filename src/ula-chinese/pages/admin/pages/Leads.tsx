@@ -29,6 +29,7 @@ import {
   adminAccentText,
   adminSecondaryButton,
 } from "../adminTheme";
+import { toast } from 'react-toastify';
 
 const formatValue = (value: unknown): string => {
   if (value == null || value === "") return "—";
@@ -56,7 +57,6 @@ export default function Leads() {
   const { siteKey } = useSiteContext();
   const [leads, setLeads] = useState<LeadRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
   const [selectedLead, setSelectedLead] = useState<LeadRecord | null>(null);
   const [isActionLoading, setIsActionLoading] = useState(false);
 
@@ -94,8 +94,9 @@ export default function Leads() {
       if (selectedLead?._id === id) {
         setSelectedLead({ ...selectedLead, status: newStatus });
       }
+      toast.success('Cập nhật trạng thái thành công!');
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Lỗi cập nhật trạng thái');
+      toast.error(err instanceof Error ? err.message : 'Lỗi cập nhật trạng thái');
     } finally {
       setIsActionLoading(false);
     }
@@ -110,8 +111,9 @@ export default function Leads() {
       await deleteLead(id);
       setLeads(prev => prev.filter(l => l._id !== id));
       setSelectedLead(null);
+      toast.success('Xóa Lead thành công!');
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Lỗi khi xóa Lead');
+      toast.error(err instanceof Error ? err.message : 'Lỗi khi xóa Lead');
     } finally {
       setIsActionLoading(false);
     }
@@ -119,7 +121,6 @@ export default function Leads() {
 
   const loadLeads = async () => {
     setIsLoading(true);
-    setError("");
     try {
       // Build query object
       const activeFilters: Record<string, string> = {};
@@ -130,7 +131,7 @@ export default function Leads() {
       const data = await fetchLeads(siteKey, activeFilters);
       setLeads(data);
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Không thể tải danh sách leads");
+      toast.error(loadError instanceof Error ? loadError.message : "Không thể tải danh sách leads");
       setLeads([]);
     } finally {
       setIsLoading(false);

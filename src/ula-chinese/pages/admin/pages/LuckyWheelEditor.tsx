@@ -4,6 +4,7 @@ import { luckyWheelDefault, type LuckyWheelPrize } from '../adminData';
 import { ADMIN_SECTION_KEYS } from '../adminSections';
 import { useLandingSection } from '../hooks/useLandingSection';
 import { adminCard, adminInput, adminLabel, adminPrimaryButton, adminSecondaryButton, adminAccentText } from '../adminTheme';
+import { toast } from 'react-toastify';
 
 type LuckyWheelSection = {
   timerLabel: string;
@@ -22,6 +23,15 @@ export default function LuckyWheelEditor() {
       prizes: luckyWheelDefault,
     },
   );
+
+  const handleSave = async () => {
+    try {
+      await save(content);
+      toast.success('Lưu cấu hình vòng quay thành công!');
+    } catch (err) {
+      toast.error('Lỗi khi lưu: ' + (err instanceof Error ? err.message : 'Lỗi không xác định'));
+    }
+  };
 
   const updatePrize = (index: number, patch: Partial<LuckyWheelPrize>) => {
     setContent((prev) => ({
@@ -61,7 +71,7 @@ export default function LuckyWheelEditor() {
               <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
               Đồng bộ
             </button>
-            <button onClick={() => void save(content)} disabled={isSaving} className={adminPrimaryButton}>
+            <button onClick={handleSave} disabled={isSaving} className={adminPrimaryButton}>
               <Save className="w-4 h-4" />
               {isSaving ? 'Đang lưu...' : 'Lưu thay đổi'}
             </button>
@@ -79,7 +89,6 @@ export default function LuckyWheelEditor() {
           )}
         </div>
 
-        {error ? <div className="mb-8 rounded-2xl border border-rose-500/20 bg-rose-500/10 p-4 text-xs font-bold text-rose-400">{error}</div> : null}
 
         <div className="space-y-8">
           <div className="grid md:grid-cols-2 gap-6">

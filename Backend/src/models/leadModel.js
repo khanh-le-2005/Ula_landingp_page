@@ -42,6 +42,7 @@ const leadSchema = new mongoose.Schema(
 leadSchema.index({ createdAt: -1 });
 leadSchema.index({ affiliateId: 1, createdAt: -1 });
 leadSchema.index({ ip_address: 1, createdAt: -1 });
+leadSchema.index({ siteKey: 1, utm_source: 1, utm_medium: 1, utm_campaign: 1, utm_content: 1, utm_term: 1, referralCode: 1 }, { name: "idx_marketing_stats_v2" });
 
 const Lead = mongoose.model("Lead", leadSchema);
 module.exports = { Lead };

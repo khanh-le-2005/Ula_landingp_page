@@ -1,5 +1,6 @@
 import React from 'react';
 import { RefreshCw, Save, Brain, Layout, Image as ImageIcon, Sparkles } from 'lucide-react';
+import { toast } from 'react-toastify';
 import { experienceDefault, type ExperienceContent } from '../adminData';
 import { ADMIN_SECTION_KEYS } from '../adminSections';
 import { useLandingSection } from '../hooks/useLandingSection';
@@ -38,9 +39,9 @@ export default function ExperienceEditor() {
       const formData = flattenToFormData(cleanContent);
       await save(formData);
       
-      alert('Đã lưu thay đổi thành công!');
+      toast.success('Đã lưu thay đổi thành công!');
     } catch (err) {
-      alert('Có lỗi xảy ra khi lưu: ' + (err instanceof Error ? err.message : 'Lỗi không xác định'));
+      toast.error('Có lỗi xảy ra khi lưu: ' + (err instanceof Error ? err.message : 'Lỗi không xác định'));
     }
   };
 
@@ -109,7 +110,7 @@ export default function ExperienceEditor() {
               </div>
 
               <ImageUploadField
-                label="Hình ảnh hiển thị"
+                label="Hình ảnh hiển thị - 1280 x 720 px (tỷ lệ 16:9)"
                 value={content.aiPronunciationImageUrl || ''}
                 onChange={(val) => setContent(prev => ({ ...prev, aiPronunciationImageUrl: val }))}
               />

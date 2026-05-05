@@ -2,6 +2,7 @@ const { Image } = require("../models/imageModel");
 const imageService = require("../services/imageService");
 const path = require("path");
 const fs = require("fs");
+const mongoose = require("mongoose");
 
 // API lấy file ảnh để browser hiển thị (GET /api/images/:id)
 const getImage = async (req, res, next) => {
@@ -13,13 +14,28 @@ const getImage = async (req, res, next) => {
       return res.status(404).json({ message: "Không tìm thấy ảnh" });
     }
 
-    const absolutePath = path.resolve(image.path);
-    console.log(`[DEBUG] Resolving image path: ${image.path} -> ${absolutePath}`);
-    if (fs.existsSync(absolutePath)) {
-      res.sendFile(absolutePath);
+    if (image.gridfsId) {
+      // ẢNH MỚI: Truy xuất từ MongoDB GridFS
+      const bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+        bucketName: "uploads"
+      });
+      res.set("Content-Type", image.mimetype);
+      const downloadStream = bucket.openDownloadStream(image.gridfsId);
+      downloadStream.on("error", (err) => {
+        console.error("[DEBUG] GridFS Error:", err);
+        res.status(404).json({ message: "Lỗi khi tải ảnh từ cơ sở dữ liệu" });
+      });
+      return downloadStream.pipe(res);
     } else {
-      console.log(`[DEBUG] File does not exist on disk: ${absolutePath}`);
-      res.status(404).json({ message: "File ảnh không tồn tại trên máy chủ" });
+      // ẢNH CŨ: Fallback đọc từ thư mục vật lý (uploads/)
+      const absolutePath = path.resolve(image.path);
+      console.log(`[DEBUG] Resolving legacy image path: ${image.path} -> ${absolutePath}`);
+      if (fs.existsSync(absolutePath)) {
+        return res.sendFile(absolutePath);
+      } else {
+        console.log(`[DEBUG] File does not exist on disk: ${absolutePath}`);
+        return res.status(404).json({ message: "File ảnh không tồn tại trên máy chủ" });
+      }
     }
   } catch (error) {
     console.log(`[DEBUG] Error in getImage:`, error.message);

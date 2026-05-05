@@ -317,7 +317,6 @@ export default function Affiliates() {
                 <tr className="bg-slate-50 border-b border-slate-200 text-[10px] uppercase font-black tracking-[0.25em] text-slate-400">
                   <th className="px-6 py-5">Đối tác / KOC</th>
                   <th className="px-6 py-5">Mã giới thiệu (Code)</th>
-                  <th className="px-6 py-5">Link Tracking</th>
                   <th className="px-6 py-5 text-center">Hiệu suất</th>
                   <th className="px-6 py-5 text-end">Thao tác</th>
                 </tr>
@@ -379,32 +378,6 @@ export default function Affiliates() {
                         <td className="px-6 py-6">
                           <div className="inline-flex px-3 py-1 bg-indigo-50 border border-indigo-100 rounded-lg text-indigo-600 font-mono font-black text-xs tracking-widest">
                             {aff.code}
-                          </div>
-                        </td>
-                        <td className="px-6 py-6">
-                          <div className="flex items-center gap-2 group/link">
-                            <div className="h-10 px-4 rounded-xl bg-slate-100 border border-slate-200 flex items-center gap-2 max-w-[200px] overflow-hidden">
-                              <ExternalLink className="w-3 h-3 text-slate-400 shrink-0" />
-                              <span className="text-[10px] font-medium text-slate-500 truncate lowercase" title={getTrackingLink(aff)}>
-                                {getTrackingLink(aff)}
-                              </span>
-                            </div>
-                            <button
-                              onClick={() => handleCopyLink(aff)}
-                              className="h-10 w-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 transition-all shadow-sm shrink-0"
-                              title="Sao chép link tracking chung"
-                            >
-                              {copiedCode === aff.code ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
-                            </button>
-
-                            {/* NÚT TẠO LINK TỰ ĐỘNG ĐÃ ĐƯỢC MỞ KHÓA VÀ KẾT NỐI API */}
-                            {/* <button
-                              onClick={() => handleOpenUtmModal(aff)}
-                              className="h-10 w-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-indigo-500 hover:text-indigo-700 hover:border-indigo-300 hover:bg-indigo-50 transition-all shadow-sm shrink-0"
-                              title="Tạo bộ link phân loại (FB, Tiktok, YT)"
-                            >
-                              <Share2 className="w-4 h-4" />
-                            </button> */}
                           </div>
                         </td>
                         <td className="px-6 py-6">

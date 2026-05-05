@@ -10,6 +10,7 @@ import {
   adminSecondaryButton, 
   adminAccentText 
 } from '../adminTheme';
+import { toast } from 'react-toastify';
 
 export default function SiteConfig() {
   const { siteKey } = useSiteContext();
@@ -46,7 +47,7 @@ export default function SiteConfig() {
       const data = await fetchSiteConfig(siteKey);
       setConfig(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Không thể tải cấu hình');
+      toast.error(err instanceof Error ? err.message : 'Không thể tải cấu hình');
     } finally {
       setIsLoading(false);
     }
@@ -63,11 +64,10 @@ export default function SiteConfig() {
     setSuccess(false);
     try {
       await updateSiteConfig(config, siteKey);
-      setSuccess(true);
+      toast.success('Đã cập nhật cấu hình hệ thống thành công!');
       void fetchAllConfigs();
-      setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Lỗi khi lưu cấu hình');
+      toast.error(err instanceof Error ? err.message : 'Lỗi khi lưu cấu hình');
     } finally {
       setIsSaving(false);
     }
@@ -146,19 +146,7 @@ export default function SiteConfig() {
           </div>
         </div>
 
-        {error && (
-          <div className="mb-8 p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-start gap-3 animate-in shake-in duration-300">
-            <AlertCircle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
-            <p className="text-sm font-bold text-rose-700">{error}</p>
-          </div>
-        )}
 
-        {success && (
-          <div className="mb-8 p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-start gap-3 animate-in zoom-in-95 duration-300">
-            <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
-            <p className="text-sm font-bold text-emerald-700">Đã cập nhật cấu hình hệ thống thành công!</p>
-          </div>
-        )}
 
         <div className="grid gap-8 lg:grid-cols-2">
           {/* Discount Text Field */}

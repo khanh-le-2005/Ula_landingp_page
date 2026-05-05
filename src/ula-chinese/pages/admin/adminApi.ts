@@ -1,3 +1,27 @@
+export interface ChartStatsResponse {
+  labels: string[];
+  datasets: {
+    clicks: number[];
+    leads: number[];
+    cr: number[];
+  };
+}
+
+export const fetchChartStats = async (siteKey?: string, filters: Record<string, string> = {}) => {
+  const token = getStoredAdminToken();
+  const { site } = getSiteContext(siteKey);
+
+  return requestJson<ChartStatsResponse>(
+    "/api/leads/stats/charts",
+    { method: "GET" },
+    { siteKey: site, ...filters },
+    token
+  );
+};
+
+
+
+
 // --- BÁO CÁO MARKETING (OVERVIEW) ---
 export interface MarketingReportRow {
   source: string;

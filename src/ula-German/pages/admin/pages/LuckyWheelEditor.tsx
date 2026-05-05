@@ -1,4 +1,5 @@
 import React from 'react';
+import { toast } from 'react-toastify'; // 👉 Thêm Toastify
 import { Plus, Trash2, RefreshCw, Save, Gift, Timer, Type, Palette, Layout, MousePointer2, Sparkles } from 'lucide-react';
 import { luckyWheelDefault, type LuckyWheelPrize } from '../adminData';
 import { ADMIN_SECTION_KEYS } from '../adminSections';
@@ -8,16 +9,18 @@ import { adminCard, adminInput, adminLabel, adminPrimaryButton, adminSecondaryBu
 type LuckyWheelSection = {
   timerLabel: string;
   headline: string;
+  subHeadline?: string;
   description: string;
   prizes: LuckyWheelPrize[];
 };
 
 export default function LuckyWheelEditor() {
-  const { content, setContent, isLoading, isSaving, error, lastSavedAt, reload, save } = useLandingSection<LuckyWheelSection>(
+  const { content, setContent, isLoading, isSaving, lastSavedAt, reload, save } = useLandingSection<LuckyWheelSection>(
     ADMIN_SECTION_KEYS.luckyWheel,
     {
       timerLabel: 'Ưu đãi kết thúc sau: 24:00:00',
       headline: 'Ưu đãi cực sốc - Giảm 40% học phí',
+      subHeadline: '',
       description: 'Nhập mã ULA40GER để nhận ưu đãi 40% cho khoá lộ trình từ A1 - B1 và thêm quà tặng từ vòng quay may mắn.',
       prizes: luckyWheelDefault,
     },
@@ -36,14 +39,36 @@ export default function LuckyWheelEditor() {
       prizes: [...(Array.isArray(prev.prizes) ? prev.prizes : []), { option: 'Quà mới', backgroundColor: '#6366f1', textColor: '#ffffff', code: 'UUDAI-NEW', probability: 1 }],
     }));
 
-  const removePrize = (index: number) =>
+  const removePrize = (index: number) => {
+    // 👉 Thêm Validation: Không cho xóa nếu chỉ còn 1 hoặc 2 phần quà (Vòng quay cần tối thiểu 2 món)
+    if (content.prizes?.length <= 2) {
+      toast.warning('⚠️ Vòng quay cần có tối thiểu 2 phần thưởng để hoạt động!');
+      return;
+    }
+    
     setContent((prev) => ({
       ...prev,
       prizes: (Array.isArray(prev.prizes) ? prev.prizes : []).filter((_, i) => i !== index),
     }));
+  };
+
+  const handleSave = async () => {
+    // 👉 Thêm Validation trước khi lưu
+    if (!content.headline?.trim()) {
+      toast.warning('⚠️ Vui lòng nhập Tiêu đề mục cho Vòng quay!');
+      return;
+    }
+
+    try {
+      await save(content);
+      toast.success('Đã lưu cấu hình Vòng quay May mắn thành công!');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Đã có lỗi xảy ra khi lưu!');
+    }
+  };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-in fade-in duration-500">
       <section className={adminCard}>
         <div className="flex flex-wrap items-start justify-between gap-6 mb-10">
           <div>
@@ -57,12 +82,18 @@ export default function LuckyWheelEditor() {
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <button onClick={() => void reload()} className={adminSecondaryButton}>
+            <button 
+              onClick={() => {
+                void reload();
+                toast.info('Đang làm mới dữ liệu...');
+              }} 
+              className={adminSecondaryButton}
+            >
               <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
               Đồng bộ
             </button>
-            <button onClick={() => void save(content)} disabled={isSaving} className={adminPrimaryButton}>
-              <Save className="w-4 h-4" />
+            <button onClick={handleSave} disabled={isSaving} className={adminPrimaryButton}>
+              <Save className={`w-4 h-4 ${isSaving ? 'animate-bounce' : ''}`} />
               {isSaving ? 'Đang lưu...' : 'Lưu thay đổi'}
             </button>
             <button onClick={addPrize} className="inline-flex items-center justify-center gap-2 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-6 py-3 text-sm font-black text-indigo-600 hover:bg-indigo-500/20 transition-all">
@@ -79,23 +110,18 @@ export default function LuckyWheelEditor() {
           )}
         </div>
 
-        {error ? <div className="mb-8 rounded-2xl border border-rose-500/20 bg-rose-500/10 p-4 text-xs font-bold text-rose-400">{error}</div> : null}
-
         <div className="space-y-8">
           <div className="grid md:grid-cols-2 gap-6">
-            {/* <div className="space-y-3">
-              <div className={adminLabel}>
-                 <Timer className="inline-block w-3 h-3 mr-2 text-indigo-500" />
-                 Nhãn đếm ngược
-              </div>
-              <input className={adminInput} value={content.timerLabel} onChange={(e) => setContent((prev) => ({ ...prev, timerLabel: e.target.value }))} />
-            </div> */}
             <div className="space-y-3">
               <div className={adminLabel}>
                 <Type className="inline-block w-3 h-3 mr-2 text-indigo-500" />
-                Tiêu đề mục
+                Tiêu đề mục <span className="text-rose-500">*</span>
               </div>
-              <input className={adminInput} value={content.headline} onChange={(e) => setContent((prev) => ({ ...prev, headline: e.target.value }))} />
+              <input 
+                className={`${adminInput} ${!content.headline?.trim() ? 'border-rose-100 bg-rose-50/30' : ''}`} 
+                value={content.headline || ''} 
+                onChange={(e) => setContent((prev) => ({ ...prev, headline: e.target.value }))} 
+              />
             </div>
             <div className="space-y-3">
               <div className={adminLabel}>
@@ -108,7 +134,7 @@ export default function LuckyWheelEditor() {
 
           <div className="space-y-3">
             <div className={adminLabel}>Mô tả game hóa</div>
-            <textarea className={`${adminInput} min-h-[120px] leading-relaxed text-sm`} value={content.description} onChange={(e) => setContent((prev) => ({ ...prev, description: e.target.value }))} />
+            <textarea className={`${adminInput} min-h-[120px] leading-relaxed text-sm`} value={content.description || ''} onChange={(e) => setContent((prev) => ({ ...prev, description: e.target.value }))} />
           </div>
 
           <div className="space-y-4">
@@ -123,34 +149,38 @@ export default function LuckyWheelEditor() {
                       </div>
                       <div className="text-sm font-black text-slate-900">Cấu hình Phần thưởng</div>
                     </div>
-                    <button onClick={() => removePrize(index)} className="h-9 w-9 flex items-center justify-center rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 transition-all border border-rose-200">
+                    <button 
+                      onClick={() => removePrize(index)} 
+                      className="h-9 w-9 flex items-center justify-center rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 transition-all border border-rose-200"
+                      title="Xóa phần thưởng này"
+                    >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
                     <div className="space-y-2">
                       <div className="text-[9px] uppercase tracking-widest font-black text-slate-400">Tên phần quà</div>
-                      <input className={`${adminInput} !py-2.5 !text-xs`} value={prize.option} onChange={(e) => updatePrize(index, { option: e.target.value })} />
+                      <input className={`${adminInput} !py-2.5 !text-xs`} value={prize.option || ''} onChange={(e) => updatePrize(index, { option: e.target.value })} />
                     </div>
                     <div className="space-y-2">
                       <div className="text-[9px] uppercase tracking-widest font-black text-slate-400">Màu nền</div>
                       <div className="flex gap-2">
                         <div className="h-10 w-10 shrink-0 rounded-xl border border-slate-200 shadow-sm" style={{ backgroundColor: prize.backgroundColor }} />
-                        <input className={`${adminInput} !py-2.5 !text-xs !font-mono`} value={prize.backgroundColor} onChange={(e) => updatePrize(index, { backgroundColor: e.target.value })} />
+                        <input className={`${adminInput} !py-2.5 !text-xs !font-mono`} value={prize.backgroundColor || '#ffffff'} onChange={(e) => updatePrize(index, { backgroundColor: e.target.value })} />
                       </div>
                     </div>
                     <div className="space-y-2">
                       <div className="text-[9px] uppercase tracking-widest font-black text-slate-400">Màu chữ</div>
                       <div className="flex gap-2">
                         <div className="h-10 w-10 shrink-0 rounded-xl border border-slate-200 shadow-sm" style={{ backgroundColor: prize.textColor }} />
-                        <input className={`${adminInput} !py-2.5 !text-xs !font-mono`} value={prize.textColor} onChange={(e) => updatePrize(index, { textColor: e.target.value })} />
+                        <input className={`${adminInput} !py-2.5 !text-xs !font-mono`} value={prize.textColor || '#000000'} onChange={(e) => updatePrize(index, { textColor: e.target.value })} />
                       </div>
                     </div>
                     <div className="space-y-2">
                       <div className="text-[9px] uppercase tracking-widest font-black text-slate-400">Tỉ lệ trúng (Weight)</div>
                       <div className="relative group/prob">
                         <input
-                          type="text"
+                          type="number"
                           className={`${adminInput} !py-2.5 !text-xs !font-mono pr-12`}
                           value={prize.probability || 0}
                           min="0"
@@ -163,7 +193,7 @@ export default function LuckyWheelEditor() {
                     </div>
                     <div className="space-y-2">
                       <div className="text-[9px] uppercase tracking-widest font-black text-slate-400">Mã trúng thưởng (Code)</div>
-                      <input className={`${adminInput} !py-2.5 !text-xs !font-mono`} value={prize.code} onChange={(e) => updatePrize(index, { code: e.target.value })} />
+                      <input className={`${adminInput} !py-2.5 !text-xs !font-mono`} value={prize.code || ''} onChange={(e) => updatePrize(index, { code: e.target.value })} />
                     </div>
                   </div>
                 </div>

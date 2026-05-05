@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react'; // 👉 Thêm useMemo
 import { 
   BarChart3, 
   PieChart as PieChartIcon, 
@@ -15,7 +15,6 @@ import {
   PieChart, Pie, Cell, Legend
 } from 'recharts';
 
-// Import Context để tự động biết bạn đang ở Tiếng Đức hay Tiếng Trung
 import { useSiteContext } from '../../../../ula-chinese/context/LandingSiteContext';
 
 // --- 1. ĐỊNH NGHĨA TYPES ---
@@ -58,21 +57,17 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export default function LeadStatistics() {
-  // BƯỚC QUAN TRỌNG: Lấy siteKey tự động từ Context (Thay vì fix cứng 'tieng-duc')
-  // Khi bạn chuyển Menu sang Tiếng Trung, siteKey này sẽ tự đổi thành 'tieng-trung'
   const { siteKey } = useSiteContext(); 
   
-  // State quản lý dữ liệu
   const [trends, setTrends] = useState<TrendData[]>([]);
   const [conversion, setConversion] = useState<ConversionData | null>(null);
   const [kocs, setKocs] = useState<KocPerformance[]>([]);
   
-  // State trạng thái UI
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // --- 2. HÀM FETCH DỮ LIỆU TỰ ĐỘNG ĐỔI THEO SITEKEY ---
-  const fetchDashboardData = async () => {
+  // 👉 BƯỚC 1: HÀM GỌI API CÓ CỜ HỦY (TRỊ RACE CONDITION)
+  const fetchDashboardData = async (isCancelled: boolean = false) => {
     setIsLoading(true);
     setError('');
     
@@ -83,45 +78,90 @@ export default function LeadStatistics() {
     };
 
     try {
-      // API SẼ TỰ ĐỘNG GẮN ?site=tieng-duc HOẶC ?site=tieng-trung TÙY THUỘC VÀO TRANG BẠN ĐANG MỞ
-      const [trendsRes, conversionRes, kocsRes] = await Promise.all([
-        fetch(`/api/leads/stats/trends?site=${siteKey}`, { headers }),
-        fetch(`/api/leads/stats/conversion?site=${siteKey}`, { headers }),
-        fetch(`/api/leads/stats/kocs?site=${siteKey}`, { headers })
+      // 👉 BƯỚC 2: DÙNG Promise.allSettled (TRỊ BỆNH CHẾT CHÙM)
+      const results = await Promise.allSettled([
+        fetch(`/api/leads/stats/trends?site=${siteKey}`, { headers }).then(res => {
+          if (!res.ok) throw new Error('Trends Error');
+          return res.json();
+        }),
+        fetch(`/api/leads/stats/conversion?site=${siteKey}`, { headers }).then(res => {
+          if (!res.ok) throw new Error('Conversion Error');
+          return res.json();
+        }),
+        fetch(`/api/leads/stats/kocs?site=${siteKey}`, { headers }).then(res => {
+          if (!res.ok) throw new Error('KOCs Error');
+          return res.json();
+        })
       ]);
 
-      if (!trendsRes.ok || !conversionRes.ok || !kocsRes.ok) {
-        throw new Error(`Lỗi tải dữ liệu cho ${siteKey.toUpperCase()}. Vui lòng kiểm tra lại.`);
+      // Bắt đầu gán Data (Kiểm tra cờ isCancelled trước khi gán)
+      if (isCancelled) return;
+
+      // Xử lý Data Trends
+      if (results[0].status === 'fulfilled') {
+        setTrends(results[0].value?.trends || []);
+      } else {
+        setTrends([]);
       }
 
-      const trendsData = await trendsRes.json();
-      const conversionData = await conversionRes.json();
-      const kocsData = await kocsRes.json();
+      // Xử lý Data Conversion
+      if (results[1].status === 'fulfilled') {
+        setConversion(results[1].value || null);
+      } else {
+        setConversion(null);
+      }
 
-      setTrends(trendsData.trends || []);
-      setConversion(conversionData || null);
-      setKocs(kocsData.performance || []);
+      // Xử lý Data KOCs
+      if (results[2].status === 'fulfilled') {
+        setKocs(results[2].value?.performance || []);
+      } else {
+        setKocs([]);
+      }
+
+      // Nếu CẢ 3 API ĐỀU CHẾT thì mới báo lỗi tổng
+      if (results.every(r => r.status === 'rejected')) {
+        setError(`Không thể tải dữ liệu cho ${siteKey.toUpperCase()}. Vui lòng kiểm tra lại.`);
+      }
 
     } catch (err) {
-      console.error('Lỗi tải dữ liệu dashboard:', err);
-      setError(err instanceof Error ? err.message : 'Đã có lỗi xảy ra khi tải dữ liệu');
+      if (!isCancelled) setError('Đã có lỗi hệ thống xảy ra khi tải dữ liệu');
     } finally {
-      setIsLoading(false);
+      if (!isCancelled) setIsLoading(false);
     }
   };
 
-  // Tự động load lại biểu đồ nếu bạn click chuyển đổi ngôn ngữ
+  // 👉 BƯỚC 1 (Tiếp): ÁP DỤNG CỜ isCancelled VÀO useEffect
   useEffect(() => {
-    void fetchDashboardData();
+    let isCancelled = false; // Khởi tạo cờ
+
+    void fetchDashboardData(isCancelled);
+
+    return () => {
+      isCancelled = true; // Dọn dẹp cờ khi component unmount hoặc siteKey thay đổi
+    };
   }, [siteKey]);
+
+  // Nút Refresh thủ công
+  const handleManualRefresh = () => {
+    void fetchDashboardData(false);
+  };
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
     return isNaN(d.getTime()) ? dateStr : `${d.getDate()}/${d.getMonth() + 1}`;
   };
 
-  const totalSuspicious = trends.reduce((sum, item) => sum + (item.suspicious || 0), 0);
-  const validBreakdown = conversion?.breakdown?.filter(item => item.count > 0) || [];
+  // 👉 BƯỚC 3: DÙNG useMemo VÀ ?. (TRỊ BỆNH SẬP REACT TREE & TỐI ƯU RENDER)
+  const totalSuspicious = useMemo(() => {
+    if (!trends || !Array.isArray(trends)) return 0;
+    return trends.reduce((sum, item) => sum + (item?.suspicious ?? 0), 0);
+  }, [trends]);
+
+  const validBreakdown = useMemo(() => {
+    if (!conversion?.breakdown || !Array.isArray(conversion.breakdown)) return [];
+    return conversion.breakdown.filter(item => (item?.count ?? 0) > 0);
+  }, [conversion]);
+
 
   if (isLoading) {
     return (
@@ -139,7 +179,7 @@ export default function LeadStatistics() {
         <div>
           <h3 className="font-black text-lg">Lỗi tải dữ liệu</h3>
           <p className="font-medium mt-1">{error}</p>
-          <button onClick={fetchDashboardData} className="mt-4 px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg font-bold text-sm transition-colors">
+          <button onClick={handleManualRefresh} className="mt-4 px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg font-bold text-sm transition-colors">
             Thử lại
           </button>
         </div>
@@ -160,7 +200,7 @@ export default function LeadStatistics() {
           <h2 className="text-3xl font-black text-slate-900 tracking-tight">Thống Kê Khách Hàng</h2>
         </div>
         <button 
-          onClick={fetchDashboardData}
+          onClick={handleManualRefresh}
           className="flex items-center gap-2 px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-slate-900/20"
         >
           <RefreshCw className="w-4 h-4" /> Cập nhật {siteKey === 'tieng-duc' ? 'DE' : 'CN'}
@@ -188,7 +228,7 @@ export default function LeadStatistics() {
           <div className="relative z-10">
             <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Lead Thành Công</p>
             <h3 className="text-4xl font-black text-slate-800 tracking-tight">
-              {conversion?.breakdown.find(b => b.status === 'ENROLLED')?.count || 0}
+              {conversion?.breakdown?.find(b => b.status === 'ENROLLED')?.count || 0}
             </h3>
           </div>
         </div>

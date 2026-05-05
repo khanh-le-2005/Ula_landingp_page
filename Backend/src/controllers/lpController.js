@@ -2,7 +2,7 @@ const lpService = require("../services/lpService");
 const { Image } = require("../models/imageModel");
 const imageService = require("../services/imageService");
 const lpModel = require("../models/lpModel");
-const { unflatten } = require("../utils/objectUtil");
+const { unflatten, deepMergePreserveImages } = require("../utils/objectUtil");
 
 const getLP = async (req, res, next) => {
   try {
@@ -204,12 +204,16 @@ const updateLP = async (req, res, next) => {
           await imageService.handleDeleteImage(oldImageUrl);
         }
 
+        // Upload file buffer to GridFS manually
+        const gridfsId = await imageService.uploadToGridFS(file);
+
         const newImage = new Image({
-          filename: file.filename,
+          filename: file.filename || file.originalname,
           originalName: file.originalname,
           mimetype: file.mimetype,
           size: file.size,
-          path: file.path
+          path: "",
+          gridfsId: gridfsId
         });
         await newImage.save();
 

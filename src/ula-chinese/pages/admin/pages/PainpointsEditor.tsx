@@ -7,6 +7,7 @@ import { adminCard, adminInput, adminLabel, adminPrimaryButton, adminSecondaryBu
 
 import robotMascotFallback from '../../../../assets/nhanvat1.png';
 import { resolveAssetUrl } from '../../../utils/assetUtil';
+import { toast } from 'react-toastify';
 
 export default function PainpointsEditor() {
   const { content, setContent, isLoading, isSaving, error, lastSavedAt, reload, save } = useLandingSection<PainpointsContent>(
@@ -30,6 +31,15 @@ export default function PainpointsEditor() {
     }));
   };
 
+  const handleSave = async () => {
+    try {
+      await save({ ...content, bubbles: fixedBubbles });
+      toast.success('Đã lưu thay đổi thành công!');
+    } catch (err) {
+      toast.error('Có lỗi xảy ra khi lưu: ' + (err instanceof Error ? err.message : 'Lỗi không xác định'));
+    }
+  };
+
   return (
     <div className="space-y-8">
       <section className={adminCard}>
@@ -49,7 +59,7 @@ export default function PainpointsEditor() {
               <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
               Đồng bộ
             </button>
-            <button onClick={() => void save({ ...content, bubbles: fixedBubbles })} disabled={isSaving} className={adminPrimaryButton}>
+            <button onClick={handleSave} disabled={isSaving} className={adminPrimaryButton}>
               <Save className="h-4 w-4" />
               {isSaving ? 'Đang lưu...' : 'Lưu thay đổi'}
             </button>
@@ -65,7 +75,6 @@ export default function PainpointsEditor() {
           ) : null}
         </div>
 
-        {error ? <div className="mb-8 rounded-2xl border border-rose-500/20 bg-rose-500/10 p-4 text-xs font-bold text-rose-400">{error}</div> : null}
 
         <div className="grid gap-5">
           <div className="space-y-2">

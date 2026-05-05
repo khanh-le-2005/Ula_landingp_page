@@ -1,88 +1,199 @@
 import React, { useEffect, useState } from 'react';
-import { RefreshCw, Filter, MousePointerClick, Users, Percent, AlertCircle, Globe } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { fetchMarketingReport, fetchMarketingMetaOptions, type MarketingReportResponse, type MarketingMetaOptions } from '../adminApi';
+import { RefreshCw, Filter, MousePointerClick, Users, Percent, AlertCircle, Globe, TrendingUp } from 'lucide-react';
+import { toast } from 'react-toastify';
+
+// 👉 Import thư viện Chart.js mới
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip as ChartTooltip,
+  Legend as ChartLegend,
+  Filler
+} from 'chart.js';
+import { Bar, Line } from 'react-chartjs-2';
+import { fetchMarketingReport, fetchMarketingMetaOptions, fetchChartStats, type MarketingReportResponse, type MarketingMetaOptions, type ChartStatsResponse } from '../adminApi';
 import { useSiteContext } from '../../../context/LandingSiteContext';
 import { adminCard, adminAccentText, adminSecondaryButton } from '../adminTheme';
 
+// Đăng ký các thành phần của Chart.js
+ChartJS.register(
+  CategoryScale, LinearScale, PointElement, LineElement, BarElement,
+  Title, ChartTooltip, ChartLegend, Filler
+);
+
+// Custom Hook chặn Spam API
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+  useEffect(() => {
+    const handler = setTimeout(() => { setDebouncedValue(value); }, delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+  return debouncedValue;
+}
+
 export default function Overview() {
   const { siteKey } = useSiteContext();
+
   const [report, setReport] = useState<MarketingReportResponse | null>(null);
   const [metaOptions, setMetaOptions] = useState<MarketingMetaOptions | null>(null);
+  const [chartDataAPI, setChartDataAPI] = useState<ChartStatsResponse | null>(null);
+
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // UI Hiển thị rõ ràng đang ở trang nào
   const isGerman = siteKey === 'tieng-duc';
   const siteName = isGerman ? 'Tiếng Đức (DE)' : 'Tiếng Trung (CN)';
 
   const [filters, setFilters] = useState({
-    from: '',
-    to: '',
-    utm_source: '',
-    utm_medium: '',
-    tag: ''
+    from: '', to: '', utm_source: '', utm_medium: '', tag: ''
   });
 
-  const loadData = async () => {
+  const debouncedFilters = useDebounce(filters, 500);
+
+  const fetchDashboardData = async (activeFilters: Record<string, string>, isCancelled: boolean = false) => {
     setIsLoading(true);
     setError('');
-    try {
-      const activeFilters: Record<string, string> = {};
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value) activeFilters[key] = value;
-      });
 
-      const [reportData, metaData] = await Promise.all([
+    try {
+      const results = await Promise.allSettled([
         fetchMarketingReport(siteKey, activeFilters),
-        fetchMarketingMetaOptions(siteKey)
+        fetchMarketingMetaOptions(siteKey),
+        fetchChartStats(siteKey, activeFilters)
       ]);
-      
-      setReport(reportData);
-      setMetaOptions(metaData);
+
+      if (isCancelled) return;
+
+      if (results[0].status === 'fulfilled') setReport(results[0].value);
+      else setError('Không tải được bảng báo cáo. ');
+
+      if (results[1].status === 'fulfilled') setMetaOptions(results[1].value);
+
+      if (results[2].status === 'fulfilled') setChartDataAPI(results[2].value);
+      else setChartDataAPI(null);
+
     } catch (err: any) {
-      setError(err.message || 'Lỗi khi tải báo cáo Marketing');
+      if (!isCancelled) setError('Đã có lỗi hệ thống xảy ra.');
     } finally {
-      setIsLoading(false);
+      if (!isCancelled) setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    void loadData();
-  }, [siteKey, filters]);
+    let isCancelled = false;
+    const activeFilters: Record<string, string> = {};
+    Object.entries(debouncedFilters).forEach(([key, value]) => {
+      if (value) activeFilters[key] = value;
+    });
+
+    void fetchDashboardData(activeFilters, isCancelled);
+    return () => { isCancelled = true; };
+  }, [siteKey, JSON.stringify(debouncedFilters)]);
+
+  const handleManualRefresh = () => {
+    const activeFilters: Record<string, string> = {};
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value) activeFilters[key] = value;
+    });
+    void fetchDashboardData(activeFilters, false);
+  };
 
   const clearFilters = () => {
     setFilters({ from: '', to: '', utm_source: '', utm_medium: '', tag: '' });
   };
 
-  const chartData = report?.data?.map(row => {
-    let name = "";
-    if (row.ref) name += `${row.ref}`;
-    else if (row.campaign) name += `${row.campaign}`;
-    else name = `${row.source || 'Organic'} / ${row.medium || 'None'}`;
-    
-    return {
-      name: name,
-      Clicks: row.clicks,
-      Leads: row.leads,
-    };
-  }) || [];
+  // =========================================================
+  // 👉 CẤU HÌNH GIAO DIỆN CHUNG CHO CHART.JS (ĐẸP & CHUYÊN NGHIỆP)
+  // =========================================================
+  // =========================================================
+  // 👉 CẤU HÌNH GIAO DIỆN CHUNG CHO CHART.JS
+  // =========================================================
+  const commonOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: {
+      mode: 'index' as const,
+      intersect: false,
+    },
+    // Chừa khoảng trống bên dưới để chữ nghiêng không bị cắt
+    layout: {
+      padding: { bottom: 10 }
+    },
+    plugins: {
+      legend: {
+        position: 'top' as const,
+        labels: {
+          usePointStyle: true,
+          padding: 20,
+          font: { family: "'Be Vietnam Pro', sans-serif", weight: 600, size: 12 },
+          color: '#475569'
+        }
+      },
+      tooltip: {
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        titleColor: '#0f172a',
+        bodyColor: '#334155',
+        borderColor: '#e2e8f0',
+        borderWidth: 1,
+        padding: 12,
+        boxPadding: 6,
+        usePointStyle: true,
+        titleFont: { family: "'Be Vietnam Pro', sans-serif", size: 13, weight: 'bold' as const },
+        bodyFont: { family: "'Be Vietnam Pro', sans-serif", size: 12, weight: 500 },
+        callbacks: {
+          label: function (context: any) {
+            let label = context.dataset.label || '';
+            if (label) label += ': ';
+            if (context.parsed.y !== null) {
+              label += context.parsed.y + (context.dataset.yAxisID === 'y-percentage' ? '%' : '');
+            }
+            return label;
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { display: false, drawBorder: false },
+        ticks: {
+          font: { family: "'Be Vietnam Pro', sans-serif", size: 10, weight: 600 },
+          color: '#64748b',
+          // Cho phép Chart.js tự quyết định góc nghiêng dựa vào số lượng cột
+          autoSkip: true,
+          maxRotation: 45,
+          minRotation: 0,
+          // Đảm bảo chữ dù nghiêng hay thẳng đều cách đều mép
+          padding: 8
+        }
+      },
+      y: {
+        border: { display: false },
+        grid: { color: '#f1f5f9', borderDash: [4, 4] },
+        ticks: { font: { family: "'Be Vietnam Pro', sans-serif", size: 11 }, color: '#94a3b8', padding: 10 },
+        // Đảm bảo các cột có xuất phát điểm mượt mà từ 0
+        beginAtZero: true
+      }
+    }
+  };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
-      
+    <div className="space-y-8 animate-in fade-in duration-700 pb-20">
+
+      {/* --- HEADER --- */}
       <div className="flex flex-wrap items-start justify-between gap-6">
         <div>
-          {/* CẬP NHẬT: Thêm cục báo hiệu Site đang xem */}
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.4em] font-black text-slate-500 mb-2">
             <Globe className="w-3 h-3 text-indigo-500" />
             Báo Cáo Tổng Hợp ({siteName})
           </div>
-          
           <h2 className="text-3xl font-black text-black tracking-tight">Báo cáo <span className={adminAccentText}>Marketing</span></h2>
           <p className="mt-1 text-sm font-medium text-slate-500">Phân tích hiệu suất quảng cáo & Tỉ lệ chuyển đổi (CR).</p>
         </div>
-        <button onClick={() => void loadData()} className={adminSecondaryButton}>
+        <button onClick={handleManualRefresh} className={adminSecondaryButton}>
           <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} /> Đồng bộ
         </button>
       </div>
@@ -114,7 +225,7 @@ export default function Overview() {
 
           <div className="col-span-1">
             <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Nguồn (Source)</label>
-            <select value={filters.utm_source} onChange={(e) => setFilters(p => ({ ...p, utm_source: e.target.value }))} className="w-full px-3 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
+            <select value={filters.utm_source} onChange={(e) => setFilters(p => ({ ...p, utm_source: e.target.value }))} className="w-full px-3 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 appearance-none">
               <option value="">Tất cả</option>
               {metaOptions?.utmSources.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
@@ -122,7 +233,7 @@ export default function Overview() {
 
           <div className="col-span-1">
             <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Phương thức</label>
-            <select value={filters.utm_medium} onChange={(e) => setFilters(p => ({ ...p, utm_medium: e.target.value }))} className="w-full px-3 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
+            <select value={filters.utm_medium} onChange={(e) => setFilters(p => ({ ...p, utm_medium: e.target.value }))} className="w-full px-3 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 appearance-none">
               <option value="">Tất cả</option>
               {metaOptions?.utmMediums.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
@@ -130,14 +241,14 @@ export default function Overview() {
 
           <div className="col-span-1">
             <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Chiến dịch</label>
-            <select value={filters.tag} onChange={(e) => setFilters(p => ({ ...p, tag: e.target.value }))} className="w-full px-3 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 truncate">
+            <select value={filters.tag} onChange={(e) => setFilters(p => ({ ...p, tag: e.target.value }))} className="w-full px-3 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 truncate appearance-none">
               <option value="">Tất cả</option>
               {metaOptions?.campaigns.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
             </select>
           </div>
 
           <div className="col-span-1">
-             <button onClick={clearFilters} className="h-[34px] w-full flex items-center justify-center rounded-xl bg-slate-200/50 text-slate-500 hover:bg-rose-100 hover:text-rose-600 transition-colors text-xs font-bold">Xóa lọc</button>
+            <button onClick={clearFilters} className="h-[34px] w-full flex items-center justify-center rounded-xl bg-slate-200/50 text-slate-500 hover:bg-rose-100 hover:text-rose-600 transition-colors text-xs font-bold">Xóa lọc</button>
           </div>
         </div>
       </div>
@@ -175,50 +286,109 @@ export default function Overview() {
         </div>
       </div>
 
-      {/* --- BIỂU ĐỒ TRỰC QUAN --- */}
-      {chartData.length > 0 && (
-        <section className={adminCard}>
-          <div className="mb-6">
-            <h3 className="text-lg font-black text-slate-800 tracking-tight">Hiệu suất theo Nguồn / KOC</h3>
-            <p className="text-xs font-medium text-slate-500">Tương quan giữa số lượt truy cập (Clicks) và số đăng ký (Leads)</p>
-          </div>
-          <div className="h-[400px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={chartData}
-                margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis 
-                  dataKey="name" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fontSize: 10, fill: '#64748b', fontWeight: 600 }}
-                  angle={-45}
-                  textAnchor="end"
-                  interval={0}
-                />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fontSize: 10, fill: '#64748b', fontWeight: 600 }} 
-                />
-                <Tooltip 
-                  cursor={{ fill: '#f8fafc' }}
-                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)', padding: '12px' }}
-                  labelStyle={{ fontWeight: 900, color: '#0f172a', marginBottom: '8px' }}
-                />
-                <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', fontWeight: 700, paddingTop: '20px' }} />
-                <Bar dataKey="Clicks" name="Lượt truy cập" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={60} />
-                <Bar dataKey="Leads" name="Đăng ký" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={60} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </section>
+      {/* ============================================================================== */}
+      {/* CÁC BIỂU ĐỒ TRỰC QUAN BẰNG CHART.JS */}
+      {/* ============================================================================== */}
+
+      {chartDataAPI && chartDataAPI.labels.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+          {/* 👉 BIỂU ĐỒ 1: Clicks (Bar Chart) */}
+          <section className={`${adminCard} flex flex-col`}>
+            <div className="mb-6">
+              <h3 className="text-lg font-black text-slate-800 tracking-tight flex items-center gap-2">
+                <MousePointerClick className="w-5 h-5 text-blue-500" /> Số lượng truy cập (Clicks)
+              </h3>
+            </div>
+            <div className="h-[300px] w-full relative">
+              <Bar
+                options={commonOptions}
+                data={{
+                  labels: chartDataAPI.labels,
+                  datasets: [{
+                    label: 'Lượt Click',
+                    data: chartDataAPI.datasets.clicks,
+                    backgroundColor: '#3b82f6',
+                    borderRadius: 6, // Bo góc cho cột nhìn hiện đại hơn
+                    barPercentage: 0.6,
+                    hoverBackgroundColor: '#2563eb'
+                  }]
+                }}
+              />
+            </div>
+          </section>
+
+          {/* 👉 BIỂU ĐỒ 2: Leads (Bar Chart) */}
+          <section className={`${adminCard} flex flex-col`}>
+            <div className="mb-6">
+              <h3 className="text-lg font-black text-slate-800 tracking-tight flex items-center gap-2">
+                <Users className="w-5 h-5 text-emerald-500" /> Số lượng đăng ký (Leads)
+              </h3>
+            </div>
+            <div className="h-[300px] w-full relative">
+              <Bar
+                options={commonOptions}
+                data={{
+                  labels: chartDataAPI.labels,
+                  datasets: [{
+                    label: 'Số Lead',
+                    data: chartDataAPI.datasets.leads,
+                    backgroundColor: '#10b981',
+                    borderRadius: 6,
+                    barPercentage: 0.6,
+                    hoverBackgroundColor: '#059669'
+                  }]
+                }}
+              />
+            </div>
+          </section>
+
+          {/* 👉 BIỂU ĐỒ 3: CR (Line / Area Chart có đường cong mượt) */}
+          <section className={`${adminCard} lg:col-span-2`}>
+            <div className="mb-6">
+              <h3 className="text-lg font-black text-slate-800 tracking-tight flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-amber-500" /> Tỷ lệ chuyển đổi (CR %)
+              </h3>
+            </div>
+            <div className="h-[320px] w-full relative">
+              <Line
+                options={{
+                  ...commonOptions,
+                  scales: {
+                    ...commonOptions.scales,
+                    y: { ...commonOptions.scales.y, min: 0 } // Ép trục Y bắt đầu từ 0
+                  }
+                }}
+                data={{
+                  labels: chartDataAPI.labels,
+                  datasets: [{
+                    label: 'Tỷ lệ CR',
+                    data: chartDataAPI.datasets.cr,
+                    borderColor: '#f59e0b',
+                    backgroundColor: 'rgba(245, 158, 11, 0.15)', // Màu nền cho Area
+                    borderWidth: 3,
+                    fill: true, // Biến Line chart thành Area Chart
+                    tension: 0.4, // Tạo độ cong mượt mà cho đường line (Không bị gãy khúc như Recharts)
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#f59e0b',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    yAxisID: 'y-percentage' // Báo cho tooltip biết đây là %
+                  }]
+                }}
+              />
+            </div>
+          </section>
+
+        </div>
       )}
 
       {/* --- BẢNG CHI TIẾT --- */}
       <section className={adminCard}>
+        <div className="mb-6">
+          <h3 className="text-lg font-black text-slate-800 tracking-tight">Chi Tiết Từng Chiến Dịch</h3>
+        </div>
         <div className="relative overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-xl">
           <div className="overflow-x-auto no-scrollbar">
             <table className="min-w-full text-left text-sm border-collapse">
@@ -262,7 +432,7 @@ export default function Overview() {
           </div>
         </div>
       </section>
-      
+
     </div>
   );
 }

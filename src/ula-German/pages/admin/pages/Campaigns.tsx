@@ -25,7 +25,7 @@ import {
 import { fetchCampaigns, createCampaign, updateCampaign, deleteCampaign, fetchLandingPage, fetchPrizes, type Campaign, type LuckyWheelPrize } from '../adminApi';
 import { adminCard, adminInput, adminLabel, adminPrimaryButton, adminSecondaryButton, adminAccentText } from '../adminTheme';
 
-// SỬA: Lấy từ Context (Nhớ check đường dẫn import này cho chuẩn thư mục Tiếng Đức của bạn)
+// Lấy từ Context
 import { useSiteContext, type SiteKey } from '../../../../ula-chinese/context/LandingSiteContext';
 
 import { ImageUploadField } from '../components/ImageUploadField';
@@ -37,7 +37,6 @@ export default function Campaigns() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
 
   const isGerman = siteKey === 'tieng-duc';
@@ -78,12 +77,11 @@ export default function Campaigns() {
 
   const loadCampaigns = async () => {
     setIsLoading(true);
-    setError('');
     try {
       const data = await fetchCampaigns(siteKey);
       setCampaigns(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Không thể tải danh sách chiến dịch');
+      toast.error(err instanceof Error ? err.message : 'Không thể tải danh sách chiến dịch');
     } finally {
       setIsLoading(false);
     }
@@ -106,7 +104,6 @@ export default function Campaigns() {
 
   const handleOpenEditor = async (campaign?: Campaign) => {
     setLastSavedUrl(null);
-    setError('');
     setIsLoading(true);
 
     try {
@@ -197,7 +194,7 @@ export default function Campaigns() {
 
       setIsEditing(true);
     } catch (err) {
-      setError('Lỗi khi tải dữ liệu soạn thảo.');
+      toast.error('Lỗi khi tải dữ liệu soạn thảo.');
     } finally {
       setIsLoading(false);
     }
@@ -225,13 +222,18 @@ export default function Campaigns() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.tag.trim() || !formData.name.trim()) {
-      setError('Vui lòng nhập đầy đủ Mã Tag và Tên chiến dịch.');
+    
+    // VALIDATION TRƯỚC KHI LƯU VÀ BẮN TOAST CẢNH BÁO
+    if (!formData.tag.trim()) {
+      toast.warning('⚠️ Vui lòng nhập Mã định danh (Tag Code) cho chiến dịch!');
+      return;
+    }
+    if (!formData.name.trim()) {
+      toast.warning('⚠️ Vui lòng nhập Tên chiến dịch!');
       return;
     }
 
     setIsSaving(true);
-    setError('');
 
     try {
       const cleanSolutionCards = (Array.isArray(solution.cards) ? solution.cards : []).map(card => {
@@ -250,7 +252,6 @@ export default function Campaigns() {
         return newCard;
       });
 
-      // CẬP NHẬT: Định dạng Sections chuẩn ARRAY
       const formattedSections = [
         { sectionKey: "hero", content: hero },
         { sectionKey: "section_2_painpoints", content: painpoints },
@@ -300,14 +301,14 @@ export default function Campaigns() {
       setLastSavedUrl(response?.data?.fullUrl || null);
       if (editingCampaign) setEditingCampaign(response.data);
 
-      toast.success(editingCampaign ? 'Cập nhật chiến dịch thành công' : 'Tạo chiến dịch mới thành công');
+      // Bắn Toastify xanh lá cây thành công
+      toast.success(editingCampaign ? 'Cập nhật chiến dịch thành công!' : 'Tạo chiến dịch mới thành công!');
       await loadCampaigns();
 
       setIsEditing(false);
 
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Lỗi khi lưu chiến dịch');
-      toast.error('Lỗi khi lưu chiến dịch');
+      toast.error(err instanceof Error ? err.message : 'Lỗi khi lưu chiến dịch!');
     } finally {
       setIsSaving(false);
     }
@@ -317,20 +318,20 @@ export default function Campaigns() {
     if (!window.confirm('Bạn có chắc chắn muốn xóa chiến dịch này?')) return;
     try {
       await deleteCampaign(id);
-      toast.success('Đã xóa chiến dịch');
+      toast.success('Đã xóa chiến dịch thành công!');
       await loadCampaigns();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Lỗi khi xóa chiến dịch');
+      toast.error(err instanceof Error ? err.message : 'Lỗi khi xóa chiến dịch!');
     }
   };
 
   const toggleStatus = async (campaign: Campaign) => {
     try {
       await updateCampaign(campaign._id, { isActive: !campaign.isActive }, siteKey);
-      toast.success('Cập nhật trạng thái thành công');
+      toast.success(`Đã ${!campaign.isActive ? 'BẬT' : 'TẮT'} trạng thái chiến dịch!`);
       await loadCampaigns();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Lỗi khi cập nhật trạng thái');
+      toast.error(err instanceof Error ? err.message : 'Lỗi khi cập nhật trạng thái!');
     }
   };
 
@@ -345,7 +346,7 @@ export default function Campaigns() {
     navigator.clipboard.writeText(fixedUrl);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
-    toast.success('Đã copy link!');
+    toast.success('Đã sao chép đường link!');
   };
 
   // --- RENDERING LIST MODE ---
@@ -521,12 +522,12 @@ export default function Campaigns() {
               </div>
 
               <div className="space-y-2">
-                <div className={adminLabel}>Mã định danh (Tag Code)</div>
+                <div className={adminLabel}>Mã định danh (Tag Code) <span className="text-rose-500">*</span></div>
                 <div className="relative">
                   <Hash className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <input
                     required
-                    className={`${adminInput} pl-12 font-mono text-rose-600 font-bold`}
+                    className={`${adminInput} pl-12 font-mono text-rose-600 font-bold border-rose-100 bg-rose-50/30 focus:border-rose-500 focus:ring-rose-500/20`}
                     placeholder="uu_dai_moi..."
                     value={formData.tag}
                     onChange={(e) => setFormData(prev => ({ ...prev, tag: e.target.value.toLowerCase().replace(/\s+/g, '_') }))}
@@ -535,10 +536,10 @@ export default function Campaigns() {
               </div>
 
               <div className="space-y-2">
-                <div className={adminLabel}>Tên chiến dịch</div>
+                <div className={adminLabel}>Tên chiến dịch <span className="text-rose-500">*</span></div>
                 <input
                   required
-                  className={adminInput}
+                  className={`${adminInput} border-rose-100 bg-rose-50/30 focus:border-rose-500 focus:ring-rose-500/20`}
                   placeholder="Mega Sale tháng 5..."
                   value={formData.name}
                   onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
@@ -578,13 +579,6 @@ export default function Campaigns() {
             </div>
           </section>
 
-          {error && (
-            <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
-              <div className="text-sm font-bold text-rose-700">{error}</div>
-            </div>
-          )}
-
         </div>
 
         {/* MAIN EDITOR: 5 BLOCKS */}
@@ -609,7 +603,7 @@ export default function Campaigns() {
                 <div className={adminLabel}>Tiêu đề chính</div>
                 <div className="grid md:grid-cols-3 gap-4">
                   <input className={adminInput} value={hero.headlineTop} onChange={(e) => setHero({ ...hero, headlineTop: e.target.value })} placeholder="Phần đầu" />
-                  <input className={`${adminInput} !border-indigo-100 !bg-indigo-50/50`} value={hero.headlineHighlight} onChange={(e) => setHero({ ...hero, headlineHighlight: e.target.value })} placeholder="Phần nổi bật" />
+                  <textarea className={`${adminInput} !border-indigo-100 !bg-indigo-50/50 min-h-[46px] resize-y`} value={hero.headlineHighlight} onChange={(e) => setHero({ ...hero, headlineHighlight: e.target.value })} placeholder="Phần nổi bật" />
                   <input className={adminInput} value={hero.headlineBottom} onChange={(e) => setHero({ ...hero, headlineBottom: e.target.value })} placeholder="Phần kết" />
                 </div>
               </div>
@@ -772,16 +766,6 @@ export default function Campaigns() {
                       <span className="text-xs font-bold text-slate-700">Đây là Video (Bỏ tick nếu là Ảnh)</span>
                     </label>
                   </div>
-                  {/* <div className="grid md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <div className={adminLabel}>Màu nền (Gradient CSS)</div>
-                      <input className={adminInput} value={card.gradient} onChange={(e) => {
-                        const newCards = [...solution.cards];
-                        newCards[idx].gradient = e.target.value;
-                        setSolution({ ...solution, cards: newCards });
-                      }} placeholder="from-indigo-600/40 to-blue-500/10" />
-                    </div>
-                  </div> */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <div className={adminLabel}>Các điểm chính (Bullet points)</div>

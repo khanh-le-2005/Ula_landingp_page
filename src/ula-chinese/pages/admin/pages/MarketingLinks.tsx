@@ -34,13 +34,13 @@ import {
   adminLabel,
 } from '../adminTheme';
 import { useProject } from '@/src/ula-chinese/pages/admin/context/ProjectContext';
+import { toast } from 'react-toastify';
 
 export default function MarketingLinks() {
   const { activeProject } = useProject();
   const [links, setLinks] = useState<MarketingLink[]>([]);
   const [metaOptions, setMetaOptions] = useState<MarketingMetaOptions | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -57,7 +57,6 @@ export default function MarketingLinks() {
 
   const loadData = async () => {
     setIsLoading(true);
-    setError('');
     try {
       const [linksData, metaData] = await Promise.all([
         fetchMarketingLinks(activeProject).catch(() => []),
@@ -66,7 +65,7 @@ export default function MarketingLinks() {
       setLinks(Array.isArray(linksData) ? linksData : []);
       setMetaOptions(metaData);
     } catch (err: any) {
-      setError(err.message || 'Không thể tải dữ liệu Links');
+      toast.error(err.message || 'Không thể tải dữ liệu Links');
     } finally {
       setIsLoading(false);
     }
@@ -88,6 +87,7 @@ export default function MarketingLinks() {
     navigator.clipboard.writeText(text);
     setCopiedCode(id);
     setTimeout(() => setCopiedCode(null), 2000);
+    toast.success('Đã copy đường dẫn!');
   };
 
   const handleOpenModal = (link?: MarketingLink) => {
@@ -135,14 +135,16 @@ export default function MarketingLinks() {
 
       if (editingId) {
         await updateMarketingLink(editingId, payload);
+        toast.success('Đã cập nhật link tracking!');
       } else {
         await createMarketingLink(payload);
+        toast.success('Đã tạo link tracking mới!');
       }
 
       setIsModalOpen(false);
       await loadData();
     } catch (err: any) {
-      setError(err.message || 'Lỗi khi lưu Link Tracking');
+      toast.error(err.message || 'Lỗi khi lưu Link Tracking');
     } finally {
       setIsLoading(false);
     }
@@ -155,7 +157,7 @@ export default function MarketingLinks() {
       await deleteMarketingLink(id);
       await loadData();
     } catch (err: any) {
-      setError(err.message || 'Lỗi khi xóa');
+      toast.error(err.message || 'Lỗi khi xóa');
     } finally {
       setIsLoading(false);
     }
@@ -192,12 +194,7 @@ export default function MarketingLinks() {
           </div>
         </div>
 
-        {error && (
-          <div className="mb-8 rounded-2xl border border-rose-500/20 bg-rose-500/10 p-5 flex items-center gap-4 text-rose-400 font-bold text-sm">
-            <AlertCircle className="h-5 w-5" />
-            {error}
-          </div>
-        )}
+
 
         <div className="relative overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-xl">
           <div className="overflow-x-auto no-scrollbar">

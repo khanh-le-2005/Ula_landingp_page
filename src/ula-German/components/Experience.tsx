@@ -390,7 +390,7 @@ function SlimVimeoPlayer({ videoUrl, title, onProgress, onDuration, isPaused, se
 
 const Experience = () => {
   const { content, isLoading } = useLandingSection(ADMIN_SECTION_KEYS.experience, experienceDefault);
-  const [activeTab, setActiveTab] = useState<'pronounce' | 'quiz' | 'video'>('quiz');
+  const [activeTab, setActiveTab] = useState<'pronounce' | 'quiz' | 'video'>('pronounce');
 
   // --- STATE CHO BÀI TẬP ---
   const [currentEx, setCurrentEx] = useState(0);
@@ -746,7 +746,7 @@ const Experience = () => {
       </div>
 
       {/* 3. Main Content Container */}
-      <div className="w-full max-w-5xl bg-white/30 backdrop-blur-2xl rounded-[32px] md:rounded-[40px] overflow-hidden min-h-[50px] md:min-h-[600px] flex flex-col relative z-10 reveal shadow-xl border border-white/50">
+      <div className="w-full max-w-5xl bg-white/10 backdrop-blur-2xl rounded-[32px] md:rounded-[40px] overflow-hidden min-h-[50px] md:min-h-[600px] flex flex-col relative z-10 reveal shadow-xl border border-white/50">
         
         {/* NỘI DUNG BÀI TẬP */}
         {activeTab === 'quiz' && (

@@ -7,6 +7,7 @@ import { adminCard, adminInput, adminLabel, adminPrimaryButton, adminSecondaryBu
 import { ImageUploadField } from '../components/ImageUploadField';
 import { flattenToFormData } from '../utils/formDataUtil';
 import { resolveAssetUrl } from '../../../utils/assetUtil';
+import { toast } from 'react-toastify';
 
 export default function SolutionEditor() {
   const { content, setContent, isLoading, isSaving, error, save, reload } = useLandingSection<SolutionContent>(
@@ -107,10 +108,10 @@ export default function SolutionEditor() {
       const result = await save(formData);
 
       console.log('[SolutionEditor] Lưu thành công!', result);
-      alert('Đã lưu thay đổi thành công!');
+      toast.success('Đã lưu thay đổi thành công!');
     } catch (err) {
       console.error('[SolutionEditor] Lỗi khi lưu:', err);
-      alert('Có lỗi xảy ra khi lưu: ' + (err instanceof Error ? err.message : 'Lỗi không xác định'));
+      toast.error('Có lỗi xảy ra khi lưu: ' + (err instanceof Error ? err.message : 'Lỗi không xác định'));
     }
   };
 
@@ -140,7 +141,6 @@ export default function SolutionEditor() {
           </div>
         </div>
 
-        {error && <div className="mb-8 rounded-2xl border border-rose-500/20 bg-rose-500/10 p-4 text-xs font-bold text-rose-400">{error}</div>}
 
         <div className="space-y-12">
           {/* Cấu hình tiêu đề chính */}
@@ -208,7 +208,7 @@ export default function SolutionEditor() {
 
                 <div className="space-y-6">
                   <ImageUploadField
-                    label="Phương tiện (Ảnh/Video)"
+                    label="Phương tiện (Ảnh/Video - 800 x 800px)"
                     value={feature.mediaUrl}
                     onChange={(val) => updateFeature(fIndex, { mediaUrl: val as any })}
                     type={feature.isVideo ? 'video' : 'image'}

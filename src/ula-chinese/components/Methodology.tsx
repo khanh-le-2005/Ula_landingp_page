@@ -6,15 +6,33 @@ import { resolveAssetUrl } from '../utils/assetUtil';
 
 // Component cho 4 ô nhỏ bên phải
 const FeatureCard = ({ number, title, subTitle, imgSrc }: { number: string; title: string; subTitle: string; imgSrc: string }) => (
-  <div className="bg-white/60 rounded-[24px] sm:rounded-[32px] p-4 sm:p-6 border border-white/60 flex flex-col items-center text-center group transition-all duration-500 shadow-sm">
-    <span className="text-[10px] sm:text-[12px] font-black text-black uppercase tracking-widest transition-colors uppercase">{number}</span>
-    <figure className="mt-3 sm:mt-4 w-full aspect-[4/3] bg-slate-200 overflow-hidden rounded-xl sm:rounded-2xl border border-slate-100/50 group-hover:border-white/10 transition-all">
-      <img src={resolveAssetUrl(imgSrc)} className="w-full h-full object-cover grayscale-[0.3] group-hover:grayscale-0 transition-all duration-700" alt={title} />
+  // 1. Thêm h-full vào thẻ cha ngoài cùng để nó căng tràn 100% chiều cao của ô Grid
+  <div className="bg-gradient-to-r from-[#7f1d1d] via-[#991b1b] to-[#dc2626] rounded-[24px] sm:rounded-[32px] p-4 sm:p-3 border border-white/60 flex flex-col items-center text-center group transition-all duration-500 shadow-sm h-full">
+
+    {/* Nhãn trên cùng (BÀI GIẢNG / BÀI TẬP...) */}
+    <span className="text-[10px] sm:text-[12px] font-black text-white tracking-widest uppercase mb-3 sm:mb-3 shrink-0 pt-2">
+      {number}
+    </span>
+
+    {/* Hình ảnh */}
+    <figure className="w-full aspect-[4/3] overflow-hidden rounded-xl sm:rounded-2xl transition-all shrink-0">
+      <img
+        src={resolveAssetUrl(imgSrc)}
+        className="w-full h-full object-cover"
+        alt={title}
+      />
     </figure>
 
-    <div className="mt-3 sm:mt-4">
-      <h3 className="text-sm sm:text-lg font-black text-slate-700 leading-tight transition-colors uppercase">{title}</h3>
-      <p className="text-[10px] sm:text-xs text-slate-500 group-hover:text-slate-400 mt-1 font-medium transition-colors italic leading-relaxed">{subTitle}</p>
+    {/* 2. Dùng flex-1 để div bọc text này chiếm TOÀN BỘ khoảng trống còn lại của thẻ */}
+    <div className="mt-3 sm:mt-4 flex flex-col flex-1 w-full">
+      <h3 className="text-sm sm:text-sm font-black text-white leading-tight uppercase">
+        {title}
+      </h3>
+
+      {/* 3. Dùng mt-auto để đẩy dòng mô tả này xuống TẬN CÙNG dưới đáy của thẻ */}
+      <p className="mt-auto pt-1 text-[10px] sm:text-xs text-white group-hover:text-white font-medium italic leading-relaxed">
+        {subTitle}
+      </p>
     </div>
   </div>
 );
@@ -25,7 +43,7 @@ const Methodology = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#e2e8f0] p-6 lg:p-12 flex items-center justify-center">
-        <div className="animate-pulse text-slate-400 font- font-be-vietnam tracking-widest uppercase">Initializing Methodology...</div>
+        <div className="animate-pulse text-white font- font-be-vietnam tracking-widest uppercase">Initializing Methodology...</div>
       </div>
     );
   }
@@ -33,24 +51,24 @@ const Methodology = () => {
   const { mainCard, cards } = content;
 
   return (
-    <section className="p-4 sm:p-6 lg:p-12 font-extrabold font-be-vietnam text-slate-800 flex items-center justify-center rounded-xl reveal" id="methodology">
+    <section className="p-4 sm:p-6 lg:p-12 font-extrabold font-be-vietnam text-white flex items-center justify-center rounded-xl reveal bg-white/50 w-[95%] mx-auto" id="methodology">
       <div className="max-w-7xl w-full mx-auto grid grid-cols-12 gap-4 sm:gap-6 items-stretch">
 
         {/* CỘT TRÁI: Ô LỚN */}
-        <div className="col-span-12 lg:col-span-7 bg-white/50 rounded-[32px] sm:rounded-[40px] py-8 sm:py-10 flex flex-col shadow-sm px-4">
-          <span className="text-[15px] sm:text-[16px] font-black font-be-vietnam text-black uppercase tracking-widest px-5 text-center w-full">{mainCard.number}</span>
+        <div className="col-span-12 lg:col-span-7 bg-gradient-to-r from-[#7f1d1d] via-[#991b1b] to-[#dc2626] rounded-[32px] sm:rounded-[40px] py-8 sm:py-10 flex flex-col shadow-sm px-4 border border-white/60">
+          <span className="text-[15px] sm:text-[16px] font-black  text-white uppercase tracking-widest px-5 text-center w-full">{mainCard.number}</span>
 
-          <figure className="mt-6 sm:mt-8 bg-slate-800 overflow-hidden relative shadow-2xl aspect-video md:aspect-auto md:flex-grow md:h-0 rounded-xl">
+          <figure className="mt-6 sm:mt-8 bg-slate-800 overflow-hidden relative aspect-video md:aspect-auto md:flex-grow md:h-0 rounded-xl ">
             <img
               src={resolveAssetUrl(mainCard.imgSrc)}
-              className="w-full h-full object-cover opacity-90  "
+              className="w-full h-full object-cover   "
               alt={mainCard.title}
             />
           </figure>
 
           <div className="mt-6 sm:mt-8 px-5 text-center">
-            <h2 className="text-xl sm:text-2xl font-extrabold font-be-vietnam text-slate-700 leading-none uppercase">{mainCard.title}</h2>
-            <p className="text-sm sm:text-base text-slate-500 italic mt-2">({mainCard.subTitle})</p>
+            <h2 className="text-sm sm:text-sm font-extrabold font-be-vietnam text-white leading-none uppercase">{mainCard.title}</h2>
+            <p className="text-sm sm:text-base text-white italic mt-2">({mainCard.subTitle})</p>
           </div>
         </div>
 

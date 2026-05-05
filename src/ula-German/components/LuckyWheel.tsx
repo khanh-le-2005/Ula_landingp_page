@@ -154,7 +154,7 @@ export default function LuckyWheel({ onWin }: { onWin: (prize: { option: string;
   };
 
   return (
-    <section className="py-4 md:py-8 text-white rounded-[2rem] md:rounded-[3rem] bg-white mx-4 md:mx-6 mb-20 md:mb-24 overflow-hidden relative reveal [transform:translateZ(0)]" id="luckywheel">
+    <section className="py-4 md:py-8 text-white rounded-[2rem] md:rounded-[3rem] bg-white/50 mx-4 md:mx-6 mb-20 md:mb-24 overflow-hidden relative reveal [transform:translateZ(0)]" id="luckywheel">
       <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_center,_var(--color-primary)_0%,_transparent_50%)] opacity-10"></div>
       <div className="max-w-7xl mx-auto px-4 md:px-6 grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-12 items-center relative z-10">
         <div className="space-y-6 md:space-y-8 text-center md:text-left">

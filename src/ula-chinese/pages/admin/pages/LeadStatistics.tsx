@@ -17,6 +17,7 @@ import {
 
 // Import Context để tự động biết bạn đang ở Tiếng Đức hay Tiếng Trung
 import { useSiteContext } from '../../../context/LandingSiteContext';
+import { toast } from 'react-toastify';
 
 // --- 1. ĐỊNH NGHĨA TYPES ---
 interface TrendData {
@@ -69,12 +70,9 @@ export default function LeadStatistics() {
   
   // State trạng thái UI
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
-
   // --- 2. HÀM FETCH DỮ LIỆU TỰ ĐỘNG ĐỔI THEO SITEKEY ---
   const fetchDashboardData = async () => {
     setIsLoading(true);
-    setError('');
     
     const token = localStorage.getItem('ula_admin_token') || ''; 
     const headers = {
@@ -104,7 +102,7 @@ export default function LeadStatistics() {
 
     } catch (err) {
       console.error('Lỗi tải dữ liệu dashboard:', err);
-      setError(err instanceof Error ? err.message : 'Đã có lỗi xảy ra khi tải dữ liệu');
+      toast.error(err instanceof Error ? err.message : 'Đã có lỗi xảy ra khi tải dữ liệu');
     } finally {
       setIsLoading(false);
     }
@@ -132,20 +130,6 @@ export default function LeadStatistics() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="p-6 bg-red-50 text-red-600 rounded-2xl border border-red-100 flex items-start gap-4">
-        <AlertTriangle className="w-6 h-6 shrink-0 mt-0.5" />
-        <div>
-          <h3 className="font-black text-lg">Lỗi tải dữ liệu</h3>
-          <p className="font-medium mt-1">{error}</p>
-          <button onClick={fetchDashboardData} className="mt-4 px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg font-bold text-sm transition-colors">
-            Thử lại
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">

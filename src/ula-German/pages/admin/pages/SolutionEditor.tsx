@@ -1,4 +1,5 @@
 import React from 'react';
+import { toast } from 'react-toastify';
 import { RefreshCw, Save, Sparkles, Box, Type, Plus, Trash2 } from 'lucide-react';
 import { solutionDefault, type SolutionFeature, type SolutionContent } from '../adminData';
 import { ADMIN_SECTION_KEYS } from '../adminSections';
@@ -9,7 +10,7 @@ import { flattenToFormData } from '../utils/formDataUtil';
 import { resolveAssetUrl } from '../../../utils/assetUtil';
 
 export default function SolutionEditor() {
-  const { content, setContent, isLoading, isSaving, error, save, reload } = useLandingSection<SolutionContent>(
+  const { content, setContent, isLoading, isSaving, save, reload } = useLandingSection<SolutionContent>(
     ADMIN_SECTION_KEYS.solution,
     solutionDefault,
   );
@@ -107,10 +108,10 @@ export default function SolutionEditor() {
       const result = await save(formData);
 
       console.log('[SolutionEditor] Lưu thành công!', result);
-      alert('Đã lưu thay đổi thành công!');
+      toast.success('Đã lưu thay đổi Giải pháp thành công!');
     } catch (err) {
       console.error('[SolutionEditor] Lỗi khi lưu:', err);
-      alert('Có lỗi xảy ra khi lưu: ' + (err instanceof Error ? err.message : 'Lỗi không xác định'));
+      toast.error(err instanceof Error ? err.message : 'Lỗi không xác định khi lưu!');
     }
   };
 
@@ -128,18 +129,22 @@ export default function SolutionEditor() {
             </h2>
           </div>
           <div className="flex flex-wrap gap-3">
-            <button onClick={() => void reload()} className={adminSecondaryButton}>
+            <button 
+              onClick={() => {
+                void reload();
+                toast.info('Đang làm mới dữ liệu...');
+              }} 
+              className={adminSecondaryButton}
+            >
               <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
               Đồng bộ
             </button>
             <button onClick={handleSave} disabled={isSaving} className={adminPrimaryButton}>
-              <Save className="h-4 w-4" />
+              <Save className={`h-4 w-4 ${isSaving ? 'animate-bounce' : ''}`} />
               {isSaving ? 'Đang lưu...' : 'Lưu thay đổi'}
             </button>
           </div>
         </div>
-
-        {error && <div className="mb-8 rounded-2xl border border-rose-500/20 bg-rose-500/10 p-4 text-xs font-bold text-rose-400">{error}</div>}
 
         <div className="space-y-12">
           {/* Cấu hình tiêu đề chính */}
@@ -207,7 +212,7 @@ export default function SolutionEditor() {
 
                 <div className="space-y-6">
                   <ImageUploadField
-                    label="Phương tiện (Ảnh/Video)"
+                    label="Phương tiện (Ảnh/Video - 800 x 800px)"
                     value={feature.mediaUrl}
                     onChange={(val) => updateFeature(fIndex, { mediaUrl: val as any })}
                     type={feature.isVideo ? 'video' : 'image'}

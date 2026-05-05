@@ -37,6 +37,9 @@ router.get("/stats/kocs", verifyToken, checkRole(["ADMIN", "EDITOR"]), leadContr
 // Admin/Editor: Thống kê hiệu suất marketing (Clicks, Leads, CR)
 router.get("/stats/marketing", verifyToken, checkRole(["ADMIN", "EDITOR"]), leadController.getMarketingStats);
 
+// Admin/Editor: Dữ liệu cho BIỂU ĐỒ (Charts)
+router.get("/stats/charts", verifyToken, checkRole(["ADMIN", "EDITOR"]), leadController.getChartStats);
+
 // Admin/Editor: Cập nhật Lead (CRM: Status, Notes, Assigned)
 router.put("/:id", verifyToken, checkRole(["ADMIN", "EDITOR"]), leadController.updateLead);
 

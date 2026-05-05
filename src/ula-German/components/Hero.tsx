@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
-import { ChevronRight, Play, Star, Volume2 } from "lucide-react";
+import { ChevronRight, Play, Star, Volume2, VolumeX } from "lucide-react";
 import { heroDefault } from "../pages/admin/adminData";
 import { ADMIN_SECTION_KEYS } from "../pages/admin/adminSections";
 import { useLandingSection } from "../pages/admin/hooks/useLandingSection";
@@ -38,11 +38,12 @@ const transformVimeoUrl = (url: string) => {
   return `${trimmed}${separator}autoplay=1&muted=0&controls=0&badge=0&autopause=0&vimeo_logo=0&dnt=1`;
 };
 
-function SlimVimeoPlayer({ videoUrl, title, onProgress, onDuration, isPaused, seekTo }: SlimVimeoPlayerProps & {
+function SlimVimeoPlayer({ videoUrl, title, onProgress, onDuration, isPaused, seekTo, isMuted }: SlimVimeoPlayerProps & {
   onProgress?: (time: number) => void;
   onDuration?: (duration: number) => void;
   isPaused?: boolean;
   seekTo?: number | null;
+  isMuted?: boolean;
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const playerRef = useRef<any>(null);
@@ -66,6 +67,9 @@ function SlimVimeoPlayer({ videoUrl, title, onProgress, onDuration, isPaused, se
           player.getDuration().then((duration: number) => {
             onDuration?.(duration);
           });
+          if (isMuted !== undefined) {
+            player.setVolume(isMuted ? 0 : 1);
+          }
         });
       }
     };
@@ -93,6 +97,12 @@ function SlimVimeoPlayer({ videoUrl, title, onProgress, onDuration, isPaused, se
     }
   }, [seekTo]);
 
+  useEffect(() => {
+    if (playerRef.current) {
+      playerRef.current.setVolume(isMuted ? 0 : 1);
+    }
+  }, [isMuted]);
+
   const enhancedUrl = transformVimeoUrl(videoUrl);
 
   return (
@@ -110,12 +120,34 @@ function SlimVimeoPlayer({ videoUrl, title, onProgress, onDuration, isPaused, se
 export default function Hero() {
   const { content: hero } = useLandingSection(ADMIN_SECTION_KEYS.hero, heroDefault);
   const heroSectionRef = useRef<HTMLElement | null>(null);
-  const [isPlayingHeroVideo, setIsPlayingHeroVideo] = useState(false);
+  const [isPlayingHeroVideo, setIsPlayingHeroVideo] = useState(true);
   const [isPaused, setIsPaused] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [seekTo, setSeekTo] = useState<number | null>(null);
-  const [isHeroBannerInView] = useState(true);
+  const [isHeroBannerInView, setIsHeroBannerInView] = useState(true);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          setIsHeroBannerInView(entry.isIntersecting);
+        });
+      },
+      { threshold: 0.1 }
+    );
+
+    if (heroSectionRef.current) {
+      observer.observe(heroSectionRef.current);
+    }
+
+    return () => {
+      if (heroSectionRef.current) {
+        observer.unobserve(heroSectionRef.current);
+      }
+    };
+  }, []);
   const [isDragging, setIsDragging] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const progressBarRef = useRef<HTMLDivElement>(null);
@@ -247,7 +279,7 @@ export default function Hero() {
             <h1 className="mt-5 font-be-vietnam sm:text-[28px] md:text-[36px] lg:text-[45px] font-extrabold text-[#1a2b48] leading-tight tracking-tight space-y-2 animate-fade-in-up [animation-delay:200ms]">
               <span className="block whitespace-nowrap">{hero.headlineTop}</span>
               <span className="block">
-                <span className="inline-block text-[1.08em] sm:text-[1.1em] lg:text-[1.08em] text-[#d4b36d] drop-shadow-[0_6px_16px_rgba(197,160,89,0.14)] [-webkit-text-stroke:0.5px_#ffffcc]">{hero.headlineHighlight}</span>
+                <span className="inline-block text-[1.08em] sm:text-[1.1em] lg:text-[1.08em] text-[#d4b36d] drop-shadow-[0_6px_16px_rgba(197,160,89,0.14)] [-webkit-text-stroke:0.5px_#ffffcc] whitespace-pre-line">{hero.headlineHighlight}</span>
               </span>
               <span className="block">{hero.headlineBottom}</span>
             </h1>
@@ -307,8 +339,9 @@ export default function Hero() {
                       title={heroVideoTitle}
                       onProgress={setCurrentTime}
                       onDuration={setDuration}
-                      isPaused={isPaused}
+                      isPaused={isPaused || !isHeroBannerInView}
                       seekTo={seekTo}
+                      isMuted={isMuted}
                     />
 
                     {/* Click Overlay to toggle controls */}
@@ -363,8 +396,15 @@ export default function Hero() {
                         </div>
 
                         {/* Volume Icon */}
-                        <button className="flex shrink-0 items-center justify-center h-7 w-7 md:h-9 md:w-9 rounded-full hover:bg-slate-50 transition-colors text-slate-500">
-                          <Volume2 className="h-4 w-4 md:h-5 md:w-5" />
+                        <button 
+                          onClick={() => setIsMuted(!isMuted)}
+                          className="flex shrink-0 items-center justify-center h-7 w-7 md:h-9 md:w-9 rounded-full hover:bg-slate-50 transition-colors text-slate-500"
+                        >
+                          {isMuted ? (
+                            <VolumeX className="h-4 w-4 md:h-5 md:w-5" />
+                          ) : (
+                            <Volume2 className="h-4 w-4 md:h-5 md:w-5" />
+                          )}
                         </button>
                       </div>
                     </div>

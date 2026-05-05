@@ -1,7 +1,7 @@
 const { Campaign } = require("../models/campaignModel");
 const { Image } = require("../models/imageModel");
 const imageService = require("../services/imageService");
-const { unflatten, getNestedValue } = require("../utils/objectUtil");
+const { unflatten, getNestedValue, deepMergePreserveImages } = require("../utils/objectUtil");
 
 const getFullUrl = (req, siteKey, tag) => {
   const protocol = req.protocol === "http" && req.get("host").includes("localhost") ? "http" : "https";
@@ -54,12 +54,16 @@ const createCampaign = async (req, res, next) => {
     // --- Xử lý file ảnh được upload lên (nếu có) ---
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
+        // Upload buffer to GridFS
+        const gridfsId = await imageService.uploadToGridFS(file);
+
         const newImage = new Image({
-          filename: file.filename,
+          filename: file.filename || file.originalname,
           originalName: file.originalname,
           mimetype: file.mimetype,
           size: file.size,
-          path: file.path
+          path: "",
+          gridfsId: gridfsId
         });
         await newImage.save();
         // Lưu đường dẫn ảnh tương đối vào body
@@ -68,6 +72,9 @@ const createCampaign = async (req, res, next) => {
     }
 
     const body = unflatten(rawBody); // Xử lý lồng ghép JSON/FormData
+
+    console.log("[DEBUG CAMPAIGN CREATE] rawBody:", JSON.stringify(rawBody));
+    console.log("[DEBUG CAMPAIGN CREATE] unflatten(rawBody):", JSON.stringify(body));
 
     // Chuẩn hóa: Nếu Frontend gửi mảng [{sectionKey, content}] thay vì Object
     if (Array.isArray(body.sections)) {
@@ -137,12 +144,16 @@ const updateCampaign = async (req, res, next) => {
         }
 
         // 2. Lưu ảnh mới
+        // Upload buffer to GridFS
+        const gridfsId = await imageService.uploadToGridFS(file);
+
         const newImage = new Image({
-          filename: file.filename,
+          filename: file.filename || file.originalname,
           originalName: file.originalname,
           mimetype: file.mimetype,
           size: file.size,
-          path: file.path
+          path: "",
+          gridfsId: gridfsId
         });
         await newImage.save();
         rawBody[file.fieldname] = `/api/images/${newImage._id.toString()}`;
@@ -169,9 +180,13 @@ const updateCampaign = async (req, res, next) => {
       }));
     }
 
+    // MERGE: Kết hợp body mới với data cũ để bảo vệ ảnh không bị ghi đè rỗng
+    const existingObj = existingCampaign.toObject();
+    const safeBody = deepMergePreserveImages(existingObj, body);
+
     const campaign = await Campaign.findOneAndUpdate(
       { _id: req.params.id, siteKey },
-      body,
+      safeBody,
       { new: true, runValidators: true }
     );
     if (!campaign) return res.status(404).json({ message: "Không tìm thấy chiến dịch hoặc bạn không có quyền sửa" });

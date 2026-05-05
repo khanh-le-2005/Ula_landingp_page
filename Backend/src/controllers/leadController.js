@@ -659,6 +659,142 @@ const getMarketingStats = async (req, res, next) => {
   }
 };
 
+/**
+ * 5. Báo cáo Dạng Biểu Đồ (Charts) - Dành riêng cho Frontend hiển thị Chart.js/Recharts
+ * Trả về 3 bộ dữ liệu: Clicks, Leads, CR theo từng Link UTM/Ref (Tên link cụ thể)
+ */
+const getChartStats = async (req, res, next) => {
+  try {
+    const siteKey = req.siteKey;
+    const { from, to } = req.query;
+
+    const filter = { siteKey };
+    if (from || to) {
+      filter.createdAt = {};
+      if (from) filter.createdAt.$gte = new Date(from);
+      if (to) filter.createdAt.$lte = new Date(to);
+    }
+
+    // 1. Lấy danh sách các Marketing Link đã tạo để có Tên hiển thị (Labels)
+    const { MarketingLink } = require("../models/marketingLinkModel");
+    const marketingLinks = await MarketingLink.find({ siteKey });
+
+    // 2. Thực hiện Aggregation song song để lấy Clicks và Leads
+    const [clicksStats, leadsStats] = await Promise.all([
+      MarketingClick.aggregate([
+        { $match: filter },
+        {
+          $group: {
+            _id: {
+              s: "$utm_source",
+              m: "$utm_medium",
+              c: "$utm_campaign",
+              ct: "$utm_content",
+              t: "$utm_term",
+              r: "$referralCode"
+            },
+            count: { $sum: 1 }
+          }
+        }
+      ]),
+      Lead.aggregate([
+        { $match: filter },
+        {
+          $group: {
+            _id: {
+              s: "$utm_source",
+              m: "$utm_medium",
+              c: "$utm_campaign",
+              ct: "$utm_content",
+              t: "$utm_term",
+              r: "$referralCode"
+            },
+            count: { $sum: 1 }
+          }
+        }
+      ])
+    ]);
+
+    // 3. Hợp nhất kết quả bằng Map theo ID bộ UTM (Identity Hash)
+    const statsMap = new Map();
+    
+    // Helper để tạo Key duy nhất cho bộ UTM (Bao gồm cả content và term để siêu chính xác)
+    const getUtmKey = (id) => JSON.stringify({ 
+      s: id.s, m: id.m, c: id.c, ct: id.ct, t: id.t, r: id.r 
+    });
+
+    clicksStats.forEach(c => {
+      statsMap.set(getUtmKey(c._id), { clicks: c.count, leads: 0 });
+    });
+
+    leadsStats.forEach(l => {
+      const key = getUtmKey(l._id);
+      if (statsMap.has(key)) {
+        statsMap.get(key).leads = l.count;
+      } else {
+        statsMap.set(key, { clicks: 0, leads: l.count });
+      }
+    });
+
+    // 4. Ánh xạ dữ liệu Thống kê vào danh sách MarketingLink (Dùng Tên Link làm Label)
+    const chartData = marketingLinks.map(link => {
+      const utmKey = JSON.stringify({
+        s: link.utm_source || null,
+        m: link.utm_medium || null,
+        c: link.utm_campaign || null,
+        ct: link.utm_content || null,
+        t: link.utm_term || null,
+        r: link.ref || null
+      });
+
+      const stats = statsMap.get(utmKey) || { clicks: 0, leads: 0 };
+      // Xóa khỏi map để lát nữa xử lý các link "ngoài hệ thống" (vãng lai)
+      statsMap.delete(utmKey);
+
+      return {
+        label: link.name || "Chưa đặt tên",
+        clicks: stats.clicks,
+        leads: stats.leads
+      };
+    });
+
+    // 5. Gom các link "Vãng lai" (không có trong quản lý Link) 
+    statsMap.forEach((stats, key) => {
+      const id = JSON.parse(key);
+      if (stats.clicks > 0 || stats.leads > 0) {
+        chartData.push({
+          label: `Other: ${id.s || 'direct'} / ${id.r || 'none'}`,
+          clicks: stats.clicks,
+          leads: stats.leads
+        });
+      }
+    });
+
+    // 6. Sắp xếp và lấy Top 15
+    const topData = chartData
+      .sort((a, b) => b.clicks - a.clicks)
+      .slice(0, 15);
+
+    const labels = topData.map(d => d.label);
+    const clicks = topData.map(d => d.clicks);
+    const leads = topData.map(d => d.leads);
+    const cr = topData.map(d => d.clicks > 0 ? parseFloat(((d.leads / d.clicks) * 100).toFixed(1)) : (d.leads > 0 ? 100 : 0));
+
+    res.status(200).json({
+      siteKey,
+      labels,
+      datasets: {
+        clicks,
+        leads,
+        cr
+      },
+      raw: topData
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = { 
   submitForward, 
   submitGerman, 
@@ -671,6 +807,7 @@ module.exports = {
   getConversionStats,
   getKocPerformanceStats,
   getMarketingStats,
+  getChartStats,
   updateLead, 
   deleteLead 
 };

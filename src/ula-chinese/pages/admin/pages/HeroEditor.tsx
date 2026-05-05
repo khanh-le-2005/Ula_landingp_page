@@ -7,6 +7,7 @@ import { adminCard, adminInput, adminLabel, adminPrimaryButton, adminSecondaryBu
 import { ImageUploadField } from '../components/ImageUploadField';
 import { flattenToFormData } from '../utils/formDataUtil';
 import { resolveAssetUrl } from '../../../utils/assetUtil';
+import { toast } from 'react-toastify';
 
 export default function HeroEditor() {
   const { content: hero, setContent: setHero, isLoading, isSaving, error, lastSavedAt, reload, save } = useLandingSection(
@@ -15,14 +16,18 @@ export default function HeroEditor() {
   );
 
   const handleSave = async () => {
-    // Nếu có bất kỳ trường nào là File, chúng ta cần gửi FormData
-    const hasFiles = Object.values(hero).some(val => val instanceof File);
+    try {
+      const hasFiles = Object.values(hero).some(val => val instanceof File);
 
-    if (hasFiles) {
-      const formData = flattenToFormData(hero);
-      await save(formData);
-    } else {
-      await save(hero);
+      if (hasFiles) {
+        const formData = flattenToFormData(hero);
+        await save(formData);
+      } else {
+        await save(hero);
+      }
+      toast.success('Đã lưu thay đổi thành công!');
+    } catch (err) {
+      toast.error('Lỗi khi lưu: ' + (err instanceof Error ? err.message : 'Lỗi không xác định'));
     }
   };
 
@@ -70,12 +75,6 @@ export default function HeroEditor() {
             )}
           </div>
 
-          {error && (
-            <div className="mb-8 rounded-2xl border border-rose-500/20 bg-rose-500/10 p-4 text-xs font-bold text-rose-400">
-              <Sparkles className="inline-block w-4 h-4 mr-2" />
-              {error}
-            </div>
-          )}
 
           <div className="space-y-8">
             <div className="grid md:grid-cols-2 gap-6 pb-6 border-b border-slate-100">
@@ -113,7 +112,7 @@ export default function HeroEditor() {
               <div className="grid md:grid-cols-3 gap-4">
                 <input className={adminInput} value={hero.headlineTop} onChange={(e) => setHero({ ...hero, headlineTop: e.target.value })} placeholder="Phần đầu" />
                 <div className="relative">
-                  <input className={`${adminInput} !border-indigo-200 !bg-indigo-50`} value={hero.headlineHighlight} onChange={(e) => setHero({ ...hero, headlineHighlight: e.target.value })} placeholder="Phần nổi bật" />
+                  <textarea className={`${adminInput} !border-indigo-200 !bg-indigo-50 min-h-[46px] resize-y`} value={hero.headlineHighlight === '\u200B' ? '' : hero.headlineHighlight} onChange={(e) => setHero({ ...hero, headlineHighlight: e.target.value })} placeholder="Phần nổi bật" />
                   <div className="absolute -top-1 -right-1 h-3 w-3 bg-indigo-500 rounded-full blur-[2px] opacity-30" />
                 </div>
                 <input className={adminInput} value={hero.headlineBottom} onChange={(e) => setHero({ ...hero, headlineBottom: e.target.value })} placeholder="Phần kết" />

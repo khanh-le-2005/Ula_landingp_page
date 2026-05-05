@@ -8,6 +8,7 @@ const clickSchema = new mongoose.Schema(
     utm_medium: { type: String },
     utm_campaign: { type: String },
     utm_content: { type: String },
+    utm_term: { type: String },
     fbc: { type: String },
     fbp: { type: String },
     ip: { type: String },
@@ -19,6 +20,7 @@ const clickSchema = new mongoose.Schema(
 // Index để hỗ trợ thống kê theo thời gian và UTM nhanh chóng
 clickSchema.index({ createdAt: 1, siteKey: 1 });
 clickSchema.index({ utm_source: 1, utm_medium: 1, utm_campaign: 1 });
+clickSchema.index({ siteKey: 1, utm_source: 1, utm_medium: 1, utm_campaign: 1, utm_content: 1, utm_term: 1, referralCode: 1 }, { name: "idx_marketing_stats_v2" });
 
 const MarketingClick = mongoose.model("MarketingClick", clickSchema);
 
